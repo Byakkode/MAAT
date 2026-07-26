@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="MAAT.Api/MAAT.Api.csproj" />
+  <Project Path="MAAT.Application/MAAT.Application.csproj" />
+  <Project Path="MAAT.Domain.Tests/MAAT.Domain.Tests.csproj" />
+  <Project Path="MAAT.Domain/MAAT.Domain.csproj" />
+  <Project Path="MAAT.Infrastructure/MAAT.Infrastructure.csproj" />
+  <Project Path="MAAT.IntegrationTests/MAAT.IntegrationTests.csproj" />
+</Solution>

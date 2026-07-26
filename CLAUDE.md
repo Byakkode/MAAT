@@ -35,6 +35,32 @@ SELinux est en mode enforcing : tout montage de volume dans
 docker-compose.yml DOIT porter le suffixe `:Z`, sinon le conteneur
 échoue avec « permission denied ».
 
+L'image postgres:18 attend le point de montage sur `/var/lib/postgresql`
+(et non `/var/lib/postgresql/data` comme en 16/17). Vérifié empiriquement.
+
+Port hôte de la base configurable via `POSTGRES_PORT` (défaut 5433).
+
+### Tests d'intégration (Testcontainers + Podman rootless)
+
+`MAAT.IntegrationTests` démarre un vrai conteneur `postgres:18` via
+`Testcontainers.PostgreSql` (pas de provider InMemory : il ignore types,
+longueurs et contraintes de colonnes, donc ne détecte pas les erreurs de
+schéma). Chaque run applique la migration EF Core dans le conteneur avant les
+tests.
+
+Prérequis, une fois par poste :
+
+```bash
+systemctl --user enable --now podman.socket
+```
+
+Variables d'environnement requises pour lancer `dotnet test` (Podman n'écoute
+pas sur le socket Docker par défaut) :
+
+```bash
+export DOCKER_HOST="unix:///run/user/$(id -u)/podman/podman.sock"
+export TESTCONTAINERS_RYUK_DISABLED=true   # ryuk (reaper) pose problème en rootless ; le fixture ferme le conteneur explicitement
+```
 
 ## Règles d'architecture
 
