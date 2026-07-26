@@ -1,0 +1,52 @@
+@import "@fontsource/poppins/latin-500.css";
+@import "@fontsource/poppins/latin-ext-500.css";
+@import "@fontsource/poppins/latin-600.css";
+@import "@fontsource/poppins/latin-ext-600.css";
+@import "@fontsource/poppins/latin-700.css";
+@import "@fontsource/poppins/latin-ext-700.css";
+@import "@fontsource/inter/latin-300.css";
+@import "@fontsource/inter/latin-ext-300.css";
+@import "@fontsource/inter/latin-400.css";
+@import "@fontsource/inter/latin-ext-400.css";
+@import "tailwindcss";
+
+@theme {
+  --color-blue-maat: #1565ff;
+  --color-green-maat: #29cc6a;
+  --color-orange: #ffa64d;
+  --color-red: #e53935;
+  --color-green-light: #33d69f;
+  --color-bg: #f8f9fc;
+  --color-text: #1e1e2d;
+  --color-text-muted: #6b7280;
+  --color-border: #e5e7eb;
+
+  --color-chart-environnement: #29cc6a;
+  --color-chart-social: #1e88e5;
+  --color-chart-ethique: #7e57c2;
+  --color-chart-gouvernance: #42a5f5;
+  --color-chart-economique: #ffb74d;
+
+  --font-heading: "Poppins", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+
+  --radius-button: 8px;
+  --radius-card: 12px;
+
+  --shadow-button: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-heading);
+}
