@@ -9,6 +9,8 @@ public class User
     public string PasswordHash { get; set; } = default!;
     public Guid CompanyId { get; set; }
     public UserRole Role { get; set; }
+    public bool EmailVerified { get; set; }
+    public DateTimeOffset? EmailVerifiedAt { get; set; }
     public DateTimeOffset? LastLogin { get; set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
@@ -23,6 +25,7 @@ public class User
         PasswordHash = passwordHash;
         CompanyId = companyId;
         Role = role;
+        EmailVerified = false;
         CreatedAt = DateTimeOffset.UtcNow;
     }
 }

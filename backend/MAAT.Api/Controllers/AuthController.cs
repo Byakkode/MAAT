@@ -1,0 +1,131 @@
+using MAAT.Application.DTOs;
+using MAAT.Application.Exceptions;
+using MAAT.Application.UseCases;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+
+namespace MAAT.Api.Controllers;
+
+[ApiController]
+[Route("api/auth")]
+public class AuthController(AuthService authService) : ControllerBase
+{
+    private const string RefreshCookieName = "refresh_token";
+    private const string CookiePath = "/api/auth";
+
+    [HttpPost("register")]
+    public async Task<IActionResult> Register(RegisterRequest request, CancellationToken ct)
+    {
+        try
+        {
+            await authService.RegisterAsync(request, ct);
+        }
+        catch (WeakPasswordException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (CompromisedPasswordException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+
+        // Réponse identique, que l'adresse soit déjà enregistrée ou non (anti-énumération).
+        return StatusCode(StatusCodes.Status201Created, new { message = "Vérifiez votre boîte mail pour confirmer votre inscription." });
+    }
+
+    [HttpPost("login")]
+    [EnableRateLimiting("login")]
+    public async Task<IActionResult> Login(LoginRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var tokens = await authService.LoginAsync(request, ct);
+            SetRefreshCookie(tokens.RefreshToken, tokens.RefreshTokenExpiresAt);
+            return Ok(new { accessToken = tokens.AccessToken, expiresAt = tokens.AccessTokenExpiresAt });
+        }
+        catch (InvalidCredentialsException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh(CancellationToken ct)
+    {
+        if (!Request.Cookies.TryGetValue(RefreshCookieName, out var refreshToken) || string.IsNullOrEmpty(refreshToken))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            var tokens = await authService.RefreshAsync(refreshToken, ct);
+            SetRefreshCookie(tokens.RefreshToken, tokens.RefreshTokenExpiresAt);
+            return Ok(new { accessToken = tokens.AccessToken, expiresAt = tokens.AccessTokenExpiresAt });
+        }
+        catch (RefreshTokenReuseDetectedException ex)
+        {
+            DeleteRefreshCookie();
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (InvalidRefreshTokenException ex)
+        {
+            DeleteRefreshCookie();
+            return Unauthorized(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout(CancellationToken ct)
+    {
+        if (Request.Cookies.TryGetValue(RefreshCookieName, out var refreshToken) && !string.IsNullOrEmpty(refreshToken))
+        {
+            await authService.LogoutAsync(refreshToken, ct);
+        }
+
+        DeleteRefreshCookie();
+        return NoContent();
+    }
+
+    [HttpPost("verify-email")]
+    public async Task<IActionResult> VerifyEmail(VerifyEmailRequest request, CancellationToken ct)
+    {
+        try
+        {
+            await authService.VerifyEmailAsync(request.Token, ct);
+            return NoContent();
+        }
+        catch (InvalidVerificationTokenException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpGet("me")]
+    [Authorize]
+    public IActionResult Me()
+    {
+        return Ok(new
+        {
+            userId = User.FindFirst("sub")?.Value,
+            companyId = User.FindFirst("company_id")?.Value,
+            role = User.FindFirst("role")?.Value,
+        });
+    }
+
+    private void SetRefreshCookie(string token, DateTimeOffset expiresAt)
+    {
+        Response.Cookies.Append(RefreshCookieName, token, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+            Expires = expiresAt,
+            Path = CookiePath,
+        });
+    }
+
+    private void DeleteRefreshCookie() =>
+        Response.Cookies.Delete(RefreshCookieName, new CookieOptions { Path = CookiePath });
+}

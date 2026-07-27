@@ -8,6 +8,7 @@ public class MaatDbContext(DbContextOptions<MaatDbContext> options) : DbContext(
     public DbSet<Company> Companies => Set<Company>();
     public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<EmailVerificationToken> EmailVerificationTokens => Set<EmailVerificationToken>();
     public DbSet<Diagnostic> Diagnostics => Set<Diagnostic>();
     public DbSet<DomainScore> DomainScores => Set<DomainScore>();
     public DbSet<Question> Questions => Set<Question>();
