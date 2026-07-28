@@ -54,13 +54,48 @@ l'inscription MAAT. Une liste locale élimine cette dépendance externe et
 garde le test d'intégration (cas 4) déterministe et hors ligne, condition
 posée par ce projet pour les tests d'intégration.
 
-Conséquence assumée : la liste embarquée (quelques centaines d'entrées, à
-but de démonstration) est très en deçà des ~100 000 mots de passe recommandés
-en production, et ne couvre qu'une fraction des mots de passe réellement
-compromis. Avant une mise en production, cette liste doit être remplacée par
-le jeu complet des 100 000 mots de passe les plus courants (ou par un appel
-HIBP si la dépendance externe est jugée acceptable) — cette ADR ne clôt pas
-la question, elle documente uniquement le choix retenu pour ce périmètre.
+**Mise à jour du 2026-07-27 : remplacement par une liste réelle.** La liste
+initiale (quelques dizaines d'entrées fabriquées à but de démonstration) a été
+remplacée par `Passwords/Common-Credentials/100k-most-used-passwords-NCSC.txt`
+du dépôt [SecLists](https://github.com/danielmiessler/SecLists)
+(`danielmiessler/SecLists`, branche `master`, récupérée le 2026-07-27). Cette
+liste est celle publiée par le NCSC (National Cyber Security Centre,
+Royaume-Uni) à partir du corpus *Pwned Passwords* de Troy Hunt (Have I Been
+Pwned), dans le cadre de sa campagne « Cyber Aware » recommandant de bloquer
+les mots de passe les plus fréquemment compromis — un usage directement
+équivalent à celui de `ICompromisedPasswordChecker` ici. Le fichier source
+contient 99 840 entrées.
+
+**Filtrage à 12 caractères minimum.** `AuthService.RegisterAsync` rejette
+tout mot de passe de moins de 12 caractères (politique de longueur, section 1)
+*avant* d'appeler `ICompromisedPasswordChecker` : aucune valeur transmise à
+`IsCompromisedAsync` ne peut donc jamais faire moins de 12 caractères. Sur les
+99 840 entrées de la liste NCSC, seules 1 212 atteignent cette longueur — les
+98 628 autres ne peuvent structurellement jamais correspondre à une entrée
+vérifiée et n'auraient fait qu'alourdir la ressource embarquée et le temps de
+chargement pour rien. Le fichier embarqué
+(`MAAT.Infrastructure/Security/common-passwords.txt`) ne contient donc que ce
+sous-ensemble de 1 212 entrées, filtré depuis la liste NCSC avec `awk
+'length($0) >= 12'` (aucune modification du contenu des entrées conservées,
+uniquement une exclusion par longueur).
+
+Conséquence assumée, à surveiller : ce filtrage couple la liste à la valeur
+actuelle de `MinimumPasswordLength` (12). Si cette politique de longueur
+change un jour, la liste embarquée doit être régénérée depuis la source NCSC
+avec le nouveau seuil — sans quoi elle sous-couvrirait silencieusement les
+mots de passe compromis désormais acceptés par la politique de longueur.
+
+**Chargement au démarrage, pas à la première vérification.**
+`LocalListCompromisedPasswordChecker` charge la ressource embarquée dans un
+`HashSet<string>` une seule fois, à la construction de l'instance (elle-même
+enregistrée en Singleton). `Program.cs` force cette construction juste après
+`builder.Build()`, aux côtés des autres garde-fous de démarrage, pour que le
+coût soit payé avant `app.Run()` plutôt qu'au hasard de la première
+inscription. Mesuré isolément (hors coût de démarrage ASP.NET Core lui-même) :
+construction à froid ~9 ms, à chaud ~0,3 ms — négligeable devant le temps de
+démarrage total de l'application (~600 ms, mesuré en Development sur ce
+poste), qui reste dominé par l'amorçage du hôte .NET et non par ce
+chargement.
 
 ### Réutilisation détectée : révocation de toutes les sessions actives de l'utilisateur, pas seulement de la chaîne du jeton volé
 
@@ -81,8 +116,8 @@ qui l'affaiblit.
 
 - Aucune donnée de mot de passe en clair ni aucun jeton en clair n'est
   persisté : seuls les hachages le sont, conformément à la spec.
-- Remplacer la liste locale par l'API HIBP ou par le jeu complet de 100 000
-  mots de passe ne demande de modifier que
+- Remplacer la liste locale par l'API HIBP, ou régénérer la liste locale
+  filtrée si `MinimumPasswordLength` change, ne demande de modifier que
   `LocalListCompromisedPasswordChecker` (ou son enregistrement DI dans
   `Program.cs`) : `ICompromisedPasswordChecker` isole ce choix du reste du
   service d'authentification.

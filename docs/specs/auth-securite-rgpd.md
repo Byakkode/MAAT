@@ -115,6 +115,17 @@ Une tâche de purge supprime les jetons expirés depuis plus de 30 jours.
 | `User` | lecture, création | répondre | — | — |
 | `Viewer` | lecture | — | — | — |
 
+**`POST /api/users/invite` — ne pas exposer en production.** L'implémentation
+actuelle (`UsersController.Invite` / `UserService.InviteAsync`) applique
+correctement la restriction de rôle (`Admin` seul, 403 sinon) et le
+cloisonnement (le compte créé appartient à l'entreprise du principal, jamais à
+une entreprise fournie par le client), mais crée le compte invité avec un hash
+de mot de passe aléatoire inutilisable, sans aucun flux permettant à l'invité
+de définir son propre mot de passe. Le compte créé est donc inutilisable par
+son destinataire tel quel. Cet endpoint ne doit pas être exposé en production
+tant que ce flux d'acceptation d'invitation n'est pas implémenté — il n'a été
+construit que pour vérifier le contrôle de rôle du cas de test 17.
+
 ### Cloisonnement par entreprise — section critique
 
 **Toute** requête portant sur `Diagnostic`, `Response`, `DomainScore`,
@@ -155,6 +166,16 @@ variables d'environnement en production. La clé de signature JWT fait au minimu
 **Journalisation** : aucune donnée personnelle, aucun jeton, aucun mot de passe,
 aucun corps de requête d'authentification. Les tentatives de connexion échouées
 sont journalisées avec l'adresse IP et l'horodatage, sans l'adresse email testée.
+Même règle pour les échecs de reconfirmation de mot de passe sur `POST
+/api/me/export` et `DELETE /api/me` (section 6) : IP et horodatage, jamais le
+mot de passe testé.
+
+**Un mot de passe ne transite jamais par un en-tête ni une query string.**
+Contrairement au corps d'une requête, les en-têtes et les paramètres d'URL sont
+couramment journalisés par les reverse proxies, CDN et load balancers — hors du
+contrôle du code applicatif. Toute reconfirmation de mot de passe (section 6)
+passe donc par le corps JSON, jamais par un en-tête dédié ni un paramètre de
+requête, même sur un endpoint en lecture seule.
 
 ---
 
@@ -174,15 +195,40 @@ l'existence de dispositifs, jamais sur des situations individuelles.
 
 ### Droits des personnes
 
-`GET /api/me/export` — droit d'accès et portabilité (art. 15 et 20). Export JSON
-structuré de l'intégralité des données du compte et de son entreprise.
+`POST /api/me/export` — droit d'accès et portabilité (art. 15 et 20). Export JSON
+structuré de l'intégralité des données du compte et de son entreprise : `User`,
+`Company`, `Diagnostic`, `Response`, `DomainScore`, `DiagnosticRecommendation`
+et `Report`. `DiagnosticRecommendation` doit y figurer avec ses champs
+`is_completed` et `completed_at` : ce sont des données saisies par l'utilisateur
+(cases à cocher du tableau de bord), pas des valeurs dérivées recalculables — les
+omettre rendrait l'export incomplet au regard des art. 15 et 20, contrairement
+par exemple à `Response.score_contribution` (délibérément absent du modèle,
+voir `modele-donnees.md`), qui n'a jamais existé nulle part parce qu'il est
+recalculable à tout moment.
+
+En `POST`, pas en `GET` : la reconfirmation de mot de passe (voir plus bas) doit
+passer par le corps de la requête, qu'un `GET` ne porte pas de façon fiable côté
+navigateur.
 
 `DELETE /api/me` — droit à l'effacement (art. 17). Purge en cascade de `User`,
-`RefreshToken`, `Company`, `Diagnostic`, `Response`, `DomainScore`,
-`DiagnosticRecommendation` et `Report`. Suppression réelle, pas de suppression
-logique : un enregistrement marqué supprimé reste une donnée conservée.
+`RefreshToken`, `EmailVerificationToken`, `Company`, `Diagnostic`, `Response`,
+`DomainScore`, `DiagnosticRecommendation` et `Report`. Suppression réelle, pas
+de suppression logique : un enregistrement marqué supprimé reste une donnée
+conservée.
 
-Les deux opérations exigent une reconfirmation du mot de passe.
+Les deux opérations exigent une reconfirmation du mot de passe, transmise dans
+le corps JSON de la requête (jamais en en-tête ni en query string — section 5).
+
+**Limitation de débit.** Ces deux endpoints acceptent un mot de passe en clair
+et le vérifient : sans limitation, ils constituent un oracle de mot de passe
+hors du chemin `/api/auth/login`, avec ni les protections de la section 2 ni sa
+journalisation. Même mécanisme que la limitation de la connexion (middleware
+natif de rate limiting d'ASP.NET Core, fenêtre fixe, 5 tentatives par tranche de
+15 minutes, réponse `429` au-delà), mais partitionné par utilisateur authentifié
+plutôt que par IP + email : l'identité est déjà connue via le JWT, il n'y a rien
+à énumérer. Les deux endpoints partagent le même compteur par utilisateur, pas
+un quota séparé chacun — sans quoi alterner entre eux doublerait le nombre de
+mots de passe testables.
 
 ### Conservation
 
@@ -212,6 +258,12 @@ Le calcul de position sectorielle n'expose jamais un score individuel et n'est
 affiché qu'à partir de 5 entreprises dans le secteur. En deçà, les scores
 redeviennent ré-identifiables par recoupement.
 
+Cette règle est une exigence RGPD d'anonymisation, pas une simple préférence
+d'affichage — elle doit être vérifiée par le code, pas seulement respectée par
+convention dans le frontend. Sa vérification revient au module tableau de bord,
+où le calcul de benchmark sera implémenté (aucun code de benchmark n'existe à
+ce jour) ; elle ne figure donc pas parmi les cas de test de ce module-ci.
+
 ### Violation de données
 
 Procédure de notification à la CNIL sous 72 heures documentée dans
@@ -226,8 +278,15 @@ mieux qu'une improvisation pendant.
 éprouvée, JWT via `Microsoft.AspNetCore.Authentication.JwtBearer`. Aucun hachage,
 aucune signature, aucune comparaison de secret écrits à la main.
 
-**Ne pas comparer les secrets avec `==`.** Utiliser une comparaison à temps
-constant pour les jetons et les hash.
+**Ne pas comparer les jetons en clair avec `==`.** Une comparaison caractère par
+caractère sur le secret en clair fuit une information temporelle exploitable. La
+parade recommandée n'est pas nécessairement une comparaison à temps constant :
+hacher le jeton présenté (SHA-256 suffit, l'entropie vient du jeton, pas de
+l'algorithme) et rechercher ce hash en base via un index revient au même
+résultat — la comparaison porte sur un condensé imprévisible, pas sur le secret,
+et le canal temporel n'est plus exploitable. C'est le choix retenu pour les
+refresh tokens et les jetons de vérification d'e-mail (voir
+`TokenHasher`/ADR 0004).
 
 **Ne pas faire confiance au `company_id` transmis par le client**, sous quelque
 forme que ce soit — corps de requête, paramètre d'URL, en-tête. La seule source
@@ -272,9 +331,8 @@ Tests d'intégration sous `MAAT.IntegrationTests`, contre PostgreSQL réel.
 **RGPD**
 
 18. Export → contient l'intégralité des données du compte, dans un format exploitable.
-19. Suppression de compte → aucune ligne résiduelle dans les huit tables concernées.
+19. Suppression de compte → aucune ligne résiduelle dans les neuf tables concernées.
 20. Suppression de compte → les tables de référence restent intactes.
-21. Benchmark avec moins de 5 entreprises dans le secteur → non affiché.
 
 Les cas 13 à 15 sont ceux à montrer en soutenance. Ce sont eux qui prouvent que
 la confidentialité vendue par le produit est vérifiée par le code, et non promise

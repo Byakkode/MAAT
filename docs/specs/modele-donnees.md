@@ -80,6 +80,8 @@ Compte utilisateur authentifié.
 | `password_hash` | varchar(100) | requis, bcrypt |
 | `company_id` | uuid | FK → Company, requis |
 | `role` | enum | requis, défaut `User` |
+| `email_verified` | boolean | requis, défaut `false` |
+| `email_verified_at` | timestamptz | nullable |
 | `last_login` | timestamptz | nullable |
 | `created_at` | timestamptz | requis |
 
@@ -89,6 +91,13 @@ L'unicité de l'email est globale, pas par entreprise. L'index unique doit porte
 sur la valeur normalisée en minuscules.
 
 Ne jamais exposer `password_hash` dans un DTO, sous aucun prétexte.
+
+`email_verified` distingue un compte dont l'adresse a été confirmée via
+`EmailVerificationToken` d'un compte qui ne l'a pas encore été. Un compte non
+vérifié peut se connecter mais ne peut pas générer de rapport PDF (section 1 de
+`auth-securite-rgpd.md`) — la restriction porte sur la génération de rapport, pas
+sur l'authentification. `email_verified_at` reste `null` tant que
+`email_verified` est `false`.
 
 ---
 
@@ -111,6 +120,34 @@ doit pas permettre d'usurper des sessions.
 
 À la rotation, révoquer l'ancien token plutôt que le supprimer — la présence d'un
 token révoqué réutilisé signale une compromission.
+
+---
+
+## EmailVerificationToken
+
+Jeton de vérification d'adresse e-mail, émis à l'inscription (section 1 de
+`auth-securite-rgpd.md`).
+
+| Colonne | Type | Contraintes |
+| --- | --- | --- |
+| `id` | uuid | PK |
+| `user_id` | uuid | FK → User, requis |
+| `token_hash` | varchar(100) | requis, indexé |
+| `expires_at` | timestamptz | requis |
+| `consumed_at` | timestamptz | nullable |
+| `created_at` | timestamptz | requis |
+
+Stocker le **hash** du jeton, jamais sa valeur en clair — même raison que pour
+`RefreshToken.token_hash` : une fuite de la base ne doit pas permettre de
+vérifier une adresse à la place de son titulaire. Jeton à usage unique, valable
+24 heures.
+
+`consumed_at` est renseigné au moment où le jeton est utilisé pour vérifier
+l'adresse ; il fait passer `User.email_verified` à `true` et fige
+`User.email_verified_at`. Un jeton déjà consommé ou expiré est refusé,
+symétriquement à la détection de réutilisation des `RefreshToken` — mais sans
+révocation en cascade : un jeton de vérification n'ouvre pas de session, sa
+réutilisation n'a pas la même gravité qu'un vol de refresh token.
 
 ---
 
@@ -260,10 +297,21 @@ plus parmi les lignes marquées par défaut).
 
 **Invariant impératif** : pour un `sector_code` donné (y compris pour le jeu
 `is_default = true`, regroupé sous une clé logique unique puisqu'il n'a pas de
-`sector_code`), la somme des `weight` sur les 5 domaines vaut exactement 1. À
-vérifier par un test dédié parcourant l'intégralité de la table de seed. Une
-somme différente de 1 produit un score global faux sans qu'aucune exception ne
-soit levée — c'est le bug le plus dangereux du produit.
+`sector_code`), la somme des `weight` sur les 5 domaines vaut exactement 1. Une
+somme différente de 1 produit un score global faux — c'est le bug le plus
+dangereux du produit.
+
+Pour tout `sector_code` non nul, cet invariant est appliqué en base par un
+trigger différé en fin de transaction (`CONSTRAINT TRIGGER ... DEFERRABLE
+INITIALLY DEFERRED` sur `sector_weights` — un `CHECK` ordinaire ne peut pas
+porter sur un agrégat multi-lignes ; voir la migration
+`AddSectorWeightCoverageConstraint`) : une insertion, mise à jour ou suppression
+laissant un secteur avec une couverture partielle (1 à 4 domaines, ou une somme
+différente de 1) fait échouer la transaction. Zéro ligne pour un `sector_code`
+reste un état valide — secteur non configuré, repli sur la pondération par
+défaut. Le jeu `is_default = true` n'est volontairement pas couvert par ce
+trigger ; sa cohérence continue de reposer sur un test dédié parcourant
+l'intégralité de la table de seed.
 
 Prévoir un jeu de 5 lignes avec `is_default = true`, `sector_code = null` et
 0,200 sur chaque domaine, utilisé quand le code NAF de l'entreprise n'est pas
@@ -363,10 +411,13 @@ L'historique des diagnostics est un argument produit — l'utilisateur suit
 l'évolution de son score dans le temps.
 
 **Droit à l'effacement RGPD.** Il constitue la seule exception : la suppression
-d'un compte doit purger `User`, `RefreshToken`, `Company`, `Diagnostic`,
-`Response`, `DomainScore`, `DiagnosticRecommendation` et `Report` en cascade. Les
-tables de référence (`Question`, `Recommendation`, `SectorWeight`) ne contiennent
-aucune donnée personnelle et ne sont pas concernées.
+d'un compte doit purger `User`, `RefreshToken`, `EmailVerificationToken`,
+`Company`, `Diagnostic`, `Response`, `DomainScore`, `DiagnosticRecommendation`
+et `Report` en cascade. `EmailVerificationToken` s'ajoute à `RefreshToken` pour
+la même raison : c'est une donnée liée à un compte, pas une donnée de
+référence. Les tables de référence (`Question`, `Recommendation`,
+`SectorWeight`) ne contiennent aucune donnée personnelle et ne sont pas
+concernées.
 
 **Benchmark sectoriel.** Le calcul de position relative (« votre score dépasse
 67 % des PME de votre secteur ») s'appuie sur une agrégation des `Diagnostic`

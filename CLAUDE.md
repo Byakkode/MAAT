@@ -14,12 +14,15 @@ par secteur NAF → recommandations → tableau de bord → rapport PDF conforme
 ## Commandes
 
 ```bash
-docker compose up -d db                    # PostgreSQL local
-dotnet build backend/MAAT.sln
-dotnet test  backend/MAAT.sln              # DOIT passer avant tout commit
-dotnet run --project backend/MAAT.Api      # http://localhost:5000
+podman compose up -d db                    # PostgreSQL local
+dotnet build backend/MAAT.slnx
+dotnet test  backend/MAAT.slnx             # DOIT passer avant tout commit
+dotnet run --project backend/MAAT.Api      # http://localhost:5130
 cd frontend && npm run dev                 # http://localhost:5173
-cd frontend && npm run build && npm test
+cd frontend && npm run build
+cd frontend && npm run test                # Vitest + jsdom + React Testing Library + vitest-axe, une passe
+cd frontend && npm run test:watch          # idem, en mode watch
+cd frontend && npm run test:e2e            # Playwright ; démarre npm run dev tout seul (playwright.config.ts)
 
 # Migrations
 dotnet ef migrations add <Nom> \
@@ -31,9 +34,12 @@ dotnet ef migrations add <Nom> \
 Poste de dev : Fedora + Podman (pas Docker). Utiliser `podman compose`
 dans les commandes et la documentation.
 
-SELinux est en mode enforcing : tout montage de volume dans
-docker-compose.yml DOIT porter le suffixe `:Z`, sinon le conteneur
-échoue avec « permission denied ».
+Volumes nommés par défaut (voir `postgres_data` dans docker-compose.yml), pas de
+bind mount : un bind mount sur un répertoire hôte échoue en Podman rootless à
+cause du mappage d'UID entre l'utilisateur du conteneur et l'utilisateur hôte —
+un problème que le suffixe SELinux `:Z` ne corrige pas, puisqu'il relabellise
+le contexte SELinux mais ne remappe aucun UID. N'ajouter `:Z` que si un bind
+mount est réellement inévitable, et seulement sur ce montage-là.
 
 L'image postgres:18 attend le point de montage sur `/var/lib/postgresql`
 (et non `/var/lib/postgresql/data` comme en 16/17). Vérifié empiriquement.
@@ -70,6 +76,20 @@ export TESTCONTAINERS_RYUK_DISABLED=true   # ryuk (reaper) pose problème en roo
 - Le calcul du score RSE vit dans un service **pur** du Domain, sans I/O ni dépendance
   EF, pour rester testable unitairement. C'est le cœur du produit : toute modification
   de cette logique exige un test qui échoue d'abord.
+- Dans `MAAT.Api/Program.cs`, ne jamais lire `builder.Configuration` au niveau du
+  script avant `builder.Build()` : en test, `WebApplicationFactory` ne fusionne la
+  configuration injectée par `WithWebHostBuilder` qu'après `Build()`, donc une
+  lecture antérieure ne la verra jamais. Passer par
+  `AddOptions<T>().Configure<IConfiguration>(...)`, ou par le delegate d'options
+  du service concerné (ex. `AddJwtBearer`), résolus paresseusement au moment de
+  l'utilisation plutôt qu'à l'enregistrement.
+- Tests : Assert natif de xUnit et NSubstitute. Ne jamais introduire
+  FluentAssertions — licence propriétaire Xceed depuis la v8, payante en usage
+  commercial. `MAAT.Domain.Tests` ne référence ni EF Core ni `MAAT.Infrastructure`.
+- Paquets : gestion centralisée via `backend/Directory.Packages.props`. Les
+  `.csproj` ne portent jamais d'attribut `Version` sur un `PackageReference`.
+- L'énumération des domaines RSE s'appelle `RseDomain`, pas `Domain` : collision
+  avec le namespace `MAAT.Domain` (CS0118). Ne pas la renommer.
 
 ## Hébergement — contrainte non négociable
 
