@@ -36,6 +36,12 @@ public class AuthService(
             throw new CompromisedPasswordException("Ce mot de passe a été compromis lors d'une fuite de données connue. Choisissez-en un autre.");
         }
 
+        // Hachage exécuté systématiquement, y compris sur le chemin doublon ci-dessous :
+        // un retour anticipé qui l'aurait sauté aurait créé un écart de latence
+        // (~250 ms, cf. section 1 de la spec) exploitable pour détecter qu'une adresse
+        // est déjà enregistrée. Même parade que le hash factice de LoginAsync.
+        var passwordHash = passwordHasher.Hash(request.Password);
+
         var existingUser = await userRepository.FindByEmailAsync(email, ct);
         if (existingUser is not null)
         {
@@ -46,7 +52,6 @@ public class AuthService(
         var company = new Company(request.CompanyName, request.SectorCode, request.SizeRange, request.Region, request.Siret);
         await companyRepository.AddAsync(company, ct);
 
-        var passwordHash = passwordHasher.Hash(request.Password);
         var user = new User(email, passwordHash, company.Id, UserRole.Admin);
         await userRepository.AddAsync(user, ct);
 

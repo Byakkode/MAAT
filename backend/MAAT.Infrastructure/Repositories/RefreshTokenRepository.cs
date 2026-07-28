@@ -39,4 +39,9 @@ public class RefreshTokenRepository(MaatDbContext context) : IRefreshTokenReposi
             token.RevokedAt = now;
         }
     }
+
+    public Task<int> PurgeExpiredOrRevokedBeforeAsync(DateTimeOffset cutoff, CancellationToken ct) =>
+        context.RefreshTokens
+            .Where(rt => rt.ExpiresAt < cutoff || (rt.RevokedAt != null && rt.RevokedAt < cutoff))
+            .ExecuteDeleteAsync(ct);
 }

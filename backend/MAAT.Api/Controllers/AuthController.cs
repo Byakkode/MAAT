@@ -9,7 +9,7 @@ namespace MAAT.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController(AuthService authService) : ControllerBase
+public class AuthController(AuthService authService, ILogger<AuthController> logger) : ControllerBase
 {
     private const string RefreshCookieName = "refresh_token";
     private const string CookiePath = "/api/auth";
@@ -46,6 +46,11 @@ public class AuthController(AuthService authService) : ControllerBase
         }
         catch (InvalidCredentialsException ex)
         {
+            // Section 5 : IP + horodatage (implicite au journal), jamais l'adresse testée —
+            // `request.Email` n'apparaît délibérément pas dans ce message.
+            logger.LogWarning(
+                "Tentative de connexion échouée depuis {IpAddress}.",
+                HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown");
             return Unauthorized(new { message = ex.Message });
         }
     }

@@ -38,7 +38,19 @@ public sealed class SectorWeightNotFoundException : Exception
     public RseDomain Domain { get; }
 }
 
-public sealed class ScoringService
+// Interface introduite pour permettre à DiagnosticService.CompleteAsync de recevoir une
+// implémentation substituée en test (docs/specs/questionnaire.md, cas 15) : ce cas teste
+// que l'échec du calcul de score annule la transaction, pas les conditions qui peuvent
+// faire échouer le calcul lui-même — désormais couvertes en base par une contrainte
+// différée sur sector_weights (voir la migration AddSectorWeightCoverageConstraint).
+public interface IScoringService
+{
+    ScoringResult CalculateScore(
+        IReadOnlyList<QuestionScoreInput> questions,
+        IReadOnlyDictionary<RseDomain, decimal> sectorWeights);
+}
+
+public sealed class ScoringService : IScoringService
 {
     public ScoringResult CalculateScore(
         IReadOnlyList<QuestionScoreInput> questions,

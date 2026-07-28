@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Json;
@@ -107,6 +108,39 @@ public class AuthTests(AuthApiFixture fixture)
         await using var db = fixture.CreateDbContext();
         var count = await db.Users.AsNoTracking().CountAsync(u => u.Email == email.ToLowerInvariant());
         Assert.Equal(1, count);
+    }
+
+    [Fact]
+    public async Task Inscription_chemin_doublon_execute_un_hachage_bcrypt_comme_le_chemin_nominal()
+    {
+        // Comparer le chemin doublon au chemin nominal complet serait bruité : ce
+        // dernier fait des écritures supplémentaires (company, user, jeton de
+        // vérification) dont le coût varie et n'a rien à voir avec bcrypt. La
+        // référence fiable est le rejet "mot de passe trop court", qui n'exécute
+        // aucun hachage — le chemin doublon doit être nettement plus lent que lui.
+        const string tropCourt = "Court1!";
+
+        var client = fixture.CreateClient();
+        var existingEmail = UniqueEmail();
+
+        // Passages à froid hors mesure : évitent que la JIT ou le pool de connexions
+        // ne faussent les chronométrages.
+        await client.PostAsJsonAsync("/api/auth/register", RegisterPayload(existingEmail, ValidPassword));
+        await client.PostAsJsonAsync("/api/auth/register", RegisterPayload(UniqueEmail(), tropCourt));
+
+        var noHashStopwatch = Stopwatch.StartNew();
+        await client.PostAsJsonAsync("/api/auth/register", RegisterPayload(UniqueEmail(), tropCourt));
+        noHashStopwatch.Stop();
+
+        var duplicateEmailStopwatch = Stopwatch.StartNew();
+        await client.PostAsJsonAsync("/api/auth/register", RegisterPayload(existingEmail, ValidPassword));
+        duplicateEmailStopwatch.Stop();
+
+        Assert.True(
+            duplicateEmailStopwatch.ElapsedMilliseconds > noHashStopwatch.ElapsedMilliseconds * 3,
+            $"Chemin doublon ({duplicateEmailStopwatch.ElapsedMilliseconds} ms) pas nettement plus lent que " +
+            $"le rejet sans hachage ({noHashStopwatch.ElapsedMilliseconds} ms) : indice d'un hachage bcrypt " +
+            "sauté, ce qui permettrait l'énumération d'adresses par la latence.");
     }
 
     [Fact]

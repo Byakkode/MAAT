@@ -15,4 +15,7 @@ public class UserRepository(MaatDbContext context) : IUserRepository
 
     public async Task AddAsync(User user, CancellationToken ct) =>
         await context.Users.AddAsync(user, ct);
+
+    public Task<int> DeleteAllForCompanyAsync(Guid companyId, CancellationToken ct) =>
+        context.Users.Where(u => u.CompanyId == companyId).ExecuteDeleteAsync(ct);
 }

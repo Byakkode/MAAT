@@ -1,0 +1,220 @@
+using MAAT.Application.DTOs;
+using MAAT.Application.Exceptions;
+using MAAT.Application.UseCases;
+using MAAT.Domain.Enums;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace MAAT.Api.Controllers;
+
+[ApiController]
+[Route("api/diagnostics")]
+[Authorize]
+public class DiagnosticsController(DiagnosticService diagnosticService) : ControllerBase
+{
+    [HttpPost]
+    [Authorize(Roles = "Admin,User")]
+    public async Task<IActionResult> Create(CreateDiagnosticRequest request, CancellationToken ct)
+    {
+        // request.CompanyId n'est jamais lu (docs/specs/auth-securite-rgpd.md, section 4) :
+        // DiagnosticService.CreateAsync détermine l'entreprise depuis le principal authentifié.
+        try
+        {
+            var diagnostic = await diagnosticService.CreateAsync(ct);
+
+            return CreatedAtAction(nameof(GetById), new { id = diagnostic.Id }, new
+            {
+                id = diagnostic.Id,
+                companyId = diagnostic.CompanyId,
+                status = diagnostic.Status.ToString(),
+                createdAt = diagnostic.CreatedAt,
+            });
+        }
+        catch (DiagnosticAlreadyInProgressException ex)
+        {
+            return Conflict(new { message = ex.Message, existingDiagnosticId = ex.ExistingDiagnosticId });
+        }
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
+    {
+        var diagnostic = await diagnosticService.GetByIdAsync(id, ct);
+        if (diagnostic is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(new
+        {
+            id = diagnostic.Id,
+            companyId = diagnostic.CompanyId,
+            status = diagnostic.Status.ToString(),
+            globalScore = diagnostic.GlobalScore,
+            createdAt = diagnostic.CreatedAt,
+            completedAt = diagnostic.CompletedAt,
+        });
+    }
+
+    // docs/specs/questionnaire.md, section 5. Route littérale "current" : jamais en
+    // conflit avec {id:guid} ci-dessus, dont la contrainte exclut toute valeur non-GUID.
+    [HttpGet("current")]
+    public async Task<IActionResult> GetCurrent(CancellationToken ct)
+    {
+        var diagnostic = await diagnosticService.GetCurrentInProgressAsync(ct);
+        if (diagnostic is null)
+        {
+            return NotFound();
+        }
+
+        var answeredCount = await diagnosticService.CountAnsweredQuestionsAsync(diagnostic.Id, ct);
+        var totalActiveQuestions = await diagnosticService.CountActiveQuestionsAsync(ct);
+
+        return Ok(new
+        {
+            id = diagnostic.Id,
+            companyId = diagnostic.CompanyId,
+            status = diagnostic.Status.ToString(),
+            createdAt = diagnostic.CreatedAt,
+            answeredCount,
+            totalActiveQuestions,
+        });
+    }
+
+    [HttpPost("{id:guid}/abandon")]
+    [Authorize(Roles = "Admin,User")]
+    public async Task<IActionResult> Abandon(Guid id, CancellationToken ct)
+    {
+        try
+        {
+            var diagnostic = await diagnosticService.AbandonAsync(id, ct);
+            if (diagnostic is null)
+            {
+                return NotFound();
+            }
+
+            return Ok(new
+            {
+                id = diagnostic.Id,
+                companyId = diagnostic.CompanyId,
+                status = diagnostic.Status.ToString(),
+                createdAt = diagnostic.CreatedAt,
+            });
+        }
+        catch (DiagnosticNotInProgressException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    [HttpPut("{id:guid}/responses/{questionCode}")]
+    [Authorize(Roles = "Admin,User")]
+    public async Task<IActionResult> UpsertResponse(Guid id, string questionCode, UpsertResponseRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var result = await diagnosticService.UpsertResponseAsync(id, questionCode, request.Value, ct);
+            if (result is null)
+            {
+                return NotFound();
+            }
+
+            var (response, created) = result.Value;
+            var body = new
+            {
+                id = response.Id,
+                diagnosticId = response.DiagnosticId,
+                questionId = response.QuestionId,
+                value = response.Value,
+                answeredAt = response.AnsweredAt,
+            };
+
+            return created ? StatusCode(StatusCodes.Status201Created, body) : Ok(body);
+        }
+        catch (DiagnosticNotInProgressException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+        catch (QuestionNotAvailableException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("{id:guid}/complete")]
+    [Authorize(Roles = "Admin,User")]
+    public async Task<IActionResult> Complete(Guid id, CancellationToken ct)
+    {
+        try
+        {
+            var diagnostic = await diagnosticService.CompleteAsync(id, ct);
+            if (diagnostic is null)
+            {
+                return NotFound();
+            }
+
+            return Ok(new
+            {
+                id = diagnostic.Id,
+                companyId = diagnostic.CompanyId,
+                status = diagnostic.Status.ToString(),
+                globalScore = diagnostic.GlobalScore,
+                createdAt = diagnostic.CreatedAt,
+                completedAt = diagnostic.CompletedAt,
+            });
+        }
+        catch (DiagnosticNotInProgressException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+        catch (IncompleteQuestionnaireException ex)
+        {
+            return BadRequest(new { message = ex.Message, missingQuestionCodes = ex.MissingQuestionCodes });
+        }
+    }
+
+    // docs/specs/questionnaire.md, section 2, cas 21 à 24. Pas de restriction de rôle
+    // (contrairement à Create/Abandon/UpsertResponse/Complete) : lecture accessible aux
+    // trois rôles, y compris Viewer, et sur un diagnostic Completed.
+    [HttpGet("{id:guid}/questions")]
+    public async Task<IActionResult> GetQuestions(Guid id, CancellationToken ct)
+    {
+        var questions = await diagnosticService.GetQuestionsWithAnswersAsync(id, ct);
+        if (questions is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(questions.Select(q => new
+        {
+            code = q.Code,
+            text = q.Text,
+            helpText = q.HelpText,
+            domain = q.Domain.ToString(),
+            displayOrder = q.DisplayOrder,
+            value = q.Value,
+        }));
+    }
+
+    [HttpGet("{diagnosticId:guid}/domain-scores/{domain}")]
+    public async Task<IActionResult> GetDomainScore(Guid diagnosticId, RseDomain domain, CancellationToken ct)
+    {
+        var domainScore = await diagnosticService.GetDomainScoreAsync(diagnosticId, domain, ct);
+        if (domainScore is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(new
+        {
+            diagnosticId = domainScore.DiagnosticId,
+            domain = domainScore.Domain.ToString(),
+            score = domainScore.Score,
+            sectorWeight = domainScore.SectorWeight,
+        });
+    }
+}
