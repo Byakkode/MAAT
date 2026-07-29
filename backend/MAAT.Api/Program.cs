@@ -52,10 +52,15 @@ builder.Services.AddScoped<IReportRepository, ReportRepository>();
 // d'ICurrentUserContext, contrairement aux dépôts ci-dessus.
 builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
 builder.Services.AddScoped<ISectorWeightRepository, SectorWeightRepository>();
+builder.Services.AddScoped<IRecommendationRepository, RecommendationRepository>();
 
 // Sans état, donc Singleton : injecté (plutôt qu'instancié directement) pour que le cas 15
 // de questionnaire.md puisse substituer une implémentation qui lève, en test.
 builder.Services.AddSingleton<IScoringService, ScoringService>();
+
+// Même principe que IScoringService ci-dessus : substitué en test pour le cas 12 de
+// docs/specs/recommandations.md (échec de la sélection → complétion annulée).
+builder.Services.AddSingleton<IRecommendationEngine, RecommendationEngine>();
 
 builder.Services.AddScoped<DiagnosticService>();
 builder.Services.AddScoped<UserService>();
