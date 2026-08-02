@@ -1,5 +1,4 @@
 using MAAT.Domain.Entities;
-using MAAT.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -27,27 +26,8 @@ public class SectorWeightConfiguration : IEntityTypeConfiguration<SectorWeight>
             .HasDatabaseName("IX_sector_weights_default_domain")
             .HasFilter("is_default");
 
-        builder.HasData(
-            // Pondération par défaut — repli quand le code NAF de l'entreprise n'est couvert par aucun secteur (modele-donnees.md).
-            new { Id = Guid.Parse("00000000-0000-0000-0001-000000000001"), SectorCode = (string?)null, IsDefault = true, Domain = RseDomain.Environmental, Weight = 0.200m },
-            new { Id = Guid.Parse("00000000-0000-0000-0001-000000000002"), SectorCode = (string?)null, IsDefault = true, Domain = RseDomain.Social, Weight = 0.200m },
-            new { Id = Guid.Parse("00000000-0000-0000-0001-000000000003"), SectorCode = (string?)null, IsDefault = true, Domain = RseDomain.Ethics, Weight = 0.200m },
-            new { Id = Guid.Parse("00000000-0000-0000-0001-000000000004"), SectorCode = (string?)null, IsDefault = true, Domain = RseDomain.Procurement, Weight = 0.200m },
-            new { Id = Guid.Parse("00000000-0000-0000-0001-000000000005"), SectorCode = (string?)null, IsDefault = true, Domain = RseDomain.Governance, Weight = 0.200m },
-
-            // 4941A — Transports routiers de fret interurbains (docs/specs/scoring.md, cas de test 4).
-            new { Id = Guid.Parse("00000000-0000-0000-0002-000000000001"), SectorCode = "4941A", IsDefault = false, Domain = RseDomain.Environmental, Weight = 0.400m },
-            new { Id = Guid.Parse("00000000-0000-0000-0002-000000000002"), SectorCode = "4941A", IsDefault = false, Domain = RseDomain.Social, Weight = 0.200m },
-            new { Id = Guid.Parse("00000000-0000-0000-0002-000000000003"), SectorCode = "4941A", IsDefault = false, Domain = RseDomain.Ethics, Weight = 0.150m },
-            new { Id = Guid.Parse("00000000-0000-0000-0002-000000000004"), SectorCode = "4941A", IsDefault = false, Domain = RseDomain.Procurement, Weight = 0.150m },
-            new { Id = Guid.Parse("00000000-0000-0000-0002-000000000005"), SectorCode = "4941A", IsDefault = false, Domain = RseDomain.Governance, Weight = 0.100m },
-
-            // 6202A — Conseil en systèmes et logiciels informatiques (docs/specs/scoring.md, cas de test 4).
-            new { Id = Guid.Parse("00000000-0000-0000-0003-000000000001"), SectorCode = "6202A", IsDefault = false, Domain = RseDomain.Environmental, Weight = 0.100m },
-            new { Id = Guid.Parse("00000000-0000-0000-0003-000000000002"), SectorCode = "6202A", IsDefault = false, Domain = RseDomain.Social, Weight = 0.300m },
-            new { Id = Guid.Parse("00000000-0000-0000-0003-000000000003"), SectorCode = "6202A", IsDefault = false, Domain = RseDomain.Ethics, Weight = 0.250m },
-            new { Id = Guid.Parse("00000000-0000-0000-0003-000000000004"), SectorCode = "6202A", IsDefault = false, Domain = RseDomain.Procurement, Weight = 0.150m },
-            new { Id = Guid.Parse("00000000-0000-0000-0003-000000000005"), SectorCode = "6202A", IsDefault = false, Domain = RseDomain.Governance, Weight = 0.200m }
-        );
+        // Pas de HasData ici : le contenu (pondération par défaut + un jeu par secteur NAF
+        // couvert) vit dans MAAT.Infrastructure/Seed/sector-weights.csv — voir
+        // QuestionConfiguration et docs/specs/modele-donnees.md.
     }
 }

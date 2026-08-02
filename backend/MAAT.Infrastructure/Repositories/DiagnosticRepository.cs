@@ -25,6 +25,12 @@ public class DiagnosticRepository(MaatDbContext context, ICurrentUserContext cur
     public async Task<IReadOnlyList<Diagnostic>> FindAllForCurrentCompanyAsync(CancellationToken ct) =>
         await context.Diagnostics.Where(d => d.CompanyId == currentUser.CompanyId).ToListAsync(ct);
 
+    public async Task<IReadOnlyList<Diagnostic>> FindAllCompletedForCurrentCompanyAsync(CancellationToken ct) =>
+        await context.Diagnostics
+            .Where(d => d.CompanyId == currentUser.CompanyId && d.Status == DiagnosticStatus.Completed)
+            .OrderBy(d => d.CompletedAt)
+            .ToListAsync(ct);
+
     public Task<int> DeleteAllForCurrentCompanyAsync(CancellationToken ct) =>
         context.Diagnostics.Where(d => d.CompanyId == currentUser.CompanyId).ExecuteDeleteAsync(ct);
 }

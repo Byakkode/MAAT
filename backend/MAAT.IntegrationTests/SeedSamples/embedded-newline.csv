@@ -1,0 +1,4 @@
+code,domain,text
+ENV-EX01,Environmental,"Première ligne de la question.
+Seconde ligne, toujours dans le même champ."
+ENV-EX02,Environmental,Question simple sur une seule ligne.

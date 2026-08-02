@@ -200,6 +200,55 @@ public class DiagnosticsController(DiagnosticService diagnosticService) : Contro
         }));
     }
 
+    // docs/specs/recommandations.md, section 4. Pas de restriction de rôle (contrairement à
+    // la bascule de suivi ci-dessous) : lecture accessible aux trois rôles, y compris
+    // Viewer, comme GetQuestions.
+    [HttpGet("{id:guid}/recommendations")]
+    public async Task<IActionResult> GetRecommendations(Guid id, CancellationToken ct)
+    {
+        var recommendations = await diagnosticService.GetRecommendationsAsync(id, ct);
+        if (recommendations is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(recommendations.Select(r => new
+        {
+            code = r.Code,
+            actionText = r.ActionText,
+            detailText = r.DetailText,
+            domain = r.Domain.ToString(),
+            effortLevel = r.EffortLevel.ToString(),
+            impactPoints = r.ImpactPoints,
+            priorityRank = r.PriorityRank,
+            isCompleted = r.IsCompleted,
+            completedAt = r.CompletedAt,
+        }));
+    }
+
+    // section 5. Admin et User seulement, y compris sur un diagnostic Completed (c'est même
+    // le cas normal) : Viewer → 403.
+    [HttpPatch("{id:guid}/recommendations/{recommendationCode}")]
+    [Authorize(Roles = "Admin,User")]
+    public async Task<IActionResult> UpdateRecommendationProgress(
+        Guid id, string recommendationCode, UpdateRecommendationProgressRequest request, CancellationToken ct)
+    {
+        var entry = await diagnosticService.UpdateRecommendationProgressAsync(id, recommendationCode, request.IsCompleted, ct);
+        if (entry is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(new
+        {
+            diagnosticId = entry.DiagnosticId,
+            recommendationId = entry.RecommendationId,
+            priorityRank = entry.PriorityRank,
+            isCompleted = entry.IsCompleted,
+            completedAt = entry.CompletedAt,
+        });
+    }
+
     [HttpGet("{diagnosticId:guid}/domain-scores/{domain}")]
     public async Task<IActionResult> GetDomainScore(Guid diagnosticId, RseDomain domain, CancellationToken ct)
     {

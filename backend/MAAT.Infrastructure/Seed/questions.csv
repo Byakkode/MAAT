@@ -1,0 +1,4 @@
+code,domain,text,help_text,weight,display_order,vsme_ref,iso_ref,gri_ref,ecovadis_ref,is_active
+ENV-01,Environmental,"Mesurez-vous et suivez-vous vos émissions de gaz à effet de serre (scope 1 et 2) ?","Le scope 1 couvre les émissions directes (véhicules, chaudières), le scope 2 les émissions liées à l'électricité achetée.",3.00,1,B3,6.5.5,305-1,,true
+ENV-02,Environmental,"Avez-vous mis en place un plan de réduction de votre consommation d'énergie ?","Il peut s'agir d'objectifs chiffrés, d'un suivi des consommations ou d'investissements en efficacité énergétique.",2.00,2,B4,,,,true
+ENV-03,Environmental,"Triez-vous et valorisez-vous vos déchets d'activité ?","Valoriser signifie recycler, réemployer ou faire traiter les déchets par une filière dédiée plutôt que les envoyer en décharge.",1.00,3,B7,,306-2,,true

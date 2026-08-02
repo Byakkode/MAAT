@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using MAAT.Infrastructure.Persistence;
+using MAAT.Infrastructure.Seed;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -37,6 +38,9 @@ public class AuthApiFixture : IAsyncLifetime
         using var scope = _factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<MaatDbContext>();
         await context.Database.MigrateAsync();
+        // ENV-01 (référencée par AccountRgpdTests et TenantIsolationTests) vient de
+        // MAAT.Infrastructure/Seed/questions.csv, pas des migrations.
+        await new ReferenceDataSeeder(context).SeedAsync();
     }
 
     public HttpClient CreateClient() =>

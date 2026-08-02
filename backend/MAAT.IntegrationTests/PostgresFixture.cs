@@ -1,4 +1,5 @@
 using MAAT.Infrastructure.Persistence;
+using MAAT.Infrastructure.Seed;
 using Microsoft.EntityFrameworkCore;
 using Testcontainers.PostgreSql;
 
@@ -14,6 +15,9 @@ public class PostgresFixture : IAsyncLifetime
 
         await using var context = CreateContext();
         await context.Database.MigrateAsync();
+        // Les tests contre ce fixture (SectorWeightSeedTests, RecommendationSeedTests)
+        // portent sur le contenu réel de MAAT.Infrastructure/Seed/*.csv, pas des migrations.
+        await new ReferenceDataSeeder(context).SeedAsync();
     }
 
     public Task DisposeAsync() => _container.DisposeAsync().AsTask();

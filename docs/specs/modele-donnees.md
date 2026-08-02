@@ -403,6 +403,141 @@ Cette table sert uniquement de journal d'audit : qui a généré quoi, et quand.
 
 ---
 
+## Seed des données de référence
+
+`Question`, `Recommendation` et `SectorWeight` sont des tables de référence : leur contenu
+ne vient **jamais des migrations**, qui ne portent que le schéma (voir
+`QuestionConfiguration`, `RecommendationConfiguration`, `SectorWeightConfiguration` sous
+`MAAT.Infrastructure/Persistence/Configurations/` — aucune n'y déclare de `HasData`). Le
+contenu vit dans des fichiers CSV sous `backend/MAAT.Infrastructure/Seed/`, un par table,
+et un seeder les applique à la base par upsert.
+
+**Ces fichiers sont le format destiné à être rédigé par un membre de l'équipe qui n'écrit
+pas de code** — les 45 questions, les 150+ recommandations et les 38 secteurs restent un
+travail de contenu, pas de développement (voir plus haut). Éditer un CSV, relancer
+l'application en Development, et le contenu apparaît — sans toucher au code C#, sans
+créer de migration.
+
+### Fichiers et colonnes
+
+| Fichier | Table | Colonnes (dans l'ordre) |
+| --- | --- | --- |
+| `questions.csv` | `Question` | `code,domain,text,help_text,weight,display_order,vsme_ref,iso_ref,gri_ref,ecovadis_ref,is_active` |
+| `recommendations.csv` | `Recommendation` | `code,domain,action_text,detail_text,impact_points,effort_level,trigger_question_code,trigger_max_value,is_active` |
+| `sector-weights.csv` | `SectorWeight` | `sector_code,domain,weight` |
+
+Chaque colonne correspond exactement à la colonne de même nom dans la table décrite
+plus haut dans ce document — s'y référer pour le sens et les contraintes de chaque champ.
+
+### Règles de format
+
+- Encodage UTF-8, en-tête en première ligne (noms de colonnes ci-dessus, dans cet ordre),
+  une ligne par enregistrement.
+- Séparateur : la virgule. Un champ qui contient lui-même une virgule ou un guillemet
+  doit être entouré de guillemets doubles ; un guillemet à l'intérieur d'un champ entre
+  guillemets s'écrit doublé (`""`). Exemple valide :
+  `"Un tableur suffit pour démarrer : consommations de carburant, d'électricité et de gaz."`
+- Un retour à la ligne à l'intérieur d'un champ entre guillemets est accepté (le texte
+  détaillé le plus long peut s'étendre sur plusieurs lignes physiques du fichier) — voir
+  « Robustesse face aux exports de tableur » ci-dessous.
+- Un champ facultatif laissé vide vaut *néant* (`null` en base) — colonnes concernées :
+  `help_text`, `vsme_ref`, `iso_ref`, `gri_ref`, `ecovadis_ref`, `detail_text`. Exception :
+  `sector_code` dans `sector-weights.csv`, où vide a un sens précis (voir ci-dessous).
+- `domain` : une valeur de `RseDomain` telle quelle, casse respectée — `Environmental`,
+  `Social`, `Ethics`, `Procurement` ou `Governance` (voir « Les cinq domaines RSE »).
+- `effort_level` : `Low`, `Medium` ou `High`.
+- `is_active` : `true` ou `false`.
+- `weight` et `impact_points` : nombre décimal avec un point, jamais une virgule
+  (`3.00`, pas `3,00` — la virgule est déjà le séparateur de colonnes).
+- `sector_code` (uniquement dans `sector-weights.csv`) : un code NAF (`4941A`), ou **vide**
+  pour une ligne du jeu de pondération par défaut (`is_default = true` en base). Chaque
+  secteur — y compris le jeu par défaut, identifié par `sector_code` vide — doit compter
+  exactement cinq lignes (une par domaine) dont les `weight` somment à 1 ; voir
+  l'invariant décrit dans la section `SectorWeight`.
+
+### Comment une ligne est appliquée (upsert, jamais de suppression)
+
+Le seeder (`ReferenceDataSeeder`) lit chaque fichier et applique chaque ligne par
+upsert **idempotent**, sur une colonne clé :
+
+- `questions.csv` et `recommendations.csv` : clé = `code`. Un `code` déjà présent en
+  base met à jour la ligne existante (son `id` ne change pas, il n'est jamais dans le
+  CSV) ; un `code` inédit crée une nouvelle ligne.
+- `sector-weights.csv` : clé = `(sector_code, domain)` — cette table n'a pas de colonne
+  `code` propre.
+
+**Le seeder ne supprime jamais rien.** Retirer une ligne d'un CSV n'efface pas la ligne
+correspondante en base : ce n'est pas un diff contre l'existant, seulement une lecture de
+ce qui est présent dans le fichier. Pour retirer une question ou une recommandation du
+référentiel actif, mettre sa colonne `is_active` à `false` dans le CSV plutôt que de
+supprimer la ligne — cohérent avec « ne jamais supprimer une Question » (voir la section
+`Question` et « Points de vigilance transverses » ci-dessous), et nécessaire dans tous
+les cas : `Response` et `DiagnosticRecommendation` référencent ces lignes par une
+contrainte `RESTRICT`, une suppression échouerait dès qu'un diagnostic existe.
+
+### Robustesse face aux exports de tableur
+
+L'analyseur (`CsvFile`, `MAAT.Infrastructure/Seed/CsvFile.cs`) est conçu pour un CSV
+réellement exporté depuis un tableur (Excel, LibreOffice Calc, Google Sheets), pas
+seulement pour un fichier écrit à la main :
+
+- **BOM UTF-8.** Un fichier exporté en « CSV UTF-8 » commence souvent par trois octets
+  invisibles (`EF BB BF`) — détectés et retirés automatiquement, sans affecter le nom de
+  la première colonne de l'en-tête.
+- **Fins de ligne.** CRLF (Windows/Excel), LF (Unix/Mac récent) et CR seul (ancien Mac)
+  sont tous acceptés, y compris mélangés dans un même fichier.
+- **Retour à la ligne dans un champ.** Un champ entre guillemets doubles peut s'étendre
+  sur plusieurs lignes physiques du fichier (voir la règle de format ci-dessus) ; il reste
+  une seule valeur logique.
+- **Séparateur point-virgule.** Certains réglages régionaux d'Excel exportent un CSV
+  séparé par point-virgule plutôt que par virgule. Si la première ligne du fichier compte
+  plus de points-virgules que de virgules, l'analyseur refuse le fichier avec ce message
+  explicite plutôt qu'une cascade d'erreurs de colonnes :
+  *« fichier exporté avec le séparateur point-virgule — réenregistrer en CSV UTF-8 séparé
+  par des virgules »*. Réenregistrer le fichier depuis le tableur au format « CSV UTF-8
+  (séparateur : virgule) » plutôt que « CSV (séparateur : point-virgule) ».
+- **Nombre de colonnes.** Chaque ligne de données doit compter exactement le nombre de
+  colonnes de l'en-tête. Une ligne fautive (colonne oubliée, virgule en trop hors
+  guillemets) est rejetée avec le nom du fichier et le numéro de la ligne physique où elle
+  commence — pas seulement « quelque part dans le fichier ».
+
+### Se relire avant de committer : `seed --validate`
+
+`dotnet run --project backend/MAAT.Api -- seed --validate` relit les trois fichiers et
+signale les problèmes **sans base de données et sans rien écrire** — c'est la commande
+que le rédacteur du contenu lance pour se relire avant de proposer sa modification.
+Contrôles effectués, dans cet ordre :
+
+1. Structure de chaque fichier (règles ci-dessus) et type de chaque colonne (nombre,
+   `true`/`false`, valeur d'énumération valide pour `domain` et `effort_level`).
+2. Codes en doublon dans `questions.csv` et dans `recommendations.csv`.
+3. Couverture et somme des pondérations sectorielles (`sector-weights.csv`) : cinq
+   domaines par secteur, somme des poids égale à 1 — l'invariant décrit dans la section
+   `SectorWeight`.
+4. Avertissements de calibrage (cas 23 de `docs/specs/recommandations.md`) : une
+   recommandation dont `impact_points` dépasse le gain maximal théorique de sa question
+   déclencheuse. **Jamais bloquant** — la commande se termine avec succès même s'il y a
+   des avertissements, exactement comme le prescrit `recommandations.md`.
+
+La commande échoue (code de sortie non nul) uniquement s'il reste au moins une erreur des
+contrôles 1 à 3 après avoir tout relu — pas au premier problème rencontré, pour que le
+rédacteur voie d'un coup tout ce qu'il doit corriger plutôt que de relancer la commande
+ligne par ligne.
+
+### Exécution du seed
+
+- **En Development** : automatique à chaque démarrage de `MAAT.Api`, tant que la base est
+  déjà migrée et accessible — sinon un avertissement est journalisé et l'application
+  démarre quand même (ce n'est qu'un confort de développement, jamais une étape
+  bloquante).
+- **Dans les autres environnements** : jamais automatique — commande explicite,
+  `dotnet MAAT.Api.dll seed` (ou `dotnet run --project backend/MAAT.Api -- seed` en
+  local). Appliquer les migrations d'abord (`dotnet ef database update`, voir
+  `CLAUDE.md`) : contrairement au mode Development, cette commande fait remonter
+  l'erreur si la base n'est pas prête plutôt que de l'avaler.
+
+---
+
 ## Points de vigilance transverses
 
 **Suppressions.** Ne jamais supprimer physiquement une `Question`, une
@@ -426,5 +561,6 @@ individuel, et ne pas afficher de benchmark en dessous d'un seuil de 5 entrepris
 dans le secteur, sous peine de rendre les scores ré-identifiables.
 
 **Seed.** Deux jeux distincts : un seed de référence (questions, recommandations,
-pondérations) appliqué dans tous les environnements, et un seed de démonstration
-(entreprises et diagnostics fictifs) réservé au développement.
+pondérations), voir « Seed des données de référence » plus haut pour son format et son
+exécution, et un seed de démonstration (entreprises et diagnostics fictifs) réservé au
+développement.

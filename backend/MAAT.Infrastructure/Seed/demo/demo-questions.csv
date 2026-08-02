@@ -1,0 +1,52 @@
+# CONTENU PROVISOIRE — jeu de données de démonstration (commande "seed --demo", Development
+# uniquement, voir CLAUDE.md et DemoDataSeeder). Sera remplacé par le contenu normatif
+# définitif rédigé pour docs/specs/modele-donnees.md. Ne jamais confondre avec
+# MAAT.Infrastructure/Seed/questions.csv : codes préfixés "DEMO-", is_active=false pour
+# qu'aucune de ces questions n'apparaisse jamais dans un questionnaire réel.
+# Répartition cible : Environmental 11, Social 11, Ethics 8, Procurement 7, Governance 8.
+code,domain,text,help_text,weight,display_order,vsme_ref,iso_ref,gri_ref,ecovadis_ref,is_active
+DEMO-ENV-01,Environmental,Mesurez-vous vos émissions de gaz à effet de serre ?,,1.00,1,,,,,false
+DEMO-ENV-02,Environmental,Avez-vous un plan de réduction de votre consommation d'énergie ?,,1.00,2,,,,,false
+DEMO-ENV-03,Environmental,Triez-vous et valorisez-vous vos déchets d'activité ?,,1.00,3,,,,,false
+DEMO-ENV-04,Environmental,Suivez-vous votre consommation d'eau ?,,1.00,4,,,,,false
+DEMO-ENV-05,Environmental,Évaluez-vous l'impact de votre activité sur la biodiversité locale ?,,1.00,5,,,,,false
+DEMO-ENV-06,Environmental,Encouragez-vous des modes de déplacement bas-carbone pour vos salariés ?,,1.00,6,,,,,false
+DEMO-ENV-07,Environmental,Intégrez-vous des critères d'écoconception dans vos produits ou services ?,,1.00,7,,,,,false
+DEMO-ENV-08,Environmental,Sélectionnez-vous vos fournisseurs sur des critères environnementaux ?,,1.00,8,,,,,false
+DEMO-ENV-09,Environmental,"Publiez-vous des indicateurs environnementaux, même simples ?",,1.00,9,,,,,false
+DEMO-ENV-10,Environmental,Formez-vous vos salariés aux enjeux environnementaux ?,,1.00,10,,,,,false
+DEMO-ENV-11,Environmental,Détenez-vous une certification ou un label environnemental ?,,1.00,11,,,,,false
+DEMO-SOC-01,Social,Réalisez-vous une évaluation régulière des conditions de travail ?,,1.00,1,,,,,false
+DEMO-SOC-02,Social,Disposez-vous d'un plan de prévention santé-sécurité au travail ?,,1.00,2,,,,,false
+DEMO-SOC-03,Social,Proposez-vous des formations régulières à vos salariés ?,,1.00,3,,,,,false
+DEMO-SOC-04,Social,Menez-vous des actions en faveur de la diversité et de l'inclusion ?,,1.00,4,,,,,false
+DEMO-SOC-05,Social,Vérifiez-vous l'égalité salariale entre femmes et hommes ?,,1.00,5,,,,,false
+DEMO-SOC-06,Social,Organisez-vous un dialogue social régulier avec vos salariés ?,,1.00,6,,,,,false
+DEMO-SOC-07,Social,Mesurez-vous le bien-être au travail de vos équipes ?,,1.00,7,,,,,false
+DEMO-SOC-08,Social,Favorisez-vous l'emploi de personnes en situation de handicap ?,,1.00,8,,,,,false
+DEMO-SOC-09,Social,Encadrez-vous le recours au télétravail par une charte ou un accord ?,,1.00,9,,,,,false
+DEMO-SOC-10,Social,Suivez-vous votre taux de turnover et ses causes ?,,1.00,10,,,,,false
+DEMO-SOC-11,Social,Mesurez-vous la satisfaction de vos salariés ?,,1.00,11,,,,,false
+DEMO-ETH-01,Ethics,Disposez-vous d'une charte éthique formalisée ?,,1.00,1,,,,,false
+DEMO-ETH-02,Ethics,Avez-vous mis en place des mesures de lutte contre la corruption ?,,1.00,2,,,,,false
+DEMO-ETH-03,Ethics,Protégez-vous les données personnelles conformément au RGPD ?,,1.00,3,,,,,false
+DEMO-ETH-04,Ethics,Disposez-vous d'un dispositif d'alerte pour signaler un manquement éthique ?,,1.00,4,,,,,false
+DEMO-ETH-05,Ethics,Communiquez-vous de façon transparente sur vos résultats et pratiques ?,,1.00,5,,,,,false
+DEMO-ETH-06,Ethics,Encadrez-vous la gestion des conflits d'intérêts ?,,1.00,6,,,,,false
+DEMO-ETH-07,Ethics,Veillez-vous au respect des règles de concurrence loyale ?,,1.00,7,,,,,false
+DEMO-ETH-08,Ethics,Encadrez-vous vos pratiques publicitaires et marketing par des règles éthiques ?,,1.00,8,,,,,false
+DEMO-ACH-01,Procurement,Intégrez-vous des critères RSE dans le choix de vos fournisseurs ?,,1.00,1,,,,,false
+DEMO-ACH-02,Procurement,Évaluez-vous régulièrement vos fournisseurs sur des critères RSE ?,,1.00,2,,,,,false
+DEMO-ACH-03,Procurement,Privilégiez-vous les circuits courts ou les fournisseurs locaux ?,,1.00,3,,,,,false
+DEMO-ACH-04,Procurement,Intégrez-vous des clauses sociales dans vos contrats d'achat ?,,1.00,4,,,,,false
+DEMO-ACH-05,Procurement,Faites-vous appel à des fournisseurs du secteur adapté ou de l'ESS ?,,1.00,5,,,,,false
+DEMO-ACH-06,Procurement,Respectez-vous des délais de paiement raisonnables envers vos fournisseurs ?,,1.00,6,,,,,false
+DEMO-ACH-07,Procurement,Cartographiez-vous les risques RSE de votre chaîne d'approvisionnement ?,,1.00,7,,,,,false
+DEMO-GOUV-01,Governance,Avez-vous formalisé une stratégie RSE ?,,1.00,1,,,,,false
+DEMO-GOUV-02,Governance,Disposez-vous d'un comité ou d'un référent RSE ?,,1.00,2,,,,,false
+DEMO-GOUV-03,Governance,"Publiez-vous un reporting extra-financier, même simplifié ?",,1.00,3,,,,,false
+DEMO-GOUV-04,Governance,Réalisez-vous une cartographie des risques RSE de votre entreprise ?,,1.00,4,,,,,false
+DEMO-GOUV-05,Governance,Disposez-vous d'un plan de continuité d'activité ?,,1.00,5,,,,,false
+DEMO-GOUV-06,Governance,Vos instances de direction comptent-elles des femmes ?,,1.00,6,,,,,false
+DEMO-GOUV-07,Governance,"Disposez-vous d'une politique de conformité globale (anti-corruption, RGPD, etc.) ?",,1.00,7,,,,,false
+DEMO-GOUV-08,Governance,Communiquez-vous votre démarche RSE à vos parties prenantes ?,,1.00,8,,,,,false

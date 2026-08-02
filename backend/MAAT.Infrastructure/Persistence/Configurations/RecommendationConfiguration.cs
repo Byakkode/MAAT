@@ -30,5 +30,9 @@ public class RecommendationConfiguration : IEntityTypeConfiguration<Recommendati
             .HasForeignKey(r => r.TriggerQuestionCode)
             .HasPrincipalKey(q => q.Code)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Pas de HasData ici : le contenu (150+ recommandations visées) vit dans
+        // MAAT.Infrastructure/Seed/recommendations.csv — voir QuestionConfiguration et
+        // docs/specs/modele-donnees.md.
     }
 }

@@ -1,6 +1,7 @@
 using MAAT.Domain.Entities;
 using MAAT.Domain.Enums;
 using MAAT.Infrastructure.Persistence;
+using MAAT.Infrastructure.Seed;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -53,6 +54,9 @@ public class QuestionnaireApiFixture : IAsyncLifetime
         using var scope = _factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<MaatDbContext>();
         await context.Database.MigrateAsync();
+        // ENV-01/02/03 (référence) et les sector_weights "4941A"/"6202A" utilisés par
+        // QuestionnaireTests viennent de MAAT.Infrastructure/Seed/*.csv, pas des migrations.
+        await new ReferenceDataSeeder(context).SeedAsync();
 
         context.Questions.AddRange(
             new Question(SocialQuestionCode, "Question sociale de test.", RseDomain.Social, weight: 1m, displayOrder: 100),

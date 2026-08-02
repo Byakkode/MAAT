@@ -1,0 +1,19 @@
+# CONTENU PROVISOIRE — jeu de données de démonstration (commande "seed --demo", Development
+# uniquement, voir CLAUDE.md et DemoDataSeeder). Sera remplacé par le contenu normatif
+# définitif rédigé pour docs/specs/modele-donnees.md. Ne jamais confondre avec
+# MAAT.Infrastructure/Seed/sector-weights.csv : deux codes NAF choisis pour ne jamais entrer
+# en collision avec les secteurs déjà couverts par le référentiel réel (4941A, 6202A).
+# Pas de ligne par défaut (sector_code vide) ici : les entreprises fictives ont toujours un
+# secteur explicite, et une ligne par défaut entrerait en conflit avec celle du référentiel
+# (au plus une ligne par défaut par domaine, voir SectorWeightConfiguration).
+sector_code,domain,weight
+5610A,Environmental,0.300
+5610A,Social,0.250
+5610A,Ethics,0.150
+5610A,Procurement,0.150
+5610A,Governance,0.150
+4110B,Environmental,0.350
+4110B,Social,0.150
+4110B,Ethics,0.100
+4110B,Procurement,0.200
+4110B,Governance,0.200

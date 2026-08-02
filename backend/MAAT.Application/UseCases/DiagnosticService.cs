@@ -17,7 +17,10 @@ public class DiagnosticService(
     ICompanyRepository companyRepository,
     ICurrentUserContext currentUser,
     IUnitOfWork unitOfWork,
-    IScoringService scoringService)
+    IScoringService scoringService,
+    IRecommendationRepository recommendationRepository,
+    IDiagnosticRecommendationRepository diagnosticRecommendationRepository,
+    IRecommendationEngine recommendationEngine)
 {
     // docs/specs/questionnaire.md, section 1 : une entreprise ne peut avoir qu'un seul
     // diagnostic InProgress à la fois — sans quoi la reprise devient ambiguë.
@@ -172,6 +175,24 @@ public class DiagnosticService(
             diagnostic.Status = DiagnosticStatus.Completed;
             diagnostic.CompletedAt = DateTimeOffset.UtcNow;
 
+            // docs/specs/recommandations.md, section 1 : étape 5 de la complétion, dans la
+            // même transaction. Peut lever (question déclencheuse sans réponse, domaine sans
+            // pondération effective) : la transaction englobante annule alors tout ce qui
+            // précède, y compris les DomainScore déjà ajoutés ci-dessus (cas 12).
+            var activeRecommendations = await recommendationRepository.FindAllActiveAsync(innerCt);
+            var responseValueByQuestionCode = activeQuestions.ToDictionary(q => q.Code, q => valueByQuestionId[q.Id]);
+            var triggered = recommendationEngine.SelectTriggered(activeRecommendations, responseValueByQuestionCode);
+
+            // section 2 : la pondération effectivement appliquée, celle qu'on vient d'écrire
+            // dans DomainScore ci-dessus — jamais une relecture de SectorWeight (cas 11).
+            var effectiveWeightByDomain = result.DomainScores.ToDictionary(d => d.Domain, d => d.EffectiveSectorWeight);
+            var prioritized = recommendationEngine.Prioritize(triggered, effectiveWeightByDomain);
+
+            var diagnosticRecommendations = prioritized
+                .Select(p => new DiagnosticRecommendation(diagnosticId, p.Recommendation.Id, p.PriorityRank))
+                .ToList();
+            await diagnosticRecommendationRepository.AddRangeAsync(diagnosticRecommendations, innerCt);
+
             await unitOfWork.SaveChangesAsync(innerCt);
         }, ct);
 
@@ -213,4 +234,51 @@ public class DiagnosticService(
 
     public Task<Report?> GetReportByIdAsync(Guid reportId, CancellationToken ct) =>
         reportRepository.FindByIdAsync(reportId, ct);
+
+    // docs/specs/recommandations.md, section 4 : lecture seule, accessible aux trois rôles,
+    // y compris sur un diagnostic Completed — aucune vérification de Status ici, comme
+    // GetQuestionsWithAnswersAsync. Null si le diagnostic n'existe pas / n'appartient pas à
+    // l'entreprise courante (404) ; liste vide un résultat valide (aucun déclenchement,
+    // cas 5).
+    public async Task<IReadOnlyList<DiagnosticRecommendationView>?> GetRecommendationsAsync(Guid diagnosticId, CancellationToken ct)
+    {
+        var diagnostic = await diagnosticRepository.FindByIdAsync(diagnosticId, ct);
+        if (diagnostic is null)
+        {
+            return null;
+        }
+
+        return await diagnosticRecommendationRepository.FindAllForDiagnosticAsync(diagnosticId, ct);
+    }
+
+    // section 5 : bascule is_completed / completed_at. Autorisée même sur un diagnostic
+    // Completed — c'est le cas normal, seule exception à l'immuabilité posée par
+    // questionnaire.md section 1 (on modifie le suivi, jamais les réponses ni le score,
+    // cas 20). Null si le diagnostic n'existe pas, si le code de recommandation n'existe
+    // pas, ou s'il n'a jamais été déclenché pour ce diagnostic — 404 dans les trois cas.
+    public async Task<DiagnosticRecommendation?> UpdateRecommendationProgressAsync(
+        Guid diagnosticId, string recommendationCode, bool isCompleted, CancellationToken ct)
+    {
+        var diagnostic = await diagnosticRepository.FindByIdAsync(diagnosticId, ct);
+        if (diagnostic is null)
+        {
+            return null;
+        }
+
+        var recommendation = await recommendationRepository.FindByCodeAsync(recommendationCode, ct);
+        if (recommendation is null)
+        {
+            return null;
+        }
+
+        var entry = await diagnosticRecommendationRepository.FindAsync(diagnosticId, recommendation.Id, ct);
+        if (entry is null)
+        {
+            return null;
+        }
+
+        entry.SetProgress(isCompleted);
+        await unitOfWork.SaveChangesAsync(ct);
+        return entry;
+    }
 }

@@ -14,6 +14,12 @@ public class DomainScoreRepository(MaatDbContext context, ICurrentUserContext cu
             .Where(ds => context.Diagnostics.Any(d => d.Id == ds.DiagnosticId && d.CompanyId == currentUser.CompanyId))
             .FirstOrDefaultAsync(ct);
 
+    public async Task<IReadOnlyList<DomainScore>> FindAllForDiagnosticAsync(Guid diagnosticId, CancellationToken ct) =>
+        await context.DomainScores
+            .Where(ds => ds.DiagnosticId == diagnosticId)
+            .Where(ds => context.Diagnostics.Any(d => d.Id == ds.DiagnosticId && d.CompanyId == currentUser.CompanyId))
+            .ToListAsync(ct);
+
     public async Task<IReadOnlyList<DomainScore>> FindAllForCurrentCompanyAsync(CancellationToken ct) =>
         await context.DomainScores
             .Where(ds => context.Diagnostics.Any(d => d.Id == ds.DiagnosticId && d.CompanyId == currentUser.CompanyId))
