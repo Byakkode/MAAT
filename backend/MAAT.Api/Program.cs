@@ -10,6 +10,7 @@ using MAAT.Infrastructure.Jobs;
 using MAAT.Infrastructure.Persistence;
 using MAAT.Infrastructure.Repositories;
 using MAAT.Infrastructure.Security;
+using MAAT.Infrastructure.Seed;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -48,11 +49,21 @@ builder.Services.AddScoped<IDomainScoreRepository, DomainScoreRepository>();
 builder.Services.AddScoped<IDiagnosticRecommendationRepository, DiagnosticRecommendationRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 
+// docs/specs/dashboard.md, section 5 : seule exception au cloisonnement par entreprise
+// ci-dessus, voir son commentaire dans ISectorBenchmarkRepository.
+builder.Services.AddScoped<ISectorBenchmarkRepository, SectorBenchmarkRepository>();
+
 // Tables de référence (docs/specs/modele-donnees.md) : ni company-scopées, ni dépendantes
 // d'ICurrentUserContext, contrairement aux dépôts ci-dessus.
 builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
 builder.Services.AddScoped<ISectorWeightRepository, SectorWeightRepository>();
 builder.Services.AddScoped<IRecommendationRepository, RecommendationRepository>();
+
+// Charge Question, Recommendation et SectorWeight depuis MAAT.Infrastructure/Seed/*.csv
+// (docs/specs/modele-donnees.md) — jamais depuis les migrations, qui ne portent que le
+// schéma. Invoqué plus bas, jamais consommé directement par ce fichier au-delà de cet
+// enregistrement (docs/adr/0005).
+builder.Services.AddScoped<ReferenceDataSeeder>();
 
 // Sans état, donc Singleton : injecté (plutôt qu'instancié directement) pour que le cas 15
 // de questionnaire.md puisse substituer une implémentation qui lève, en test.
@@ -62,7 +73,13 @@ builder.Services.AddSingleton<IScoringService, ScoringService>();
 // docs/specs/recommandations.md (échec de la sélection → complétion annulée).
 builder.Services.AddSingleton<IRecommendationEngine, RecommendationEngine>();
 
+// Jeu de données de démonstration (commande "seed", drapeau demo, Development uniquement) :
+// voir DemoDataSeeder. Jamais invoqué au démarrage, contrairement à ReferenceDataSeeder
+// ci-dessus.
+builder.Services.AddScoped<DemoDataSeeder>();
+
 builder.Services.AddScoped<DiagnosticService>();
+builder.Services.AddScoped<DashboardService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<AccountService>();
 
@@ -185,6 +202,35 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+// "seed --validate" relit les CSV et ne touche ni base de données ni JWT : traité en tout
+// premier, avant les gardes ci-dessous (clé JWT, IEmailSender), qui exigent une
+// configuration que cette commande n'a pas à fournir (docs/specs/modele-donnees.md). Elle
+// doit fonctionner avec DOTNET_ENVIRONMENT=Production et aucune configuration.
+if (args.Contains("seed", StringComparer.OrdinalIgnoreCase) && args.Contains("--validate", StringComparer.OrdinalIgnoreCase))
+{
+    var result = ReferenceDataValidator.Validate();
+
+    foreach (var warning in result.Warnings)
+    {
+        app.Logger.LogWarning("{Warning}", warning);
+    }
+
+    foreach (var error in result.Errors)
+    {
+        app.Logger.LogError("{Error}", error);
+    }
+
+    if (result.IsValid)
+    {
+        app.Logger.LogInformation(
+            "Fichiers de seed valides ({WarningCount} avertissement(s) de calibrage).", result.Warnings.Count);
+        return;
+    }
+
+    app.Logger.LogError("Fichiers de seed invalides : {ErrorCount} erreur(s).", result.Errors.Count);
+    Environment.Exit(1);
+}
+
 // Force la construction du singleton ICompromisedPasswordChecker (et donc le
 // chargement de la liste de mots de passe compromis en HashSet, cf.
 // LocalListCompromisedPasswordChecker) au démarrage plutôt qu'à la première
@@ -216,6 +262,85 @@ if (!app.Environment.IsDevelopment())
             "e-mail et est réservé à l'environnement Development (docs/specs/auth-securite-rgpd.md, " +
             "section 5). Configurez un fournisseur transactionnel européen (Brevo, Scaleway TEM) " +
             "avant de démarrer l'application hors Development.");
+    }
+}
+
+// Données de référence (Question, Recommendation, SectorWeight) : chargées depuis
+// MAAT.Infrastructure/Seed/*.csv (docs/specs/modele-donnees.md), jamais depuis les
+// migrations. Automatique en Development à chaque démarrage (idempotent, cf.
+// ReferenceDataSeeder) ; commande explicite "seed" dans les autres environnements — ex.
+// `dotnet MAAT.Api.dll seed` — pour ne pas semer à l'insu d'un déploiement en production.
+async Task RunReferenceDataSeedAsync()
+{
+    using var seedScope = app.Services.CreateScope();
+    var seeder = seedScope.ServiceProvider.GetRequiredService<ReferenceDataSeeder>();
+    if (await seeder.SeedAsync())
+    {
+        app.Logger.LogInformation("Données de référence (questions, recommandations, pondérations sectorielles) chargées.");
+    }
+    else
+    {
+        app.Logger.LogWarning(
+            "Données de référence non chargées : migrations en attente. Exécutez "
+                + "'dotnet ef database update --project backend/MAAT.Infrastructure --startup-project backend/MAAT.Api' "
+                + "avant de relancer.");
+    }
+}
+
+// Jeu de données de démonstration (docs/specs/modele-donnees.md) : "seed" avec le drapeau
+// demo, jamais au démarrage, jamais confondu avec RunReferenceDataSeedAsync ci-dessus.
+// DemoDataSeeder revérifie lui-même IHostEnvironment.IsDevelopment (défense en profondeur) ;
+// le refus explicite ci-dessous évite en plus une connexion à la base pour rien hors
+// Development.
+async Task RunDemoDataSeedAsync()
+{
+    using var demoScope = app.Services.CreateScope();
+    var demoSeeder = demoScope.ServiceProvider.GetRequiredService<DemoDataSeeder>();
+    if (await demoSeeder.SeedAsync())
+    {
+        app.Logger.LogInformation("Jeu de données de démonstration chargé (45 questions, 2 secteurs NAF, 3 entreprises fictives).");
+    }
+    else
+    {
+        app.Logger.LogWarning(
+            "Jeu de données de démonstration non chargé : migrations en attente. Exécutez "
+                + "'dotnet ef database update --project backend/MAAT.Infrastructure --startup-project backend/MAAT.Api' "
+                + "avant de relancer.");
+    }
+}
+
+if (args.Contains("seed", StringComparer.OrdinalIgnoreCase))
+{
+    if (args.Contains("--demo", StringComparer.OrdinalIgnoreCase))
+    {
+        if (!app.Environment.IsDevelopment())
+        {
+            app.Logger.LogError("seed --demo est réservé à l'environnement Development : jamais en production.");
+            Environment.Exit(1);
+        }
+
+        await RunDemoDataSeedAsync();
+        return;
+    }
+
+    // Commande explicite : une base de données inaccessible doit faire échouer le
+    // processus bruyamment, pas être avalée.
+    await RunReferenceDataSeedAsync();
+    return;
+}
+
+if (app.Environment.IsDevelopment())
+{
+    // Confort de développement, jamais bloquant : une base pas encore démarrée ou une
+    // chaîne de connexion inerte (ex. JwtSigningKeyStartupTests, qui ne visent pas du
+    // tout la base) ne doit pas empêcher l'application de démarrer.
+    try
+    {
+        await RunReferenceDataSeedAsync();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Chargement des données de référence ignoré au démarrage (base de données inaccessible ?).");
     }
 }
 
@@ -304,6 +429,6 @@ app.UseRateLimiter();
 
 app.MapControllers();
 
-app.Run();
+await app.RunAsync();
 
 public partial class Program { }

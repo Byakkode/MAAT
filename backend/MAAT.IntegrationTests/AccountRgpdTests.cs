@@ -15,7 +15,9 @@ public class AccountRgpdTests(AuthApiFixture fixture)
 {
     private const string ValidPassword = "MotDePasseValide2026!";
 
-    private static readonly Guid SeededQuestionId = Guid.Parse("00000000-0000-0000-0004-000000000001");
+    // Id non figé : ENV-01 vient de MAAT.Infrastructure/Seed/questions.csv, chargé par
+    // ReferenceDataSeeder avec un Guid généré à l'insertion — plus une constante de
+    // migration comme avant, donc résolu à l'exécution ci-dessous.
     private const string SeededQuestionCode = "ENV-01";
 
     private static string UniqueEmail() => $"user-{Guid.NewGuid():N}@example.test";
@@ -83,7 +85,8 @@ public class AccountRgpdTests(AuthApiFixture fixture)
         var recommendationCompletedAt = DateTimeOffset.UtcNow;
         await using (var context = fixture.CreateDbContext())
         {
-            var response = new Response(diagnosticId, SeededQuestionId, 3);
+            var seededQuestionId = await context.Questions.Where(q => q.Code == SeededQuestionCode).Select(q => q.Id).SingleAsync();
+            var response = new Response(diagnosticId, seededQuestionId, 3);
             var domainScore = new DomainScore(diagnosticId, RseDomain.Environmental, 60m, 0.3m);
             var report = new Report(diagnosticId, userId);
             var recommendation = new Recommendation(

@@ -3,6 +3,7 @@ import { BrowserRouter, Link, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
+import { PlanActionsPage } from './pages/PlanActionsPage'
 import { QuestionnairePage } from './pages/QuestionnairePage'
 import { RapportPage } from './pages/RapportPage'
 import { RegisterPage } from './pages/RegisterPage'
@@ -32,6 +33,7 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/questionnaire/:diagnosticId?" element={<QuestionnairePage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/plan-actions" element={<PlanActionsPage />} />
             <Route path="/rapport" element={<RapportPage />} />
           </Route>
         </Routes>

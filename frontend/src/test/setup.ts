@@ -9,3 +9,18 @@ import 'vitest-axe/extend-expect'
 afterEach(() => {
   cleanup()
 })
+
+// Recharts (docs/specs/dashboard.md, section 3/4) mesure son conteneur via ResponsiveContainer
+// (ResizeObserver + offsetWidth/offsetHeight), absents/nuls en jsdom par défaut : sans ce
+// polyfill, le graphique se rendrait avec une taille nulle. Les tests de ce projet n'assertent
+// jamais sur la géométrie SVG elle-même (voir DomainRadarChart.test.tsx) — uniquement sur la
+// description accessible et le tableau alternatif — donc une taille fixe arbitraire suffit.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+globalThis.ResizeObserver ??= ResizeObserverStub
+
+Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, value: 600 })
+Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, value: 300 })

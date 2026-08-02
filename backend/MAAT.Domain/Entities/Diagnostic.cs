@@ -21,4 +21,14 @@ public class Diagnostic
         CompanyId = companyId;
         CreatedAt = DateTimeOffset.UtcNow;
     }
+
+    // Réservé à l'import et au jeu de données de démonstration (voir DemoDataSeeder) : un
+    // diagnostic réellement créé via l'API passe toujours par le constructeur ci-dessus,
+    // horodaté à l'instant présent.
+    public Diagnostic(Guid companyId, DateTimeOffset createdAt)
+    {
+        Id = Guid.NewGuid();
+        CompanyId = companyId;
+        CreatedAt = createdAt;
+    }
 }

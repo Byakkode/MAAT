@@ -27,6 +27,17 @@ cd frontend && npm run test:e2e            # Playwright ; démarre npm run dev t
 # Migrations
 dotnet ef migrations add <Nom> \
   --project backend/MAAT.Infrastructure --startup-project backend/MAAT.Api
+dotnet ef database update \
+  --project backend/MAAT.Infrastructure --startup-project backend/MAAT.Api
+
+# Données de référence (questions, recommandations, pondérations sectorielles) : chargées
+# depuis backend/MAAT.Infrastructure/Seed/*.csv, jamais depuis les migrations. Automatique
+# au démarrage en Development ; commande explicite ailleurs (docs/specs/modele-donnees.md).
+dotnet run --project backend/MAAT.Api -- seed
+
+# Relit les CSV et signale les problèmes sans base de données et sans rien écrire — à
+# lancer avant de proposer une modification d'un fichier sous backend/MAAT.Infrastructure/Seed/.
+dotnet run --project backend/MAAT.Api -- seed --validate
 ```
 
 ## Environnement de développement
@@ -53,6 +64,10 @@ Port hôte de la base configurable via `POSTGRES_PORT` (défaut 5433).
 longueurs et contraintes de colonnes, donc ne détecte pas les erreurs de
 schéma). Chaque run applique la migration EF Core dans le conteneur avant les
 tests.
+Une fixture qui raccourcit `Jwt:AccessTokenLifetimeSeconds` ne sert qu'aux
+tests d'expiration de jeton. Tout autre test doit utiliser une fixture
+dédiée à durée de vie par défaut : sous charge, un enchaînement de bcrypt
+dépasse la fenêtre et produit un 401 qui masque le comportement testé.
 
 Prérequis, une fois par poste :
 

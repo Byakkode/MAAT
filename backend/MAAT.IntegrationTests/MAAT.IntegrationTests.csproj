@@ -32,4 +32,11 @@
     <ProjectReference Include="..\MAAT.Infrastructure\MAAT.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Fichiers d'exemple reproduisant chaque cas de robustesse CSV (CsvFileTests.cs) :
+         BOM, CRLF, retour à la ligne dans un champ entre guillemets, export au format
+         point-virgule, nombre de colonnes incorrect. -->
+    <EmbeddedResource Include="SeedSamples\*.csv" />
+  </ItemGroup>
+
 </Project>

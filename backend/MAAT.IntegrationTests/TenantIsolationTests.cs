@@ -5,20 +5,22 @@ using System.Text.Json;
 using MAAT.Domain.Entities;
 using MAAT.Domain.Enums;
 using MAAT.Infrastructure.Security;
+using Microsoft.EntityFrameworkCore;
 
 namespace MAAT.IntegrationTests;
 
 // docs/specs/auth-securite-rgpd.md, section 4 : cas de test 13 à 17. Ce sont, avec les
 // cas 1 à 12 déjà couverts par AuthTests, les tests qui prouvent que le cloisonnement
 // par entreprise est vérifié par le code et non promis par une phrase de rapport.
-[Collection(AuthApiCollection.Name)]
-public class TenantIsolationTests(AuthApiFixture fixture)
+[Collection(TenantIsolationApiCollection.Name)]
+public class TenantIsolationTests(TenantIsolationApiFixture fixture)
 {
     private const string ValidPassword = "MotDePasseValide2026!";
 
-    // Question seedée par QuestionConfiguration (voir ENV-01), réutilisée pour ne pas
-    // dupliquer les données de référence du questionnaire dans ces tests.
-    private static readonly Guid SeededQuestionId = Guid.Parse("00000000-0000-0000-0004-000000000001");
+    // ENV-01 (voir MAAT.Infrastructure/Seed/questions.csv), réutilisée pour ne pas
+    // dupliquer les données de référence du questionnaire dans ces tests. Id non figé
+    // (ReferenceDataSeeder génère un Guid à l'insertion) : résolu à l'exécution.
+    private const string SeededQuestionCode = "ENV-01";
 
     private static string UniqueEmail() => $"user-{Guid.NewGuid():N}@example.test";
 
@@ -120,7 +122,8 @@ public class TenantIsolationTests(AuthApiFixture fixture)
         Guid reportId;
         await using (var context = fixture.CreateDbContext())
         {
-            var response = new Response(diagnosticId, SeededQuestionId, 3);
+            var seededQuestionId = await context.Questions.Where(q => q.Code == SeededQuestionCode).Select(q => q.Id).SingleAsync();
+            var response = new Response(diagnosticId, seededQuestionId, 3);
             var domainScore = new DomainScore(diagnosticId, RseDomain.Environmental, 60m, 0.3m);
             var report = new Report(diagnosticId, userBId);
 

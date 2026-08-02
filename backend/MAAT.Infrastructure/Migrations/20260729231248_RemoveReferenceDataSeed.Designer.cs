@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MAAT.Infrastructure.Migrations
 {
     [DbContext(typeof(MaatDbContext))]
-    [Migration("20260729224046_AddRecommendationSeed")]
-    partial class AddRecommendationSeed
+    [Migration("20260729231248_RemoveReferenceDataSeed")]
+    partial class RemoveReferenceDataSeed
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -263,47 +263,6 @@ namespace MAAT.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("questions", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0004-000000000001"),
-                            Code = "ENV-01",
-                            DisplayOrder = 1,
-                            Domain = "Environmental",
-                            GriRef = "305-1",
-                            HelpText = "Le scope 1 couvre les émissions directes (véhicules, chaudières), le scope 2 les émissions liées à l'électricité achetée.",
-                            IsActive = true,
-                            IsoRef = "6.5.5",
-                            Text = "Mesurez-vous et suivez-vous vos émissions de gaz à effet de serre (scope 1 et 2) ?",
-                            VsmeRef = "B3",
-                            Weight = 3.00m
-                        },
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0004-000000000002"),
-                            Code = "ENV-02",
-                            DisplayOrder = 2,
-                            Domain = "Environmental",
-                            HelpText = "Il peut s'agir d'objectifs chiffrés, d'un suivi des consommations ou d'investissements en efficacité énergétique.",
-                            IsActive = true,
-                            Text = "Avez-vous mis en place un plan de réduction de votre consommation d'énergie ?",
-                            VsmeRef = "B4",
-                            Weight = 2.00m
-                        },
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0004-000000000003"),
-                            Code = "ENV-03",
-                            DisplayOrder = 3,
-                            Domain = "Environmental",
-                            GriRef = "306-2",
-                            HelpText = "Valoriser signifie recycler, réemployer ou faire traiter les déchets par une filière dédiée plutôt que les envoyer en décharge.",
-                            IsActive = true,
-                            Text = "Triez-vous et valorisez-vous vos déchets d'activité ?",
-                            VsmeRef = "B7",
-                            Weight = 1.00m
-                        });
                 });
 
             modelBuilder.Entity("MAAT.Domain.Entities.Recommendation", b =>
@@ -366,47 +325,6 @@ namespace MAAT.Infrastructure.Migrations
                     b.HasIndex("TriggerQuestionCode");
 
                     b.ToTable("recommendations", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0005-000000000001"),
-                            ActionText = "Mettre en place un suivi mensuel de vos émissions de gaz à effet de serre (scope 1 et 2).",
-                            Code = "REC-ENV-01",
-                            DetailText = "Un tableur suffit pour démarrer : consommations de carburant, d'électricité et de gaz, converties en équivalent CO2 via les facteurs d'émission de la Base Empreinte de l'ADEME. Le dispositif Diag Décarbon'Action de l'ADEME peut financer un accompagnement.",
-                            Domain = "Environmental",
-                            EffortLevel = "Medium",
-                            ImpactPoints = 15.00m,
-                            IsActive = true,
-                            TriggerMaxValue = 2,
-                            TriggerQuestionCode = "ENV-01"
-                        },
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0005-000000000002"),
-                            ActionText = "Fixer un objectif chiffré de réduction de votre consommation d'énergie sur trois ans.",
-                            Code = "REC-ENV-02",
-                            DetailText = "Un objectif simple (ex. -10 % sur trois ans) suffit pour démarrer une démarche de suivi. Bpifrance et les CCI proposent des diagnostics énergétiques subventionnés pour les PME.",
-                            Domain = "Environmental",
-                            EffortLevel = "Low",
-                            ImpactPoints = 10.00m,
-                            IsActive = true,
-                            TriggerMaxValue = 2,
-                            TriggerQuestionCode = "ENV-02"
-                        },
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0005-000000000003"),
-                            ActionText = "Mettre en place le tri sélectif des déchets d'activité avec un prestataire agréé.",
-                            Code = "REC-ENV-03",
-                            DetailText = "Commencer par les flux les plus simples (papier, carton, emballages). France Num référence des prestataires locaux de collecte et de valorisation.",
-                            Domain = "Environmental",
-                            EffortLevel = "Low",
-                            ImpactPoints = 5.00m,
-                            IsActive = true,
-                            TriggerMaxValue = 2,
-                            TriggerQuestionCode = "ENV-03"
-                        });
                 });
 
             modelBuilder.Entity("MAAT.Domain.Entities.RefreshToken", b =>
@@ -550,123 +468,6 @@ namespace MAAT.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("sector_weights", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0001-000000000001"),
-                            Domain = "Environmental",
-                            IsDefault = true,
-                            Weight = 0.200m
-                        },
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0001-000000000002"),
-                            Domain = "Social",
-                            IsDefault = true,
-                            Weight = 0.200m
-                        },
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0001-000000000003"),
-                            Domain = "Ethics",
-                            IsDefault = true,
-                            Weight = 0.200m
-                        },
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0001-000000000004"),
-                            Domain = "Procurement",
-                            IsDefault = true,
-                            Weight = 0.200m
-                        },
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0001-000000000005"),
-                            Domain = "Governance",
-                            IsDefault = true,
-                            Weight = 0.200m
-                        },
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0002-000000000001"),
-                            Domain = "Environmental",
-                            IsDefault = false,
-                            SectorCode = "4941A",
-                            Weight = 0.400m
-                        },
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0002-000000000002"),
-                            Domain = "Social",
-                            IsDefault = false,
-                            SectorCode = "4941A",
-                            Weight = 0.200m
-                        },
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0002-000000000003"),
-                            Domain = "Ethics",
-                            IsDefault = false,
-                            SectorCode = "4941A",
-                            Weight = 0.150m
-                        },
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0002-000000000004"),
-                            Domain = "Procurement",
-                            IsDefault = false,
-                            SectorCode = "4941A",
-                            Weight = 0.150m
-                        },
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0002-000000000005"),
-                            Domain = "Governance",
-                            IsDefault = false,
-                            SectorCode = "4941A",
-                            Weight = 0.100m
-                        },
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0003-000000000001"),
-                            Domain = "Environmental",
-                            IsDefault = false,
-                            SectorCode = "6202A",
-                            Weight = 0.100m
-                        },
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0003-000000000002"),
-                            Domain = "Social",
-                            IsDefault = false,
-                            SectorCode = "6202A",
-                            Weight = 0.300m
-                        },
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0003-000000000003"),
-                            Domain = "Ethics",
-                            IsDefault = false,
-                            SectorCode = "6202A",
-                            Weight = 0.250m
-                        },
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0003-000000000004"),
-                            Domain = "Procurement",
-                            IsDefault = false,
-                            SectorCode = "6202A",
-                            Weight = 0.150m
-                        },
-                        new
-                        {
-                            Id = new Guid("00000000-0000-0000-0003-000000000005"),
-                            Domain = "Governance",
-                            IsDefault = false,
-                            SectorCode = "6202A",
-                            Weight = 0.200m
-                        });
                 });
 
             modelBuilder.Entity("MAAT.Domain.Entities.User", b =>

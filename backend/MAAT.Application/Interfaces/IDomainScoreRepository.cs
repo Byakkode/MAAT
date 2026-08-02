@@ -9,6 +9,11 @@ public interface IDomainScoreRepository
 {
     Task<DomainScore?> FindAsync(Guid diagnosticId, RseDomain domain, CancellationToken ct);
 
+    // Tableau de bord (dashboard.md, section 1) : les cinq DomainScore d'un diagnostic donné,
+    // pour le radar. Domain n'a pas d'ordre imposé ici — le classement par domaine est un
+    // choix d'affichage frontend, hors périmètre de ce dépôt.
+    Task<IReadOnlyList<DomainScore>> FindAllForDiagnosticAsync(Guid diagnosticId, CancellationToken ct);
+
     // Export RGPD (section 6, cas 18).
     Task<IReadOnlyList<DomainScore>> FindAllForCurrentCompanyAsync(CancellationToken ct);
 

@@ -1,0 +1,161 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurer .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Configurer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: dotnet build
+        run: dotnet build backend/MAAT.slnx
+
+      # MAAT.IntegrationTests utilise Testcontainers, qui trouve tout seul le Docker natif
+      # des runners GitHub (rien à configurer). NE PAS forcer DOCKER_HOST ni
+      # TESTCONTAINERS_RYUK_DISABLED ici : ces deux variables ne sont nécessaires qu'en
+      # local, pour Podman rootless (voir CLAUDE.md, section « Tests d'intégration »).
+      - name: dotnet test
+        run: dotnet test backend/MAAT.slnx
+
+      - name: npm ci
+        working-directory: frontend
+        run: npm ci
+
+      - name: npm run build
+        working-directory: frontend
+        run: npm run build
+
+      - name: npm run test
+        working-directory: frontend
+        run: npm run test
+
+      # Relit backend/MAAT.Infrastructure/Seed/*.csv et échoue si un fichier est invalide
+      # (colonnes, doublons de code, énumérations, pondérations sectorielles) — sans base
+      # de données, sans rien écrire (docs/specs/modele-donnees.md). DOTNET_ENVIRONMENT=Production
+      # et --no-launch-profile : cette commande ne doit dépendre d'aucune configuration
+      # (ni chaîne de connexion, ni clé JWT), contrairement au reste de l'application.
+      - name: Valider les données de référence (seed --validate)
+        env:
+          DOTNET_ENVIRONMENT: Production
+        run: dotnet run --project backend/MAAT.Api --no-launch-profile -- seed --validate
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    services:
+      # Port hôte 5433 pour correspondre tel quel à ConnectionStrings:Default
+      # d'appsettings.Development.json (backend/MAAT.Api) : aucune variable
+      # d'environnement à passer à l'API pour qu'elle trouve la base.
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: maat
+          POSTGRES_PASSWORD: maat_dev_only
+          POSTGRES_DB: maat
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurer .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Configurer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: dotnet build
+        run: dotnet build backend/MAAT.slnx
+
+      # Version alignée sur Microsoft.EntityFrameworkCore.Design dans
+      # backend/Directory.Packages.props, pour éviter l'avertissement de version.
+      - name: Installer dotnet-ef
+        run: |
+          dotnet tool install --global dotnet-ef --version 10.0.10
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Appliquer les migrations
+        run: >-
+          dotnet ef database update
+          --project backend/MAAT.Infrastructure --startup-project backend/MAAT.Api
+
+      # Environnement Development : appsettings.Development.json fournit déjà la
+      # chaîne de connexion (port 5433, ci-dessus) et Jwt:SigningKey, aucune variable
+      # supplémentaire à passer.
+      - name: Charger les données de référence (seed)
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+        run: dotnet run --project backend/MAAT.Api --no-launch-profile -- seed
+
+      - name: Démarrer l'API en arrière-plan
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+        run: |
+          nohup dotnet run --project backend/MAAT.Api --no-launch-profile \
+            --urls http://localhost:5130 > api.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null http://localhost:5130/api/auth/login; then
+              echo "API prête."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "L'API n'a pas démarré à temps." >&2
+          cat api.log
+          exit 1
+
+      - name: npm ci
+        working-directory: frontend
+        run: npm ci
+
+      - name: Installer les navigateurs Playwright
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      # baseURL http://localhost:5173 (playwright.config.ts) : Playwright démarre lui-même
+      # le serveur de dev Vite (webServer) ; seule l'API doit déjà tourner, sur le port 5130
+      # attendu par défaut par frontend/src/api/config.ts.
+      - name: npm run test:e2e
+        working-directory: frontend
+        run: npx playwright test --reporter=html
+
+      - name: Publier le rapport Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7

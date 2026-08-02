@@ -1,0 +1,16 @@
+sector_code,domain,weight
+,Environmental,0.200
+,Social,0.200
+,Ethics,0.200
+,Procurement,0.200
+,Governance,0.200
+4941A,Environmental,0.400
+4941A,Social,0.200
+4941A,Ethics,0.150
+4941A,Procurement,0.150
+4941A,Governance,0.100
+6202A,Environmental,0.100
+6202A,Social,0.300
+6202A,Ethics,0.250
+6202A,Procurement,0.150
+6202A,Governance,0.200

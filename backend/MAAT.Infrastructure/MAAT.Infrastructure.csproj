@@ -7,6 +7,18 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Security\common-passwords.txt" />
+    <EmbeddedResource Include="Seed\*.csv" />
+    <!-- Jeu de données de démonstration (commande "seed", drapeau demo, Development
+         uniquement) : séparé du groupe ci-dessus pour qu'aucun outil ne les traite ensemble
+         par erreur, voir DemoDataSeeder et Seed/demo/demo-questions.csv. -->
+    <EmbeddedResource Include="Seed\demo\*.csv" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- CsvFile est internal : les tests de robustesse CSV (MAAT.IntegrationTests,
+         CsvFileTests.cs) l'appellent directement avec des flux fabriqués plutôt que de
+         passer par les fichiers de seed réels. -->
+    <InternalsVisibleTo Include="MAAT.IntegrationTests" />
   </ItemGroup>
 
   <ItemGroup>

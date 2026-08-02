@@ -25,7 +25,10 @@
   --color-chart-social: #1e88e5;
   --color-chart-ethique: #7e57c2;
   --color-chart-gouvernance: #42a5f5;
-  --color-chart-economique: #ffb74d;
+  /* "Achats" = domaine Procurement (docs/specs/dashboard.md, section 3 : "Achats
+     responsables"). Nommé --color-chart-achats plutôt que -economique : RseDomain n'a pas de
+     domaine Économique (voir backend/MAAT.Domain/Enums/RseDomain.cs). */
+  --color-chart-achats: #ffb74d;
 
   --font-heading: "Poppins", system-ui, sans-serif;
   --font-body: "Inter", system-ui, sans-serif;

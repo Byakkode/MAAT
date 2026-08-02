@@ -20,6 +20,13 @@ public interface IDiagnosticRepository
     // Export RGPD (section 6, cas 18).
     Task<IReadOnlyList<Diagnostic>> FindAllForCurrentCompanyAsync(CancellationToken ct);
 
+    // Tableau de bord (dashboard.md, sections 1 et 4) : uniquement les diagnostics Completed,
+    // triés du plus ancien au plus récent — Archived n'a pas de score (cas 5) et InProgress
+    // est déjà couvert par FindInProgressForCurrentCompanyAsync ci-dessus (le bandeau
+    // "diagnostic en cours"). Le dernier élément sert de référence pour le score courant,
+    // les cinq DomainScore et le benchmark (cas 4).
+    Task<IReadOnlyList<Diagnostic>> FindAllCompletedForCurrentCompanyAsync(CancellationToken ct);
+
     // Purge RGPD (section 6) : supprime tous les Diagnostic de l'entreprise courante.
     // Cascade DB vers Response, DomainScore, DiagnosticRecommendation et Report — donc
     // vers Report avant que DeleteAllForCompanyAsync sur User ne s'exécute (voir
