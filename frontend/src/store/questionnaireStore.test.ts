@@ -8,6 +8,8 @@ const diagnosticsApi = vi.hoisted(() => ({
   getQuestions: vi.fn(),
   upsertResponse: vi.fn(),
   complete: vi.fn(),
+  create: vi.fn(),
+  abandon: vi.fn(),
 }))
 vi.mock('../api/diagnosticsApi', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/diagnosticsApi')>()
@@ -15,7 +17,7 @@ vi.mock('../api/diagnosticsApi', async (importOriginal) => {
 })
 
 import { useQuestionnaireStore, selectHasSaveError } from './questionnaireStore'
-import { IncompleteQuestionnaireError } from '../api/diagnosticsApi'
+import { DiagnosticAlreadyInProgressError, IncompleteQuestionnaireError } from '../api/diagnosticsApi'
 import { ENV_QUESTIONS, makeDiagnosticDetail, resetQuestionnaireStore, SOCIAL_QUESTIONS } from '../test/questionnaireFixtures'
 
 describe('questionnaireStore', () => {
@@ -26,6 +28,8 @@ describe('questionnaireStore', () => {
     diagnosticsApi.getQuestions.mockReset()
     diagnosticsApi.upsertResponse.mockReset()
     diagnosticsApi.complete.mockReset()
+    diagnosticsApi.create.mockReset()
+    diagnosticsApi.abandon.mockReset()
   })
 
   afterEach(() => {
@@ -123,6 +127,108 @@ describe('questionnaireStore', () => {
 
       expect(useQuestionnaireStore.getState().currentStepIndex).toBe(0)
       expect(useQuestionnaireStore.getState().isEditable).toBe(false)
+    })
+  })
+
+  // docs/specs/questionnaire.md, section 1 (cas 2) et section 5 (cas 17) : le 404 de
+  // GET /current est l'état normal d'un nouvel utilisateur, pas une panne — distingué ici
+  // d'un échec réel, et le 409 de POST /api/diagnostics ouvre les deux options de la spec.
+  describe('démarrage sans diagnostic en cours', () => {
+    it("aucun diagnostic en cours (404 de /current, traduit en null) : loadStatus 'no-diagnostic', pas 'error'", async () => {
+      diagnosticsApi.getCurrent.mockResolvedValue(null)
+
+      await useQuestionnaireStore.getState().load()
+
+      expect(useQuestionnaireStore.getState().loadStatus).toBe('no-diagnostic')
+      expect(useQuestionnaireStore.getState().loadError).toBeNull()
+    })
+
+    it('un échec réel de /current (pas un 404) reste distingué : loadStatus "error"', async () => {
+      diagnosticsApi.getCurrent.mockRejectedValue(new Error('Réseau indisponible.'))
+
+      await useQuestionnaireStore.getState().load()
+
+      expect(useQuestionnaireStore.getState().loadStatus).toBe('error')
+      expect(useQuestionnaireStore.getState().loadError).toBe('Réseau indisponible.')
+    })
+
+    it('un diagnostic est déjà en cours : chargé normalement (pas l’écran no-diagnostic)', async () => {
+      diagnosticsApi.getCurrent.mockResolvedValue({
+        id: 'diag-1',
+        companyId: 'c-1',
+        status: 'InProgress',
+        createdAt: '2026-01-01T00:00:00Z',
+        answeredCount: 0,
+        totalActiveQuestions: 2,
+      })
+      diagnosticsApi.getById.mockResolvedValue(makeDiagnosticDetail('InProgress'))
+      diagnosticsApi.getQuestions.mockResolvedValue(ENV_QUESTIONS)
+
+      await useQuestionnaireStore.getState().load()
+
+      expect(useQuestionnaireStore.getState().loadStatus).toBe('loaded')
+      expect(useQuestionnaireStore.getState().diagnosticId).toBe('diag-1')
+      expect(useQuestionnaireStore.getState().isEditable).toBe(true)
+    })
+
+    it('startDiagnostic réussi charge directement le diagnostic créé', async () => {
+      diagnosticsApi.getCurrent.mockResolvedValue(null)
+      await useQuestionnaireStore.getState().load()
+      expect(useQuestionnaireStore.getState().loadStatus).toBe('no-diagnostic')
+
+      diagnosticsApi.create.mockResolvedValue({
+        id: 'diag-new',
+        companyId: 'c-1',
+        status: 'InProgress',
+        createdAt: '2026-01-01T00:00:00Z',
+      })
+      diagnosticsApi.getById.mockResolvedValue(makeDiagnosticDetail('InProgress', { id: 'diag-new' }))
+      diagnosticsApi.getQuestions.mockResolvedValue(ENV_QUESTIONS)
+
+      await useQuestionnaireStore.getState().startDiagnostic()
+
+      expect(useQuestionnaireStore.getState().loadStatus).toBe('loaded')
+      expect(useQuestionnaireStore.getState().diagnosticId).toBe('diag-new')
+    })
+
+    it("409 à la création : loadStatus 'conflict' avec l'identifiant du diagnostic existant, pas une erreur nue", async () => {
+      diagnosticsApi.getCurrent.mockResolvedValue(null)
+      await useQuestionnaireStore.getState().load()
+
+      diagnosticsApi.create.mockRejectedValue(
+        new DiagnosticAlreadyInProgressError('Un diagnostic est déjà en cours pour cette entreprise.', 'diag-existing'),
+      )
+
+      await useQuestionnaireStore.getState().startDiagnostic()
+
+      expect(useQuestionnaireStore.getState().loadStatus).toBe('conflict')
+      expect(useQuestionnaireStore.getState().conflictDiagnosticId).toBe('diag-existing')
+    })
+
+    it("abandonAndRestart : abandonne le diagnostic en conflit puis recrée et charge le nouveau", async () => {
+      diagnosticsApi.getCurrent.mockResolvedValue(null)
+      await useQuestionnaireStore.getState().load()
+      diagnosticsApi.create.mockRejectedValueOnce(
+        new DiagnosticAlreadyInProgressError('Un diagnostic est déjà en cours pour cette entreprise.', 'diag-existing'),
+      )
+      await useQuestionnaireStore.getState().startDiagnostic()
+      expect(useQuestionnaireStore.getState().loadStatus).toBe('conflict')
+
+      diagnosticsApi.abandon.mockResolvedValue(undefined)
+      diagnosticsApi.create.mockResolvedValueOnce({
+        id: 'diag-new',
+        companyId: 'c-1',
+        status: 'InProgress',
+        createdAt: '2026-01-01T00:00:00Z',
+      })
+      diagnosticsApi.getById.mockResolvedValue(makeDiagnosticDetail('InProgress', { id: 'diag-new' }))
+      diagnosticsApi.getQuestions.mockResolvedValue(ENV_QUESTIONS)
+
+      await useQuestionnaireStore.getState().abandonAndRestart()
+
+      expect(diagnosticsApi.abandon).toHaveBeenCalledWith('diag-existing')
+      expect(useQuestionnaireStore.getState().loadStatus).toBe('loaded')
+      expect(useQuestionnaireStore.getState().diagnosticId).toBe('diag-new')
     })
   })
 

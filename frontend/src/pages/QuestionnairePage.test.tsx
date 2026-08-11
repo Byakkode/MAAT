@@ -8,6 +8,8 @@ const diagnosticsApi = vi.hoisted(() => ({
   getQuestions: vi.fn(),
   upsertResponse: vi.fn(),
   complete: vi.fn(),
+  create: vi.fn(),
+  abandon: vi.fn(),
 }))
 vi.mock('../api/diagnosticsApi', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/diagnosticsApi')>()
@@ -16,6 +18,7 @@ vi.mock('../api/diagnosticsApi', async (importOriginal) => {
 
 import { QuestionnairePage } from './QuestionnairePage'
 import { useQuestionnaireStore } from '../store/questionnaireStore'
+import { DiagnosticAlreadyInProgressError } from '../api/diagnosticsApi'
 import { makeDiagnosticDetail, resetQuestionnaireStore } from '../test/questionnaireFixtures'
 
 function renderAt(path: string) {
@@ -59,6 +62,8 @@ describe('QuestionnairePage', () => {
     diagnosticsApi.getQuestions.mockReset()
     diagnosticsApi.upsertResponse.mockReset()
     diagnosticsApi.complete.mockReset()
+    diagnosticsApi.create.mockReset()
+    diagnosticsApi.abandon.mockReset()
     // Statut par défaut pour les tests qui ne portent pas sur le mode d'affichage lui-même.
     diagnosticsApi.getById.mockResolvedValue(makeDiagnosticDetail('InProgress'))
   })
@@ -222,5 +227,49 @@ describe('QuestionnairePage', () => {
 
     await waitFor(() => expect(diagnosticsApi.complete).toHaveBeenCalledWith('diag-1'))
     await waitFor(() => expect(screen.getByText(/diagnostic complété/i)).toBeDefined())
+  })
+
+  // docs/specs/questionnaire.md, section 5 : le 404 de /current est l'état normal d'un
+  // nouvel utilisateur — un écran d'invitation, jamais le message d'erreur générique.
+  it('aucun diagnostic en cours : invite à en démarrer un, le bouton crée puis charge le nouveau diagnostic', async () => {
+    diagnosticsApi.getCurrent.mockResolvedValue(null)
+
+    renderAt('/questionnaire')
+
+    await waitFor(() => expect(screen.getByText(/vous n.avez pas de diagnostic en cours/i)).toBeDefined())
+    expect(screen.queryByRole('alert')).toBeNull()
+
+    diagnosticsApi.create.mockResolvedValue({
+      id: 'diag-new',
+      companyId: 'c-1',
+      status: 'InProgress',
+      createdAt: '2026-01-01T00:00:00Z',
+    })
+    diagnosticsApi.getById.mockResolvedValue(makeDiagnosticDetail('InProgress', { id: 'diag-new' }))
+    diagnosticsApi.getQuestions.mockResolvedValue(ENV_QUESTIONS_PARTIAL)
+
+    fireEvent.click(screen.getByRole('button', { name: /démarrer un diagnostic/i }))
+
+    await waitFor(() => expect(diagnosticsApi.create).toHaveBeenCalled())
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Environnement' })).toBeDefined())
+  })
+
+  // section 1, cas 2 : 409 à la création — les deux options explicites de la spec, pas un
+  // message d'erreur nu.
+  it('409 à la création : propose de reprendre ou d’abandonner et recommencer', async () => {
+    diagnosticsApi.getCurrent.mockResolvedValue(null)
+    diagnosticsApi.create.mockRejectedValue(
+      new DiagnosticAlreadyInProgressError('Un diagnostic est déjà en cours pour cette entreprise.', 'diag-existing'),
+    )
+
+    renderAt('/questionnaire')
+
+    await waitFor(() => expect(screen.getByRole('button', { name: /démarrer un diagnostic/i })).toBeDefined())
+    fireEvent.click(screen.getByRole('button', { name: /démarrer un diagnostic/i }))
+
+    await waitFor(() => expect(screen.getByRole('link', { name: /reprendre/i })).toBeDefined())
+    const resumeLink = screen.getByRole('link', { name: /reprendre/i })
+    expect(resumeLink.getAttribute('href')).toBe('/questionnaire/diag-existing')
+    expect(screen.getByRole('button', { name: /abandonner et recommencer/i })).toBeDefined()
   })
 })

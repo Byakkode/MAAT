@@ -50,3 +50,13 @@ export interface DiagnosticDetail {
   createdAt: string
   completedAt: string | null
 }
+
+// Miroir de la réponse 201 de POST /api/diagnostics (section 1) : sous-ensemble de
+// DiagnosticDetail, sans globalScore ni completedAt (un diagnostic tout juste créé n'a ni
+// l'un ni l'autre).
+export interface CreatedDiagnostic {
+  id: string
+  companyId: string
+  status: DiagnosticStatus
+  createdAt: string
+}
