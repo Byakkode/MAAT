@@ -7,6 +7,7 @@ using MAAT.Application.UseCases;
 using MAAT.Domain.Services;
 using MAAT.Infrastructure.Email;
 using MAAT.Infrastructure.Jobs;
+using MAAT.Infrastructure.Pdf;
 using MAAT.Infrastructure.Persistence;
 using MAAT.Infrastructure.Repositories;
 using MAAT.Infrastructure.Security;
@@ -72,6 +73,14 @@ builder.Services.AddSingleton<IScoringService, ScoringService>();
 // Même principe que IScoringService ci-dessus : substitué en test pour le cas 12 de
 // docs/specs/recommandations.md (échec de la sélection → complétion annulée).
 builder.Services.AddSingleton<IRecommendationEngine, RecommendationEngine>();
+
+// docs/specs/rapport-pdf.md, section 3 : aucun DateTime.Now dans le générateur de rapport —
+// l'horloge est injectée, ce qui rend le déterminisme testable en la figeant (cas 10 à 12).
+builder.Services.AddSingleton(TimeProvider.System);
+
+// Substitué en test pour le cas 8 (échec de la génération → aucune ligne Report), même
+// principe que IScoringService/IRecommendationEngine ci-dessus.
+builder.Services.AddSingleton<IReportGenerator, QuestPdfReportGenerator>();
 
 // Jeu de données de démonstration (commande "seed", drapeau demo, Development uniquement) :
 // voir DemoDataSeeder. Jamais invoqué au démarrage, contrairement à ReferenceDataSeeder
@@ -142,7 +151,14 @@ builder.Services.AddOptions<Microsoft.AspNetCore.Cors.Infrastructure.CorsOptions
         policy.WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials());
+            .AllowCredentials()
+            // docs/specs/rapport-pdf.md, section 2 : Content-Disposition ne fait pas partie de
+            // la liste des en-têtes exposés par défaut aux réponses cross-origin (contrairement
+            // aux en-têtes de requête, couverts par AllowAnyHeader ci-dessus) — sans ceci,
+            // response.headers.get("Content-Disposition") renvoie toujours null côté navigateur
+            // et le nom de fichier déterministe du rapport ne serait jamais lisible par le
+            // frontend qui déclenche le téléchargement (section 6).
+            .WithExposedHeaders("Content-Disposition"));
 });
 
 // includeSubDomains explicite : la valeur par défaut de HstsOptions est false.
@@ -195,6 +211,26 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0,
             });
     });
+
+    // docs/specs/rapport-pdf.md, section 2 : la génération est l'opération la plus coûteuse
+    // en CPU du produit (mise en page, rendu d'une image, embarquement de polices). Même
+    // mécanisme et même clé de partition (context.Items["RateLimitUserId"], voir la politique
+    // "password-confirmation" ci-dessus et le middleware qui la renseigne plus bas) que les
+    // endpoints de confirmation de mot de passe, quota nettement plus large — ordre de
+    // grandeur d'une dizaine de générations par quart d'heure, à ajuster après mesure réelle.
+    options.AddPolicy("report-generation", context =>
+    {
+        var userId = context.Items.TryGetValue("RateLimitUserId", out var value) ? value as string : null;
+
+        return System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            userId ?? "anonymous",
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0,
+            });
+    });
 });
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -239,6 +275,12 @@ using (var passwordCheckerWarmupScope = app.Services.CreateScope())
 {
     passwordCheckerWarmupScope.ServiceProvider.GetRequiredService<ICompromisedPasswordChecker>();
 }
+
+// docs/adr/0006-licence-questpdf.md : sans cet appel explicite, QuestPDF lève une exception
+// au premier document généré (échec de runtime, pas de compilation) — appelé ici pour que ce
+// soit le démarrage qui échoue bruyamment, pas le premier téléchargement réel. Enregistre
+// aussi les polices Poppins/Inter embarquées (docs/specs/rapport-pdf.md, section 5).
+QuestPdfBootstrapper.Configure();
 
 // Vérifié au démarrage plutôt qu'à la résolution paresseuse des JwtBearerOptions
 // (cf. commentaire plus haut) : une clé trop courte affaiblit HMAC-SHA256 et doit

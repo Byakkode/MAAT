@@ -6,6 +6,7 @@ import { DomainScoreTable } from '../components/dashboard/DomainScoreTable'
 import { EvolutionChart } from '../components/dashboard/EvolutionChart'
 import { InProgressBanner } from '../components/dashboard/InProgressBanner'
 import { ScoreSummary } from '../components/dashboard/ScoreSummary'
+import { ReportDownloadButton } from '../components/report/ReportDownloadButton'
 import { useAuthStore } from '../store/authStore'
 import { useDashboardStore } from '../store/dashboardStore'
 
@@ -88,6 +89,10 @@ export function DashboardPage() {
         latestDiagnostic && (
           <>
             <ScoreSummary score={latestDiagnostic.globalScore} sectorCode={latestDiagnostic.sectorCode} />
+
+            {/* docs/specs/rapport-pdf.md, section 6 : bouton de téléchargement sur le tableau
+                de bord, en plus de la page de résultat (RapportPage). */}
+            <ReportDownloadButton diagnosticId={latestDiagnostic.id} />
 
             <section className="rounded-card border border-border bg-white p-5 shadow-card">
               <DomainRadarChart domainScores={domainScores} />

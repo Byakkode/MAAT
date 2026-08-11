@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Text;
+using System.Text.RegularExpressions;
 using MAAT.Application.DTOs;
 using MAAT.Application.Exceptions;
 using MAAT.Application.Interfaces;
@@ -15,13 +18,25 @@ public class DiagnosticService(
     IQuestionRepository questionRepository,
     ISectorWeightRepository sectorWeightRepository,
     ICompanyRepository companyRepository,
+    IUserRepository userRepository,
     ICurrentUserContext currentUser,
     IUnitOfWork unitOfWork,
     IScoringService scoringService,
     IRecommendationRepository recommendationRepository,
     IDiagnosticRecommendationRepository diagnosticRecommendationRepository,
-    IRecommendationEngine recommendationEngine)
+    IRecommendationEngine recommendationEngine,
+    IReportGenerator reportGenerator,
+    TimeProvider timeProvider)
 {
+    // docs/specs/rapport-pdf.md, section 4, bloc « Mentions » : version du référentiel de
+    // questions actif. Le modèle de données n'a pas (encore) de colonne de version sur
+    // Question — constante ici plutôt qu'une donnée absente, à faire évoluer le jour où un
+    // véritable versionnement du référentiel existe.
+    private const string ReferentialVersion = "1.0";
+
+    // Limite du plan d'actions affiché dans le rapport (section 4 : « limiter aux vingt
+    // premières et indiquer le total »).
+    private const int MaxReportRecommendations = 20;
     // docs/specs/questionnaire.md, section 1 : une entreprise ne peut avoir qu'un seul
     // diagnostic InProgress à la fois — sans quoi la reprise devient ambiguë.
     public async Task<Diagnostic> CreateAsync(CancellationToken ct)
@@ -280,5 +295,106 @@ public class DiagnosticService(
         entry.SetProgress(isCompleted);
         await unitOfWork.SaveChangesAsync(ct);
         return entry;
+    }
+
+    // docs/specs/rapport-pdf.md, section 2. Préconditions dans cet ordre : existence/
+    // cloisonnement (404, FindByIdAsync scope déjà par entreprise courante), statut (409),
+    // adresse e-mail vérifiée (403, auth-securite-rgpd.md section 1 — restriction ciblée sur
+    // la seule génération de rapport). Aucune ligne Report n'est écrite avant que
+    // reportGenerator.Generate ait réussi (section 2 : « une génération qui échoue ne doit
+    // pas laisser de trace d'un rapport qui n'a jamais existé »).
+    public async Task<GeneratedReport?> GenerateReportAsync(Guid diagnosticId, CancellationToken ct)
+    {
+        var diagnostic = await diagnosticRepository.FindByIdAsync(diagnosticId, ct);
+        if (diagnostic is null)
+        {
+            return null;
+        }
+
+        if (diagnostic.Status != DiagnosticStatus.Completed)
+        {
+            throw new DiagnosticNotCompletedException();
+        }
+
+        var user = await userRepository.GetByIdAsync(currentUser.UserId, ct)
+            ?? throw new InvalidOperationException("Utilisateur du principal authentifié introuvable.");
+        if (!user.EmailVerified)
+        {
+            throw new EmailNotVerifiedException();
+        }
+
+        var company = await companyRepository.GetByIdAsync(diagnostic.CompanyId, ct)
+            ?? throw new InvalidOperationException("Entreprise du diagnostic introuvable.");
+
+        var globalScore = diagnostic.GlobalScore
+            ?? throw new InvalidOperationException("Un diagnostic Completed doit porter un score global.");
+        var completedAt = diagnostic.CompletedAt
+            ?? throw new InvalidOperationException("Un diagnostic Completed doit porter une date de complétion.");
+
+        // Tri par domaine (ordre de l'énumération RseDomain) plutôt que l'ordre de retour du
+        // dépôt : déterminisme du cas 10/11 — deux générations doivent produire des blocs
+        // identiques indépendamment de tout ordre de lecture non garanti côté base.
+        var domainScores = await domainScoreRepository.FindAllForDiagnosticAsync(diagnosticId, ct);
+        var reportDomainScores = domainScores
+            .OrderBy(ds => (int)ds.Domain)
+            .Select(ds => new ReportDomainScore(ds.Domain, ds.Score, ds.SectorWeight, ds.Numerator, ds.Denominator))
+            .ToList();
+
+        // Déjà triées par priority_rank par le dépôt (section 4 : jamais un recalcul, cas 12
+        // de recommandations.md) ; is_active ignoré, comme pour la consultation du plan
+        // d'actions (une recommandation désactivée après coup reste dans le rapport).
+        var allRecommendations = await diagnosticRecommendationRepository.FindAllForDiagnosticAsync(diagnosticId, ct);
+        var reportRecommendations = allRecommendations
+            .Take(MaxReportRecommendations)
+            .Select(r => new ReportRecommendation(r.ActionText, r.Domain, r.EffortLevel, r.IsCompleted))
+            .ToList();
+
+        var roundedGlobalScore = ScoringService.RoundForDisplay(globalScore);
+
+        var reportData = new ReportData(
+            company.Name,
+            company.SectorCode,
+            company.SizeRange,
+            company.Region,
+            completedAt,
+            globalScore,
+            ScoreLabel.For(roundedGlobalScore),
+            reportDomainScores,
+            reportRecommendations,
+            allRecommendations.Count,
+            timeProvider.GetUtcNow(),
+            ReferentialVersion);
+
+        // Peut lever : aucune ligne Report ne doit alors être écrite (cas 8), d'où l'appel
+        // avant AddAsync/SaveChangesAsync ci-dessous plutôt qu'après.
+        var bytes = reportGenerator.Generate(reportData);
+
+        await reportRepository.AddAsync(new Report(diagnosticId, currentUser.UserId), ct);
+        await unitOfWork.SaveChangesAsync(ct);
+
+        return new GeneratedReport(bytes, BuildFileName(company.Name, completedAt));
+    }
+
+    // docs/specs/rapport-pdf.md, section 2 : « maat-diagnostic-{code-entreprise-normalisé}-
+    // {aaaa-mm-jj}.pdf », la date étant celle de complétion du diagnostic, jamais celle de la
+    // génération.
+    private static string BuildFileName(string companyName, DateTimeOffset completedAt) =>
+        $"maat-diagnostic-{Slugify(companyName)}-{completedAt:yyyy-MM-dd}.pdf";
+
+    private static string Slugify(string value)
+    {
+        var decomposed = value.Normalize(NormalizationForm.FormD);
+        var withoutDiacritics = new StringBuilder(decomposed.Length);
+        foreach (var ch in decomposed)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(ch) != UnicodeCategory.NonSpacingMark)
+            {
+                withoutDiacritics.Append(ch);
+            }
+        }
+
+        var lowered = withoutDiacritics.ToString().Normalize(NormalizationForm.FormC).ToLowerInvariant();
+        var slug = Regex.Replace(lowered, "[^a-z0-9]+", "-").Trim('-');
+        return slug.Length == 0 ? "entreprise" : slug;
     }
 }

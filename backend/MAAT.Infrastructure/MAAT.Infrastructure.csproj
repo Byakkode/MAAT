@@ -12,6 +12,12 @@
          uniquement) : séparé du groupe ci-dessus pour qu'aucun outil ne les traite ensemble
          par erreur, voir DemoDataSeeder et Seed/demo/demo-questions.csv. -->
     <EmbeddedResource Include="Seed\demo\*.csv" />
+    <!-- docs/specs/rapport-pdf.md, section 5 : Poppins et Inter embarquées dans le dépôt,
+         chargées via Assembly.GetManifestResourceStream (QuestPdfBootstrapper) plutôt que
+         depuis un chemin de fichier — le VPS Linux nu n'a ni l'une ni l'autre police
+         installée, et un chemin de fichier introduirait une dépendance de déploiement que
+         l'embarquement en ressource évite. Licence OFL, voir Pdf/Fonts/*-OFL.txt. -->
+    <EmbeddedResource Include="Pdf\Fonts\*.ttf" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,6 +37,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="QuestPDF" />
+    <PackageReference Include="SkiaSharp" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
   </ItemGroup>

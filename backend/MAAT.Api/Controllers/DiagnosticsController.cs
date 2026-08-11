@@ -4,6 +4,7 @@ using MAAT.Application.UseCases;
 using MAAT.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace MAAT.Api.Controllers;
 
@@ -265,5 +266,37 @@ public class DiagnosticsController(DiagnosticService diagnosticService) : Contro
             score = domainScore.Score,
             sectorWeight = domainScore.SectorWeight,
         });
+    }
+
+    // docs/specs/rapport-pdf.md, section 2. GET malgré l'écriture d'une ligne Report : le
+    // navigateur doit pouvoir suivre le lien directement, l'effet de bord est un journal
+    // d'audit, pas une modification de l'état métier (assumé explicitement, pas masqué).
+    // Pas de restriction de rôle : les trois rôles, Viewer compris, comme GetQuestions et
+    // GetRecommendations ci-dessus — la génération est une lecture.
+    [HttpGet("{id:guid}/report")]
+    [EnableRateLimiting("report-generation")]
+    public async Task<IActionResult> GetReport(Guid id, CancellationToken ct)
+    {
+        try
+        {
+            var report = await diagnosticService.GenerateReportAsync(id, ct);
+            if (report is null)
+            {
+                return NotFound();
+            }
+
+            return File(report.Bytes, "application/pdf", report.FileName);
+        }
+        catch (DiagnosticNotCompletedException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+        catch (EmailNotVerifiedException ex)
+        {
+            // Forbid() (authentification par schéma) ne convient pas ici : la section 2 exige
+            // un motif exploitable par le frontend dans le corps de la réponse, pas seulement
+            // un 403 nu.
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
     }
 }

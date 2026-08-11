@@ -19,6 +19,7 @@
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageVersion Include="NSubstitute" Version="6.0.0" />
     <PackageVersion Include="QuestPDF" Version="2026.7.1" />
+    <PackageVersion Include="SkiaSharp" Version="4.150.1" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="4.150.1" />
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.19.2" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.13.0" />
