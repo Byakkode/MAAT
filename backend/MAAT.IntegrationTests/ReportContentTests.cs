@@ -195,13 +195,13 @@ public class ReportContentTests(ReportContentApiFixture fixture)
             $"Somme des contributions ({sumOfContributions}) incohérente avec le score global ({data.GlobalScore}).");
     }
 
-    // docs/specs/rapport-pdf.md, cas 21 : la valeur « Transparence » n'existe que si le
+    // docs/specs/rapport-pdf.md, cas 22 : la valeur « Transparence » n'existe que si le
     // lecteur peut refaire le calcul avec les deux nombres imprimés sur la ligne et retomber
     // sur le score affiché — contrairement au cas 16 (cohérence globale, écart toléré), c'est
     // ici une égalité exacte entre deux valeurs déjà arrondies pour l'affichage : aucune
     // marge n'est recevable, une égalité approchée ne serait pas vérifiable à la main.
     [Fact]
-    public async Task Cas21_Numerateur_divise_par_denominateur_redonne_le_score_affiche_sur_la_meme_ligne()
+    public async Task Cas22_Numerateur_divise_par_denominateur_redonne_le_score_affiche_sur_la_meme_ligne()
     {
         var client = fixture.CreateClient();
         var (diagnosticId, token) = await CompleteVerifiedDiagnosticAsync(client, StandardAnswers);

@@ -126,9 +126,32 @@ existaient déjà pour cette raison, c'est ici qu'ils sont encaissés.
 
 Sept blocs, dans cet ordre. Format A4, portrait.
 
-**Page de garde.** Logo MAAT, raison sociale, code NAF et libellé du secteur,
-effectif, région, date de complétion. Score global en grand, accompagné de son
-libellé qualitatif.
+**Page de garde.** Logo MAAT, raison sociale, code NAF, effectif, région, date
+de complétion. Score global en grand, accompagné de son libellé qualitatif.
+
+Le libellé humain d'un code NAF (« 6202A — Conseil en systèmes et logiciels
+informatiques ») n'a **aucune source dans ce projet** : `sector-weights.csv`
+(`modele-donnees.md`) ne porte que `sector_code`, `domain` et `weight`, jamais
+de nom, et 2 secteurs seulement sur les 38 visés y sont seedés à ce jour.
+L'inventer serait afficher une donnée non vérifiée sur le document qui
+circule hors de la plateforme — justement ce que la section 1 interdit pour
+la licence QuestPDF, appliqué ici au contenu. À la place, la page de garde
+indique si la pondération **effectivement appliquée** est spécifique au
+secteur ou retombée sur la pondération par défaut, auquel cas ce repli est
+annoncé explicitement plutôt que laissé silencieux. Un vrai référentiel de
+libellés NAF est un travail de contenu à part entière, comme les 38 secteurs
+pondérés eux-mêmes (`modele-donnees.md`) — à inscrire à la feuille de route.
+
+Cet indicateur vient de `Diagnostic.default_sector_weighting_applied`, décidé
+une fois à la complétion (`questionnaire.md`, section 6, cas 13) — jamais
+d'une relecture ou d'une déduction depuis `DomainScore.SectorWeight`, même si
+celui-ci est lui aussi persisté et jamais recalculé (même raison que pour
+`numerator`/`denominator`). Ce n'est pas qu'une question de déterminisme :
+`SectorWeight` seul ne suffit pas à distinguer les deux cas. La renormalisation
+de `scoring.md` (cas 7) ramène le coefficient effectif à 1.00 quand un seul
+domaine est actif, que la pondération d'origine ait été spécifique ou par
+défaut — un diagnostic à un seul domaine actif rendait alors les deux
+situations indiscernables tant que l'indicateur se basait sur `SectorWeight`.
 
 **Méthodologie.** Une demi-page, pas davantage : les trois référentiels (VSME,
 ISO 26000, GRI), la formule du score de domaine, et le principe de la
@@ -248,19 +271,35 @@ laisserait l'utilisateur croire que la fonctionnalité n'existe pas.
 
 **Rendu**
 
-19. Le PNG du radar est embarqué et sa résolution dépasse la taille d'affichage.
+19. Le PNG du radar est embarqué à sa résolution de rendu, sans rééchantillonnage
+    par le moteur de mise en page. Rapportée à la taille d'affichage effective
+    dans le document, cette résolution atteint au moins 300 dpi, seuil usuel de
+    lisibilité à l'impression.
 20. Les polices Poppins et Inter sont effectivement embarquées dans le document — vérifiable en inspectant les ressources du PDF, et non en constatant qu'il « a l'air correct ».
+21. Les cinq libellés de domaine sont posés en texte autour du radar par le
+    moteur de mise en page, jamais incrustés dans le PNG — un lecteur doit
+    pouvoir identifier chaque axe, et le texte reste sélectionnable.
 
 **Traçabilité**
 
-21. Pour chaque domaine du tableau de détail (section 4), `numérateur ÷
+22. Pour chaque domaine du tableau de détail (section 4), `numérateur ÷
     dénominateur × 100`, arrondi selon la règle d'affichage, égale exactement
     le score affiché sur la même ligne. Un lecteur qui refait le calcul à la
     main avec les deux nombres imprimés doit tomber juste.
+23. Entreprise dont le code NAF n'est pas couvert par `SectorWeight`, avec un
+    seul domaine actif → la page de garde indique « pondération par défaut »,
+    pas « pondération spécifique ». Ce cas existe précisément parce qu'un
+    diagnostic à un seul domaine actif est le point où l'ancienne dérivation
+    depuis `DomainScore.SectorWeight` se trompait silencieusement (la
+    renormalisation de `scoring.md`, cas 7, ramène le coefficient effectif à
+    1.00 dans les deux situations) — voir `Diagnostic.
+    default_sector_weighting_applied` (`modele-donnees.md`).
 
 Le cas 10 est celui qui justifie de ne rien stocker. Le cas 20 est celui qui vous
 évitera de découvrir en production que votre rapport de soutenance sort en
-Times New Roman. Le cas 21 est celui qui rend la valeur « Transparence »
+Times New Roman. Le cas 22 est celui qui rend la valeur « Transparence »
 vérifiable plutôt que seulement promise : un numérateur et un dénominateur
 qui ne redonnent pas le score affiché sont pires que leur absence, puisqu'ils
-prétendent à une preuve qui ne tient pas.
+prétendent à une preuve qui ne tient pas. Le cas 23 est celui qui a failli passer
+inaperçu : plausible sur tout diagnostic multi-domaines, faux uniquement sur le
+cas limite d'un seul domaine actif.

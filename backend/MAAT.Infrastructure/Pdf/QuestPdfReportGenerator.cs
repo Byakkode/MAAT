@@ -73,7 +73,12 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
                 column.Item().Element(c => ComposeMethodology(c));
                 column.Item().PaddingTop(16).Element(c => ComposeScoreAndRadar(c, data));
                 column.Item().PaddingTop(16).Element(c => ComposeDomainDetail(c, data));
-                column.Item().PaddingTop(16).Element(c => ComposeStrengthsAndWeaknesses(c, data));
+                // ShowEntire : sans lui, QuestPDF peut couper la section entre le titre et son
+                // contenu quand le titre est la dernière ligne qui tient encore sur la page —
+                // le titre reste alors seul en bas de page, son contenu commençant en haut de
+                // la suivante. ShowEntire fait basculer le bloc entier à la page suivante s'il
+                // ne tient pas intégralement sur celle en cours.
+                column.Item().PaddingTop(16).ShowEntire().Element(c => ComposeStrengthsAndWeaknesses(c, data));
                 column.Item().PaddingTop(16).Element(c => ComposeActionPlan(c, data));
 
                 column.Item().PageBreak();
@@ -91,7 +96,9 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
             column.Item().PaddingBottom(24).Text("MAAT").FontFamily(FontFamilies.PoppinsBold).FontSize(28).FontColor(BlueMaat);
 
             column.Item().Text(data.CompanyName).FontFamily(FontFamilies.PoppinsBold).FontSize(20);
-            column.Item().Text($"Secteur d'activité (code NAF) : {data.SectorCode}").FontFamily(FontFamilies.Inter).FontSize(11);
+            column.Item().Text($"Code NAF : {data.SectorCode}").FontFamily(FontFamilies.Inter).FontSize(11);
+            column.Item().Text(ComputeSectorWeightingLabel(data.DefaultSectorWeightingApplied))
+                .FontFamily(FontFamilies.InterLight).FontSize(9.5f).FontColor(MutedColor);
             column.Item().Text(CompanySizeRangeLabels.For(data.SizeRange)).FontFamily(FontFamilies.Inter).FontSize(11);
             column.Item().Text($"Région : {data.Region}").FontFamily(FontFamilies.Inter).FontSize(11);
             column.Item().Text($"Diagnostic complété le {FormatDate(data.CompletedAt)}").FontFamily(FontFamilies.Inter).FontSize(11);
@@ -130,6 +137,22 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
         });
     }
 
+    // Taille du bloc englobant (image + libellés d'axe) : assez grand pour que les cinq
+    // libellés, positionnés à RadarLabelRadius du centre, ne débordent jamais sur le texte
+    // qui suit (cas 21). RadarImageSize reste ce qui est réellement affiché ; le PNG lui-même
+    // porte une marge transparente interne (RadarChartRenderer, padding 12 %), donc les
+    // libellés peuvent légitimement se rapprocher du bord carré de l'image sans jamais
+    // chevaucher le radar dessiné.
+    private const float RadarLayerSize = 360f;
+
+    // internal, pas private : QuestPdfReportGeneratorTests vérifie la résolution d'impression
+    // (cas 19, section 5 — seuil de 300 dpi) à partir de cette taille d'affichage et de
+    // RadarChartRenderer.RenderedSizePx — un changement qui ferait descendre l'un ou l'autre
+    // sous 300 dpi doit virer au rouge.
+    internal const float RadarImageSize = 240f;
+    private const float RadarLabelRadius = 148f;
+    private const float RadarLabelWidth = 130f;
+
     private static void ComposeScoreAndRadar(IContainer container, ReportData data)
     {
         container.Column(column =>
@@ -139,13 +162,34 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
 
             var scoreByDomain = data.DomainScores.ToDictionary(d => d.Domain, d => d.Score);
             var radarPng = RadarChartRenderer.Render(scoreByDomain);
+            var axisPoints = RadarAxisLayout.Compute();
 
-            // UseOriginalImage : embarque les pixels du PNG sans rééchantillonnage, quelle
-            // que soit la taille d'affichage ci-dessous — c'est ce qui garantit à la fois le
-            // déterminisme (aucun retraitement dépendant de l'environnement) et la résolution
-            // d'impression exigée par la section 5 (cas 19).
-            column.Item().AlignCenter().Width(280, Unit.Point).Element(radarContainer =>
-                radarContainer.Image(radarPng).UseOriginalImage(true));
+            column.Item().AlignCenter().Width(RadarLayerSize, Unit.Point).Height(RadarLayerSize, Unit.Point)
+                .Layers(layers =>
+                {
+                    // UseOriginalImage : embarque les pixels du PNG sans rééchantillonnage,
+                    // quelle que soit la taille d'affichage — déterminisme (aucun retraitement
+                    // dépendant de l'environnement) et résolution d'impression (section 5, cas 19).
+                    layers.PrimaryLayer().AlignCenter().AlignMiddle()
+                        .Width(RadarImageSize, Unit.Point).Height(RadarImageSize, Unit.Point)
+                        .Element(radarContainer => radarContainer.Image(radarPng).UseOriginalImage(true));
+
+                    // Cas 21 : les cinq libellés de domaine, posés en texte QuestPDF autour de
+                    // l'image — jamais incrustés dans le PNG (RadarChartRenderer reste une
+                    // géométrie pure) — donc sélectionnables et déterministes indépendamment du
+                    // rendu SkiaSharp. RadarAxisLayout garantit le même ordre/angle que les axes
+                    // effectivement dessinés dans l'image.
+                    foreach (var axisPoint in axisPoints)
+                    {
+                        layers.Layer()
+                            .AlignCenter().AlignMiddle()
+                            .OffsetX(axisPoint.DirectionX * RadarLabelRadius, Unit.Point)
+                            .OffsetY(axisPoint.DirectionY * RadarLabelRadius, Unit.Point)
+                            .Width(RadarLabelWidth, Unit.Point)
+                            .Text(RseDomainLabels.For(axisPoint.Domain)).AlignCenter()
+                            .FontFamily(FontFamilies.InterLight).FontSize(8f).FontColor(MutedColor);
+                    }
+                });
 
             column.Item().Text("Échelle fixe de 0 à 100 sur les cinq axes.")
                 .FontFamily(FontFamilies.InterLight).FontSize(8.5f).FontColor(MutedColor);
@@ -177,7 +221,7 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
                     HeaderCell(header.Cell(), "Score /100");
                     HeaderCell(header.Cell(), "Pondération");
                     HeaderCell(header.Cell(), "Numérateur");
-                    HeaderCell(header.Cell(), "Dénominateur");
+                    HeaderCell(header.Cell(), "Dénom.");
                     HeaderCell(header.Cell(), "Contribution");
                 });
 
@@ -201,17 +245,20 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
 
     private static void ComposeStrengthsAndWeaknesses(IContainer container, ReportData data)
     {
-        // Départage déterministe par l'ordre de l'énumération RseDomain (comme
-        // RecommendationEngine.Prioritize départage par code) : à scores égaux, deux
-        // générations doivent produire la même liste (section 3).
-        var ordered = data.DomainScores.OrderByDescending(d => d.Score).ThenBy(d => (int)d.Domain).ToList();
-        var strengths = ordered.Take(2).ToList();
-        var weaknesses = ordered.AsEnumerable().Reverse().Take(2).ToList();
+        var (strengths, weaknesses) = ComputeStrengthsAndWeaknesses(data.DomainScores);
 
         container.Column(column =>
         {
             column.Spacing(6);
             column.Item().Text("Points forts et axes d'amélioration").FontFamily(FontFamilies.PoppinsSemiBold).FontSize(15);
+
+            if (strengths.Count == 0)
+            {
+                column.Item().Text(
+                    "Trop peu de domaines notés pour distinguer points forts et axes d'amélioration sans répétition.")
+                    .FontFamily(FontFamilies.Inter).FontSize(9.5f).FontColor(MutedColor);
+                return;
+            }
 
             column.Item().Row(row =>
             {
@@ -220,6 +267,29 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
                 row.RelativeItem().Element(c => ComposeDomainList(c, "Axes d'amélioration", weaknesses));
             });
         });
+    }
+
+    // docs/specs/rapport-pdf.md, section 4 : les deux colonnes ne sont affichées que si elles
+    // sont disjointes. Avec moins de quatre domaines notés (un domaine sans aucune question
+    // active en est exclu, scoring.md cas 7), Take(2) des meilleurs et Take(2) des derniers en
+    // partant de la fin se chevauchaient — un même domaine apparaissait à la fois comme point
+    // fort et comme axe d'amélioration. internal (pas private) : testé directement par
+    // MAAT.IntegrationTests, sans passer par une génération de rapport complète.
+    internal static (IReadOnlyList<ReportDomainScore> Strengths, IReadOnlyList<ReportDomainScore> Weaknesses) ComputeStrengthsAndWeaknesses(
+        IReadOnlyList<ReportDomainScore> domainScores)
+    {
+        if (domainScores.Count < 4)
+        {
+            return ([], []);
+        }
+
+        // Départage déterministe par l'ordre de l'énumération RseDomain (comme
+        // RecommendationEngine.Prioritize départage par code) : à scores égaux, deux
+        // générations doivent produire la même liste (section 3).
+        var ordered = domainScores.OrderByDescending(d => d.Score).ThenBy(d => (int)d.Domain).ToList();
+        var strengths = ordered.Take(2).ToList();
+        var weaknesses = ordered.AsEnumerable().Reverse().Take(2).ToList();
+        return (strengths, weaknesses);
     }
 
     private static void ComposeDomainList(IContainer container, string title, IReadOnlyList<ReportDomainScore> domains)
@@ -325,4 +395,25 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
     // même type de piège pour les polices — un VPS Linux minimal peut ne pas avoir la culture
     // française installée, sans erreur ni avertissement).
     private static string FormatDate(DateTimeOffset value) => value.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
+
+    // docs/specs/rapport-pdf.md, section 4 : la page de garde doit porter le « libellé du
+    // secteur ». Aucune table de libellés NAF (nom humain du code, ex. « 6202A — Conseil en
+    // systèmes et logiciels informatiques ») n'existe dans ce projet — sector-weights.csv
+    // (modele-donnees.md) ne porte que sector_code/domain/weight, jamais de nom, et seuls 2
+    // des 38 secteurs cibles sont seedés à ce jour. Plutôt que d'inventer un libellé non
+    // vérifié, cette méthode indique ce que le système sait réellement : si la pondération
+    // effectivement appliquée est spécifique au secteur ou si elle est retombée sur la
+    // pondération par défaut.
+    //
+    // Le paramètre vient de Diagnostic.DefaultSectorWeightingApplied, décidé une fois à la
+    // complétion (questionnaire.md, section 6, cas 13) — jamais de ReportDomainScore.SectorWeight :
+    // une version antérieure inférait ce booléen en comparant SectorWeight à 0,20 sur chaque
+    // ligne, ce qui semblait fonctionner mais se trompait sur tout diagnostic à un seul domaine
+    // actif — la renormalisation de scoring.md (cas 7) ramène alors le coefficient effectif à
+    // 1.00 que la pondération d'origine soit spécifique ou par défaut, rendant les deux cas
+    // indiscernables après coup. internal : testé directement par MAAT.IntegrationTests.
+    internal static string ComputeSectorWeightingLabel(bool defaultSectorWeightingApplied) =>
+        defaultSectorWeightingApplied
+            ? "Secteur non répertorié : pondération par défaut appliquée (0,20 sur chaque domaine)."
+            : "Pondération sectorielle spécifique à ce secteur appliquée à ce diagnostic.";
 }
