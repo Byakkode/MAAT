@@ -103,6 +103,57 @@ describe('apiFetch', () => {
     expect(response.status).toBe(401)
   })
 
+  // Régression : POST /api/diagnostics sans corps recevait un 415 avant même d'atteindre le
+  // contrôleur, parce que Content-Type: application/json n'était posé que si un corps était
+  // fourni. ASP.NET Core lie un paramètre de corps complexe d'après l'en-tête, pas d'après la
+  // présence d'octets — les quatre cas ci-dessous couvrent la règle telle que voulue : POST
+  // porte toujours Content-Type (avec ou sans corps), FormData ne le reçoit jamais (le
+  // navigateur doit fixer sa propre frontière multipart), GET ne le reçoit jamais.
+  describe('Content-Type', () => {
+    it('POST sans corps reçoit Content-Type: application/json', async () => {
+      vi.mocked(fetch).mockResolvedValue(new Response('{}', { status: 200 }))
+
+      await apiFetch('/api/diagnostics', { method: 'POST' })
+
+      const [, init] = vi.mocked(fetch).mock.calls[0]
+      const headers = new Headers(init?.headers)
+      expect(headers.get('Content-Type')).toBe('application/json')
+    })
+
+    it('POST avec un corps JSON reçoit Content-Type: application/json', async () => {
+      vi.mocked(fetch).mockResolvedValue(new Response('{}', { status: 200 }))
+
+      await apiFetch('/api/diagnostics/diag-1/responses/ENV-01', {
+        method: 'PUT',
+        body: JSON.stringify({ value: 4 }),
+      })
+
+      const [, init] = vi.mocked(fetch).mock.calls[0]
+      const headers = new Headers(init?.headers)
+      expect(headers.get('Content-Type')).toBe('application/json')
+    })
+
+    it('POST avec un corps FormData ne reçoit pas Content-Type : le navigateur fixe sa propre frontière multipart', async () => {
+      vi.mocked(fetch).mockResolvedValue(new Response('{}', { status: 200 }))
+
+      await apiFetch('/api/upload', { method: 'POST', body: new FormData() })
+
+      const [, init] = vi.mocked(fetch).mock.calls[0]
+      const headers = new Headers(init?.headers)
+      expect(headers.has('Content-Type')).toBe(false)
+    })
+
+    it('GET ne reçoit jamais Content-Type', async () => {
+      vi.mocked(fetch).mockResolvedValue(new Response('{}', { status: 200 }))
+
+      await apiFetch('/api/diagnostics/current')
+
+      const [, init] = vi.mocked(fetch).mock.calls[0]
+      const headers = new Headers(init?.headers)
+      expect(headers.has('Content-Type')).toBe(false)
+    })
+  })
+
   it('deux 401 concurrents ne déclenchent qu’un seul refresh, les deux requêtes sont rejouées', async () => {
     let resolveRefresh!: (value: { accessToken: string; expiresAt: string }) => void
     authApi.refresh.mockImplementation(

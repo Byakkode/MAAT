@@ -15,10 +15,15 @@ public class DiagnosticsController(DiagnosticService diagnosticService) : Contro
 {
     [HttpPost]
     [Authorize(Roles = "Admin,User")]
-    public async Task<IActionResult> Create(CreateDiagnosticRequest request, CancellationToken ct)
+    public async Task<IActionResult> Create(CreateDiagnosticRequest? request, CancellationToken ct)
     {
         // request.CompanyId n'est jamais lu (docs/specs/auth-securite-rgpd.md, section 4) :
         // DiagnosticService.CreateAsync détermine l'entreprise depuis le principal authentifié.
+        // Le paramètre est donc nullable : un appelant qui n'a rien à transmettre (le cas
+        // normal) ne doit pas être forcé d'envoyer un corps — sans ce "?", ASP.NET Core refuse
+        // par défaut un corps vide pour un paramètre [FromBody] non nullable (400 "A non-empty
+        // request body is required"), même une fois Content-Type: application/json correctement
+        // posé côté client.
         try
         {
             var diagnostic = await diagnosticService.CreateAsync(ct);
