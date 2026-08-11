@@ -140,7 +140,7 @@ public class DemoDataSeeder(MaatDbContext context, IScoringService scoringServic
 
             foreach (var detail in result.DomainScores)
             {
-                context.DomainScores.Add(new DomainScore(diagnostic.Id, detail.Domain, detail.Score, detail.EffectiveSectorWeight));
+                context.DomainScores.Add(new DomainScore(diagnostic.Id, detail.Domain, detail.Score, detail.EffectiveSectorWeight, detail.Numerator, detail.Denominator));
             }
         }
 

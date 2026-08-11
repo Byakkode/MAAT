@@ -16,5 +16,7 @@ public class DomainScoreConfiguration : IEntityTypeConfiguration<DomainScore>
         builder.Property(ds => ds.Domain).HasColumnName("domain").HasConversion<string>().HasMaxLength(20);
         builder.Property(ds => ds.Score).HasColumnName("score").HasPrecision(5, 2).IsRequired();
         builder.Property(ds => ds.SectorWeight).HasColumnName("sector_weight").HasPrecision(4, 3).IsRequired();
+        builder.Property(ds => ds.Numerator).HasColumnName("numerator").HasPrecision(10, 2).IsRequired();
+        builder.Property(ds => ds.Denominator).HasColumnName("denominator").HasPrecision(10, 2).IsRequired();
     }
 }

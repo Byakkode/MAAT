@@ -87,7 +87,7 @@ public class AccountRgpdTests(AuthApiFixture fixture)
         {
             var seededQuestionId = await context.Questions.Where(q => q.Code == SeededQuestionCode).Select(q => q.Id).SingleAsync();
             var response = new Response(diagnosticId, seededQuestionId, 3);
-            var domainScore = new DomainScore(diagnosticId, RseDomain.Environmental, 60m, 0.3m);
+            var domainScore = new DomainScore(diagnosticId, RseDomain.Environmental, 60m, 0.3m, 180m, 300m);
             var report = new Report(diagnosticId, userId);
             var recommendation = new Recommendation(
                 $"REC-{Guid.NewGuid():N}"[..20],

@@ -168,7 +168,7 @@ public class DiagnosticService(
             foreach (var detail in result.DomainScores)
             {
                 await domainScoreRepository.AddAsync(
-                    new DomainScore(diagnosticId, detail.Domain, detail.Score, detail.EffectiveSectorWeight), innerCt);
+                    new DomainScore(diagnosticId, detail.Domain, detail.Score, detail.EffectiveSectorWeight, detail.Numerator, detail.Denominator), innerCt);
             }
 
             diagnostic.GlobalScore = result.GlobalScore;
