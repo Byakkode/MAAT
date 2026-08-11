@@ -53,11 +53,16 @@ public class RemoveReferenceDataSeedTests : IAsyncLifetime
             context.Companies.Add(company);
             await context.SaveChangesAsync();
 
-            var diagnostic = new Diagnostic(company.Id);
-            context.Diagnostics.Add(diagnostic);
-            await context.SaveChangesAsync();
+            // SQL brut plutôt que context.Diagnostics.Add : le modèle EF est toujours celui du
+            // code courant, avec les colonnes ajoutées par des migrations plus récentes que
+            // AddSectorWeightCoverageConstraint (ex. default_sector_weighting_applied) — un
+            // INSERT généré depuis ce modèle échouerait ici, alors que le schéma réel à ce
+            // point de l'historique ne les porte pas encore.
+            var diagnosticId = Guid.NewGuid();
+            await context.Database.ExecuteSqlInterpolatedAsync(
+                $"INSERT INTO diagnostics (id, company_id, status, created_at) VALUES ({diagnosticId}, {company.Id}, {"InProgress"}, {DateTimeOffset.UtcNow})");
 
-            context.Responses.Add(new Response(diagnostic.Id, SeededQuestionId, 3));
+            context.Responses.Add(new Response(diagnosticId, SeededQuestionId, 3));
             await context.SaveChangesAsync();
         }
 

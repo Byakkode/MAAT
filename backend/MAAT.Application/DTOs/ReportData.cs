@@ -7,6 +7,11 @@ namespace MAAT.Application.DTOs;
 // persistées (aucune I/O, aucune horloge système côté générateur — section 3, déterminisme).
 // GeneratedAt est une valeur transmise par l'appelant (TimeProvider injecté), jamais lue par
 // le générateur lui-même.
+// DefaultSectorWeightingApplied vient de Diagnostic.DefaultSectorWeightingApplied, décidé une
+// fois à la complétion (questionnaire.md, section 6, cas 13) — jamais dérivé de
+// ReportDomainScore.SectorWeight ci-dessous : la renormalisation de scoring.md (cas 7) ramène
+// le coefficient effectif à 1.00 quand un seul domaine est actif, que la pondération d'origine
+// soit spécifique ou par défaut, ce qui rendrait les deux cas indiscernables à cette étape.
 public sealed record ReportData(
     string CompanyName,
     string SectorCode,
@@ -15,6 +20,7 @@ public sealed record ReportData(
     DateTimeOffset CompletedAt,
     decimal GlobalScore,
     string GlobalScoreLabel,
+    bool DefaultSectorWeightingApplied,
     IReadOnlyList<ReportDomainScore> DomainScores,
     IReadOnlyList<ReportRecommendation> Recommendations,
     int TotalRecommendationCount,

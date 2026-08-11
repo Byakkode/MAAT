@@ -163,6 +163,7 @@ Session d'évaluation RSE.
 | `global_score` | numeric(5,2) | nullable |
 | `created_at` | timestamptz | requis |
 | `completed_at` | timestamptz | nullable |
+| `default_sector_weighting_applied` | boolean | requis, défaut `false` |
 
 `status` ∈ { `InProgress`, `Completed`, `Archived` }.
 
@@ -172,6 +173,16 @@ sur sa maturité RSE.
 
 `completed_at` est renseigné au moment exact du passage à `Completed`, et sert de
 date de référence dans le rapport PDF.
+
+`default_sector_weighting_applied` fige, au moment de la complétion
+(`questionnaire.md`, section 6, cas 13), si le calcul est retombé sur la
+pondération par défaut faute de code NAF couvert par `SectorWeight`. Ne jamais le
+dériver après coup de `DomainScore.sector_weight` : la renormalisation de
+`scoring.md` (cas 7) ramène le coefficient effectif à 1.00 quand un seul domaine
+est actif, que la pondération d'origine ait été spécifique ou par défaut, ce qui
+rend les deux cas indiscernables une fois `SectorWeight` seul observé. C'est la
+source de l'indicateur affiché sur la page de garde du rapport PDF
+(`rapport-pdf.md`, section 4).
 
 Relations : `1 Diagnostic → N Responses`, `1 Diagnostic → 5 DomainScores`,
 `1 Diagnostic → N Recommendations` (via table de jointure).

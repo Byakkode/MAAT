@@ -18,6 +18,7 @@ public class DiagnosticConfiguration : IEntityTypeConfiguration<Diagnostic>
         builder.Property(d => d.GlobalScore).HasColumnName("global_score").HasPrecision(5, 2);
         builder.Property(d => d.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(d => d.CompletedAt).HasColumnName("completed_at");
+        builder.Property(d => d.DefaultSectorWeightingApplied).HasColumnName("default_sector_weighting_applied").IsRequired().HasDefaultValue(false);
 
         builder.HasMany<DomainScore>().WithOne().HasForeignKey(ds => ds.DiagnosticId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany<Response>().WithOne().HasForeignKey(r => r.DiagnosticId).OnDelete(DeleteBehavior.Cascade);
