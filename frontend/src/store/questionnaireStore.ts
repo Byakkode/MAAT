@@ -1,12 +1,17 @@
 import { create } from 'zustand'
 import * as diagnosticsApi from '../api/diagnosticsApi'
-import { IncompleteQuestionnaireError } from '../api/diagnosticsApi'
+import { DiagnosticAlreadyInProgressError, IncompleteQuestionnaireError } from '../api/diagnosticsApi'
 import { DOMAIN_ORDER } from '../types/questionnaire'
-import type { DiagnosticStatus, QuestionAnswer, RseDomain } from '../types/questionnaire'
+import type { DiagnosticStatus, DiagnosticSummary, QuestionAnswer, RseDomain } from '../types/questionnaire'
 
-export type LoadStatus = 'idle' | 'loading' | 'loaded' | 'error'
+// docs/specs/questionnaire.md, section 5 : 'no-diagnostic' est l'état normal d'un nouvel
+// utilisateur (404 attendu de GET /current), pas une erreur — distinct de 'error', réservé
+// aux échecs réels (réseau, 401, 500…). 'conflict' porte le 409 de section 1, cas 2 : un
+// diagnostic InProgress existe déjà quand on tente d'en créer un.
+export type LoadStatus = 'idle' | 'loading' | 'loaded' | 'no-diagnostic' | 'conflict' | 'error'
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 export type CompleteStatus = 'idle' | 'completing' | 'completed' | 'error'
+export type StartStatus = 'idle' | 'starting' | 'error'
 
 export interface QuestionnaireStep {
   domain: RseDomain
@@ -30,6 +35,11 @@ interface QuestionnaireState {
   completeStatus: CompleteStatus
   completeError: string | null
   missingQuestionCodes: string[]
+  // section 1, cas 2 : identifiant du diagnostic InProgress existant porté par le 409 de
+  // create() — renseigné uniquement quand loadStatus === 'conflict'.
+  conflictDiagnosticId: string | null
+  startStatus: StartStatus
+  startError: string | null
 
   load: (explicitDiagnosticId?: string) => Promise<void>
   setAnswer: (code: string, value: number) => void
@@ -38,6 +48,10 @@ interface QuestionnaireState {
   goToStep: (index: number) => void
   retryFailedSaves: () => void
   completeDiagnostic: () => Promise<void>
+  // Bouton "démarrer un diagnostic" affiché depuis l'état 'no-diagnostic'.
+  startDiagnostic: () => Promise<void>
+  // Option "abandonner et recommencer" affichée depuis l'état 'conflict'.
+  abandonAndRestart: () => Promise<void>
 }
 
 const DEBOUNCE_MS = 500
@@ -64,7 +78,15 @@ function findFirstIncompleteStepIndex(steps: QuestionnaireStep[], responses: Rec
 
 const initialState: Omit<
   QuestionnaireState,
-  'load' | 'setAnswer' | 'nextStep' | 'prevStep' | 'goToStep' | 'retryFailedSaves' | 'completeDiagnostic'
+  | 'load'
+  | 'setAnswer'
+  | 'nextStep'
+  | 'prevStep'
+  | 'goToStep'
+  | 'retryFailedSaves'
+  | 'completeDiagnostic'
+  | 'startDiagnostic'
+  | 'abandonAndRestart'
 > = {
   loadStatus: 'idle',
   loadError: null,
@@ -80,6 +102,9 @@ const initialState: Omit<
   completeStatus: 'idle',
   completeError: null,
   missingQuestionCodes: [],
+  conflictDiagnosticId: null,
+  startStatus: 'idle',
+  startError: null,
 }
 
 export const useQuestionnaireStore = create<QuestionnaireState>((set, get) => {
@@ -122,20 +147,27 @@ export const useQuestionnaireStore = create<QuestionnaireState>((set, get) => {
 
       // /current sert uniquement à résoudre quel diagnostic ouvrir quand aucun identifiant
       // n'est fourni (reprise depuis le tableau de bord, section 5) — jamais à décider s'il
-      // est modifiable, ce que seul getById (cas 13) peut établir.
+      // est modifiable, ce que seul getById (cas 13) peut établir. Son 404 (aucun diagnostic
+      // en cours) est déjà traduit en `null` par diagnosticsApi.getCurrent : c'est l'état
+      // normal d'un nouvel utilisateur, pas une erreur — distingué ici de tout autre échec
+      // (réseau, 401…), qui reste un 'error' réel.
       let targetId = explicitDiagnosticId
       if (!targetId) {
+        let current: DiagnosticSummary | null
         try {
-          const current = await diagnosticsApi.getCurrent()
-          targetId = current?.id
-        } catch {
-          targetId = undefined
+          current = await diagnosticsApi.getCurrent()
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Impossible de récupérer le diagnostic en cours.'
+          set({ loadStatus: 'error', loadError: message })
+          return
         }
-      }
 
-      if (!targetId) {
-        set({ loadStatus: 'error', loadError: 'Aucun diagnostic à afficher.' })
-        return
+        if (!current) {
+          set({ loadStatus: 'no-diagnostic' })
+          return
+        }
+
+        targetId = current.id
       }
 
       try {
@@ -242,6 +274,43 @@ export const useQuestionnaireStore = create<QuestionnaireState>((set, get) => {
           set({ completeStatus: 'error', completeError: message })
         }
         throw err
+      }
+    },
+
+    // docs/specs/questionnaire.md, section 1 : POST /api/diagnostics depuis l'écran
+    // 'no-diagnostic'. Un 409 (diagnostic InProgress créé entre-temps, ex. un autre onglet)
+    // bascule sur 'conflict' plutôt que d'échouer silencieusement.
+    async startDiagnostic() {
+      set({ startStatus: 'starting', startError: null })
+      try {
+        const created = await diagnosticsApi.create()
+        set({ startStatus: 'idle' })
+        await get().load(created.id)
+      } catch (err) {
+        if (err instanceof DiagnosticAlreadyInProgressError) {
+          set({ startStatus: 'idle', loadStatus: 'conflict', conflictDiagnosticId: err.existingDiagnosticId })
+        } else {
+          const message = err instanceof Error ? err.message : 'Impossible de créer le diagnostic.'
+          set({ startStatus: 'error', startError: message })
+        }
+      }
+    },
+
+    // Option "abandonner et recommencer" de l'écran 'conflict' — l'autre option, "reprendre",
+    // n'a besoin d'aucune action : c'est un lien vers /questionnaire/{conflictDiagnosticId}.
+    async abandonAndRestart() {
+      const { conflictDiagnosticId } = get()
+      if (!conflictDiagnosticId) {
+        return
+      }
+      set({ startStatus: 'starting', startError: null })
+      try {
+        await diagnosticsApi.abandon(conflictDiagnosticId)
+        set({ conflictDiagnosticId: null, loadStatus: 'no-diagnostic' })
+        await get().startDiagnostic()
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Impossible d'abandonner le diagnostic."
+        set({ startStatus: 'error', startError: message })
       }
     },
   }

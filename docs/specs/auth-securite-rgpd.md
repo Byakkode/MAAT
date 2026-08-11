@@ -73,6 +73,14 @@ Inclure `company_id` dans les claims évite une lecture en base à chaque requê
 Contrepartie assumée : un changement d'entreprise met jusqu'à 15 minutes à se
 propager. Acceptable compte tenu de la durée de vie du jeton, mais à documenter.
 
+`GET /api/auth/me` retourne ces mêmes identifiants (lus depuis les claims), plus
+`emailVerified`, lui relu en base à chaque appel — jamais un claim, pour la
+raison énoncée ci-dessus : un JWT est lisible par quiconque l'intercepte, et
+l'état de vérification n'a pas besoin d'y figurer. Ajouté pour que le frontend
+puisse désactiver le bouton de téléchargement du rapport avant même la
+première tentative (`rapport-pdf.md`, section 6), plutôt que de le découvrir
+au premier 403.
+
 **Réponse en cas d'échec.** Message générique et identique, que l'adresse soit
 inconnue ou le mot de passe erroné. Exécuter systématiquement la vérification
 bcrypt, y compris lorsque l'utilisateur n'existe pas, contre un hash factice : sans

@@ -1,42 +1,38 @@
 import { expect, test } from '@playwright/test'
 
-// docs/specs/questionnaire.md. La création de diagnostic (POST /api/diagnostics) n'est pas
-// câblée au frontend dans ce lot (seuls GET .../questions, PUT .../responses/{code},
-// POST .../complete et GET .../current le sont) : ce test seed l'inscription, la connexion et
-// le diagnostic directement via l'API (page.request partage les cookies du contexte
-// navigateur, donc le cookie de refresh posé par /api/auth/login est bien présent quand la
-// page se charge ensuite), puis exerce le vrai parcours utilisateur — jusqu'à la complétion —
-// à travers l'interface.
-const API_URL = 'http://localhost:5130'
-
-test('parcours complet du questionnaire jusqu’à la complétion', async ({ page }) => {
+// docs/specs/questionnaire.md, sections 1 et 5. Compte neuf de bout en bout à travers
+// l'interface réelle : inscription, connexion, démarrage du diagnostic (POST /api/diagnostics,
+// câblé au bouton de l'écran « aucun diagnostic en cours ») puis parcours jusqu'à la
+// complétion. Aucune étape ne passe par page.request : le seeder direct via l'API masquerait
+// une régression dans le formulaire d'inscription, de connexion, ou dans le bouton de
+// démarrage lui-même — précisément ce que ce test doit prouver.
+test('un compte neuf s’inscrit, démarre un diagnostic et le complète — le tout via l’interface', async ({ page }) => {
   const suffix = Math.random().toString(36).slice(2, 10)
   const email = `e2e-questionnaire-${suffix}@maat-test.local`
   const password = 'MotDePasseValide2026!'
 
-  await page.request.post(`${API_URL}/api/auth/register`, {
-    data: {
-      email,
-      password,
-      companyName: `Entreprise E2E ${suffix}`,
-      sectorCode: '6201Z',
-      sizeRange: 'Micro',
-      region: 'Île-de-France',
-    },
-  })
+  await page.goto('/register')
+  await page.getByLabel('Adresse e-mail').fill(email)
+  await page.getByLabel('Mot de passe').fill(password)
+  await page.getByLabel("Nom de l'entreprise").fill(`Entreprise E2E ${suffix}`)
+  await page.getByLabel('Code NAF').fill('6201Z')
+  await page.getByLabel('Région').fill('Île-de-France')
+  await page.getByRole('button', { name: "S'inscrire" }).click()
+  await expect(page.getByRole('status')).toBeVisible()
 
-  const loginResponse = await page.request.post(`${API_URL}/api/auth/login`, {
-    data: { email, password },
-  })
-  const { accessToken } = (await loginResponse.json()) as { accessToken: string }
+  await page.getByRole('link', { name: 'Se connecter' }).click()
+  await page.getByLabel('Adresse e-mail').fill(email)
+  await page.getByLabel('Mot de passe').fill(password)
+  await page.getByRole('button', { name: 'Se connecter' }).click()
+  await expect(page).toHaveURL(/\/dashboard$/)
 
-  await page.request.post(`${API_URL}/api/diagnostics`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-    data: {},
-  })
+  await page.getByRole('link', { name: 'Questionnaire', exact: true }).click()
 
-  await page.goto('/questionnaire')
+  // docs/specs/questionnaire.md, section 5 : un compte neuf n'a aucun diagnostic en cours —
+  // le 404 de GET /current doit produire cette invitation, jamais un message d'erreur.
+  await expect(page.getByText("Vous n'avez pas de diagnostic en cours.")).toBeVisible()
 
+  await page.getByRole('button', { name: 'Démarrer un diagnostic' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Étape' })).toBeVisible()
 
   // Répond à toutes les questions de l'étape courante, avance, jusqu'à atteindre la dernière

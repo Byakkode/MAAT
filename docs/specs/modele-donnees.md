@@ -188,6 +188,8 @@ Score par domaine pour un diagnostic donné.
 | `domain` | enum | PK composite |
 | `score` | numeric(5,2) | requis, 0 ≤ score ≤ 100 |
 | `sector_weight` | numeric(4,3) | requis |
+| `numerator` | numeric(10,2) | requis |
+| `denominator` | numeric(10,2) | requis |
 
 Cinq lignes par diagnostic complété, une par domaine.
 
@@ -196,6 +198,14 @@ Sans cela, une révision ultérieure de la table `SectorWeight` rendrait les
 diagnostics historiques inexplicables : le score global stocké ne correspondrait
 plus à ce qu'un recalcul produirait. C'est la condition de la traçabilité promise
 par la valeur « Transparence » du produit.
+
+`numerator` et `denominator` figent, pour la même raison, le Σ(r×w) et le
+Σ(w×5) du domaine tels que `ScoringService` les a produits au moment du calcul
+(`scoring.md`, section Traçabilité). Le rapport PDF (`rapport-pdf.md`, section 4)
+les affiche pour que le lecteur puisse refaire l'opération ; les recalculer à la
+génération depuis `Response`/`Question.Weight` romprait le déterminisme de la
+régénération à l'identique de la même façon qu'une relecture de `SectorWeight`
+le romprait — rien n'interdit qu'un `Question.Weight` soit révisé après coup.
 
 Ces cinq lignes alimentent directement le radar chart du tableau de bord et du
 rapport PDF.

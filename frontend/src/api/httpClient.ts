@@ -29,13 +29,37 @@ function ensureSingleRefresh(): Promise<string | null> {
   return refreshPromise
 }
 
+// Méthodes qui portent un corps au sens HTTP — pas GET, jamais. DELETE n'y figure pas : aucun
+// appel de ce client n'envoie de corps sur DELETE aujourd'hui, et l'ajouter sans cas d'usage
+// réel serait une supposition non vérifiée.
+const BODY_CARRYING_METHODS = new Set(['POST', 'PUT', 'PATCH'])
+
+// Content-Type: application/json doit être posé pour ces méthodes même sans corps (ex.
+// create() sur /api/diagnostics) : ASP.NET Core lie un paramètre de corps complexe d'après le
+// Content-Type de la requête, pas d'après la présence d'octets — son absence produit un 415
+// avant même d'atteindre le contrôleur, indépendamment de ce que la méthode a réellement à
+// envoyer. Deux exceptions : l'appelant a déjà posé son propre Content-Type (ex. un futur appel
+// texte brut), ou le corps est FormData/Blob, dont le navigateur doit choisir lui-même
+// l'en-tête (et, pour FormData, la frontière multipart) — le lui imposer casserait l'envoi.
+function shouldSetJsonContentType(method: string, body: BodyInit | null | undefined, headers: Headers): boolean {
+  if (headers.has('Content-Type')) {
+    return false
+  }
+  if (body instanceof FormData || body instanceof Blob) {
+    return false
+  }
+  return BODY_CARRYING_METHODS.has(method)
+}
+
 function buildRequest(path: string, options: RequestInit): [string, RequestInit] {
   const headers = new Headers(options.headers)
   const token = getAccessToken()
   if (token) {
     headers.set('Authorization', `Bearer ${token}`)
   }
-  if (options.body && !headers.has('Content-Type')) {
+
+  const method = (options.method ?? 'GET').toUpperCase()
+  if (shouldSetJsonContentType(method, options.body, headers)) {
     headers.set('Content-Type', 'application/json')
   }
 

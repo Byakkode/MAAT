@@ -168,6 +168,13 @@ commercial du produit.
 - `recharts` requiert `react-is` à la **même version majeure que React**.
 - État global du questionnaire : Zustand. Mémoïser les composants de question
   (`React.memo`) : 45 questions, les re-renders en cascade sont un problème connu.
+- Les tests Playwright pilotent les formulaires dans le navigateur, jamais
+  `page.request` : le client HTTP de Node contourne CORS, les en-têtes que pose
+  réellement le navigateur, et la négociation de contenu. Trois défauts réels
+  sont passés inaperçus à travers des tests qui l'utilisaient avant d'être
+  corrigés — `Content-Disposition` non exposé par la politique CORS, un `POST`
+  sans corps rejeté en 415 faute de `Content-Type`, puis rejeté en 400 par un
+  paramètre `[FromBody]` non nullable une fois le `Content-Type` posé.
 
 ## Git
 

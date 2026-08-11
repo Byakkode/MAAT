@@ -17,4 +17,7 @@ public class ReportRepository(MaatDbContext context, ICurrentUserContext current
         await context.Reports
             .Where(r => context.Diagnostics.Any(d => d.Id == r.DiagnosticId && d.CompanyId == currentUser.CompanyId))
             .ToListAsync(ct);
+
+    public async Task AddAsync(Report report, CancellationToken ct) =>
+        await context.Reports.AddAsync(report, ct);
 }

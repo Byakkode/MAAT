@@ -1,5 +1,6 @@
 using MAAT.Application.DTOs;
 using MAAT.Application.Exceptions;
+using MAAT.Application.Interfaces;
 using MAAT.Application.UseCases;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +10,7 @@ namespace MAAT.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController(AuthService authService, ILogger<AuthController> logger) : ControllerBase
+public class AuthController(AuthService authService, IUserRepository userRepository, ILogger<AuthController> logger) : ControllerBase
 {
     private const string RefreshCookieName = "refresh_token";
     private const string CookiePath = "/api/auth";
@@ -107,15 +108,23 @@ public class AuthController(AuthService authService, ILogger<AuthController> log
         }
     }
 
+    // docs/specs/rapport-pdf.md, section 6 : le frontend a besoin de savoir si l'adresse est
+    // vérifiée pour désactiver le bouton de téléchargement du rapport avant même la première
+    // tentative — emailVerified n'est délibérément pas un claim JWT (section 2 : "rien
+    // d'autre" que sub/company_id/role/exp/iat/jti), donc lu ici depuis la base.
     [HttpGet("me")]
     [Authorize]
-    public IActionResult Me()
+    public async Task<IActionResult> Me(CancellationToken ct)
     {
+        var userId = Guid.Parse(User.FindFirst("sub")!.Value);
+        var user = await userRepository.GetByIdAsync(userId, ct);
+
         return Ok(new
         {
             userId = User.FindFirst("sub")?.Value,
             companyId = User.FindFirst("company_id")?.Value,
             role = User.FindFirst("role")?.Value,
+            emailVerified = user?.EmailVerified ?? false,
         });
     }
 

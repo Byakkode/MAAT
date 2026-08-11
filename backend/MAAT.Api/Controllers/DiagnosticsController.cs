@@ -4,6 +4,7 @@ using MAAT.Application.UseCases;
 using MAAT.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace MAAT.Api.Controllers;
 
@@ -14,10 +15,15 @@ public class DiagnosticsController(DiagnosticService diagnosticService) : Contro
 {
     [HttpPost]
     [Authorize(Roles = "Admin,User")]
-    public async Task<IActionResult> Create(CreateDiagnosticRequest request, CancellationToken ct)
+    public async Task<IActionResult> Create(CreateDiagnosticRequest? request, CancellationToken ct)
     {
         // request.CompanyId n'est jamais lu (docs/specs/auth-securite-rgpd.md, section 4) :
         // DiagnosticService.CreateAsync détermine l'entreprise depuis le principal authentifié.
+        // Le paramètre est donc nullable : un appelant qui n'a rien à transmettre (le cas
+        // normal) ne doit pas être forcé d'envoyer un corps — sans ce "?", ASP.NET Core refuse
+        // par défaut un corps vide pour un paramètre [FromBody] non nullable (400 "A non-empty
+        // request body is required"), même une fois Content-Type: application/json correctement
+        // posé côté client.
         try
         {
             var diagnostic = await diagnosticService.CreateAsync(ct);
@@ -265,5 +271,37 @@ public class DiagnosticsController(DiagnosticService diagnosticService) : Contro
             score = domainScore.Score,
             sectorWeight = domainScore.SectorWeight,
         });
+    }
+
+    // docs/specs/rapport-pdf.md, section 2. GET malgré l'écriture d'une ligne Report : le
+    // navigateur doit pouvoir suivre le lien directement, l'effet de bord est un journal
+    // d'audit, pas une modification de l'état métier (assumé explicitement, pas masqué).
+    // Pas de restriction de rôle : les trois rôles, Viewer compris, comme GetQuestions et
+    // GetRecommendations ci-dessus — la génération est une lecture.
+    [HttpGet("{id:guid}/report")]
+    [EnableRateLimiting("report-generation")]
+    public async Task<IActionResult> GetReport(Guid id, CancellationToken ct)
+    {
+        try
+        {
+            var report = await diagnosticService.GenerateReportAsync(id, ct);
+            if (report is null)
+            {
+                return NotFound();
+            }
+
+            return File(report.Bytes, "application/pdf", report.FileName);
+        }
+        catch (DiagnosticNotCompletedException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+        catch (EmailNotVerifiedException ex)
+        {
+            // Forbid() (authentification par schéma) ne convient pas ici : la section 2 exige
+            // un motif exploitable par le frontend dans le corps de la réponse, pas seulement
+            // un 403 nu.
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
     }
 }

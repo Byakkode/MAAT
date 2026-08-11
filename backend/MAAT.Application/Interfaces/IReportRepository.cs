@@ -10,4 +10,8 @@ public interface IReportRepository
 
     // Export RGPD (section 6, cas 18).
     Task<IReadOnlyList<Report>> FindAllForCurrentCompanyAsync(CancellationToken ct);
+
+    // docs/specs/rapport-pdf.md, section 2 : journal d'audit écrit après la production
+    // réussie du document, jamais avant (cas 7 et 8).
+    Task AddAsync(Report report, CancellationToken ct);
 }

@@ -145,6 +145,16 @@ namespace MAAT.Infrastructure.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("domain");
 
+                    b.Property<decimal>("Denominator")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("denominator");
+
+                    b.Property<decimal>("Numerator")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("numerator");
+
                     b.Property<decimal>("Score")
                         .HasPrecision(5, 2)
                         .HasColumnType("numeric(5,2)")

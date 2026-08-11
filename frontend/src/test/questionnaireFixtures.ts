@@ -49,5 +49,8 @@ export function resetQuestionnaireStore() {
     completeStatus: 'idle',
     completeError: null,
     missingQuestionCodes: [],
+    conflictDiagnosticId: null,
+    startStatus: 'idle',
+    startError: null,
   })
 }
