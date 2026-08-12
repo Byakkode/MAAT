@@ -39,7 +39,7 @@ internal sealed record ParsedSectorWeight(string? SectorCode, RseDomain Domain, 
 // ArgumentOutOfRangeException sans contexte de fichier ne remonte telle quelle.
 internal static class ReferenceDataRows
 {
-    public static IReadOnlyList<CsvRow> ReadCsv(string fileName)
+    public static CsvFileContent ReadCsv(string fileName)
     {
         var assembly = Assembly.GetExecutingAssembly();
         var resourceName = $"MAAT.Infrastructure.Seed.{fileName}";

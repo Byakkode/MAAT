@@ -27,7 +27,7 @@ public class CsvFileTests
     {
         using var stream = SampleStream("bom.csv");
 
-        var rows = CsvFile.ReadRows(stream, "bom.csv");
+        var rows = CsvFile.ReadRows(stream, "bom.csv").Rows;
 
         var row = Assert.Single(rows);
         Assert.Equal("ENV-EX01", row.Fields["code"]);
@@ -39,7 +39,7 @@ public class CsvFileTests
     {
         using var stream = SampleStream("crlf.csv");
 
-        var rows = CsvFile.ReadRows(stream, "crlf.csv");
+        var rows = CsvFile.ReadRows(stream, "crlf.csv").Rows;
 
         Assert.Equal(2, rows.Count);
         Assert.Equal("ENV-EX01", rows[0].Fields["code"]);
@@ -52,7 +52,7 @@ public class CsvFileTests
     {
         using var stream = SampleStream("embedded-newline.csv");
 
-        var rows = CsvFile.ReadRows(stream, "embedded-newline.csv");
+        var rows = CsvFile.ReadRows(stream, "embedded-newline.csv").Rows;
 
         Assert.Equal(2, rows.Count);
         Assert.Equal(
@@ -80,7 +80,7 @@ public class CsvFileTests
     {
         using var stream = SampleStream("leading-comment.csv");
 
-        var rows = CsvFile.ReadRows(stream, "leading-comment.csv");
+        var rows = CsvFile.ReadRows(stream, "leading-comment.csv").Rows;
 
         Assert.Equal(2, rows.Count);
         Assert.Equal("ENV-EX01", rows[0].Fields["code"]);

@@ -39,7 +39,7 @@ public class ReferenceDataSeeder(MaatDbContext context)
     {
         var existingByCode = await context.Questions.ToDictionaryAsync(q => q.Code, ct);
 
-        foreach (var row in ReferenceDataRows.ReadCsv("questions.csv"))
+        foreach (var row in ReferenceDataRows.ReadCsv("questions.csv").Rows)
         {
             var parsed = ReferenceDataRows.ParseQuestion("questions.csv", row);
 
@@ -75,7 +75,7 @@ public class ReferenceDataSeeder(MaatDbContext context)
     {
         var existingByCode = await context.Recommendations.ToDictionaryAsync(r => r.Code, ct);
 
-        foreach (var row in ReferenceDataRows.ReadCsv("recommendations.csv"))
+        foreach (var row in ReferenceDataRows.ReadCsv("recommendations.csv").Rows)
         {
             var parsed = ReferenceDataRows.ParseRecommendation("recommendations.csv", row);
 
@@ -108,7 +108,7 @@ public class ReferenceDataSeeder(MaatDbContext context)
         var existingByKey = (await context.SectorWeights.ToListAsync(ct))
             .ToDictionary(sw => (sw.SectorCode, sw.Domain));
 
-        foreach (var row in ReferenceDataRows.ReadCsv("sector-weights.csv"))
+        foreach (var row in ReferenceDataRows.ReadCsv("sector-weights.csv").Rows)
         {
             var parsed = ReferenceDataRows.ParseSectorWeight("sector-weights.csv", row);
 
