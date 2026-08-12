@@ -1,0 +1,37 @@
+# Proxy inverse — seul processus joignable depuis l'extérieur (docs/specs/deploiement.md,
+# section 2). Deux sites : le frontend statique et l'API. Caddy émet et renouvelle
+# automatiquement les certificats Let's Encrypt pour tout domaine déclaré comme adresse
+# de site (pas besoin de certbot/cron séparé) et redirige http:// vers https:// par
+# défaut — couvre les cas de test 1 et 2 de la spec sans configuration supplémentaire.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$APP_DOMAIN} {
+	root * /srv/frontend
+	encode gzip
+
+	# docs/specs/deploiement.md, section 4 : index.html jamais mis en cache, sinon un
+	# déploiement ne parvient pas aux navigateurs déjà venus, qui continuent de charger
+	# des ressources Vite disparues.
+	@indexHtml path /index.html /
+	header @indexHtml Cache-Control "no-cache"
+
+	# Ressources versionnées par Vite (hash dans le nom, frontend/dist/assets/*) : cache
+	# long, sûr par construction — un nouveau contenu a un nouveau nom de fichier.
+	@versioned path /assets/*
+	header @versioned Cache-Control "public, max-age=31536000, immutable"
+
+	# SPA : toute route inconnue du serveur de fichiers retombe sur index.html
+	# (React Router gère la route côté client).
+	try_files {path} /index.html
+	file_server
+}
+
+{$API_DOMAIN} {
+	# Ne pas reposer ici les en-têtes de durcissement déjà émis par l'API
+	# (Program.cs / docs/specs/deploiement.md, section 4) : un Content-Security-Policy
+	# dupliqué avec des valeurs différentes donne un résultat qui dépend du navigateur.
+	reverse_proxy api:8080
+}

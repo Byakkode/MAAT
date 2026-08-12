@@ -1,0 +1,103 @@
+# Production — VPS OVHcloud (docs/specs/deploiement.md). Fonctionne identiquement avec
+# "docker compose" ou "podman compose" (ADR 0007) : seul le moteur change, pas ce
+# fichier. Invoqué via deploy/deploy.sh, jamais directement par un "up -d" à la main
+# (ordre de démarrage — migrations, seed — imposé par la section 6 de la spec).
+#
+# Aucun service ci-dessous ne publie de port vers l'hôte hormis "proxy" : dans un réseau
+# Compose, l'équivalent de "l'API écoute en clair sur la boucle locale uniquement"
+# (section 2) est l'absence de toute publication, pas une liaison littérale à
+# 127.0.0.1 — le réseau "internal" isole "db", le réseau "edge" isole "api" du monde
+# extérieur en ne le rendant joignable que depuis "proxy".
+
+services:
+  db:
+    image: docker.io/library/postgres:18
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      # Volume nommé, jamais de bind mount (CLAUDE.md) : le mappage d'UID en Podman
+      # rootless le ferait échouer. Point de montage /var/lib/postgresql (pas
+      # .../data) : postgres:18, vérifié empiriquement.
+      - postgres_data:/var/lib/postgresql
+    networks:
+      - internal
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: MAAT.Api/Dockerfile
+      target: runtime
+    image: maat-api:${IMAGE_TAG:-local}
+    environment:
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      Jwt__SigningKey: ${JWT_SIGNING_KEY}
+      Jwt__Issuer: ${JWT_ISSUER:-maat-api}
+      Jwt__Audience: ${JWT_AUDIENCE:-maat-client}
+      Jwt__AccessTokenLifetimeSeconds: ${JWT_ACCESS_TOKEN_LIFETIME_SECONDS:-900}
+      Cors__AllowedOrigins__0: ${FRONTEND_ORIGIN}
+    depends_on:
+      - db
+    networks:
+      - internal
+      - edge
+    restart: unless-stopped
+
+  # "docker/podman compose run --rm migrator" uniquement (deploy.sh, étape 4) — jamais
+  # démarré par "up" : profil "tools" pour l'exclure explicitement.
+  migrator:
+    build:
+      context: ./backend
+      dockerfile: MAAT.Api/Dockerfile
+      target: migrator
+    image: maat-api-migrator:${IMAGE_TAG:-local}
+    environment:
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+    networks:
+      - internal
+    profiles: ["tools"]
+
+  # Copie frontend/dist (déjà construit par "npm run build" côté deploy.sh) dans le
+  # volume nommé que "proxy" sert en lecture seule. Bind mount en lecture seule
+  # inévitable ici (il s'agit de faire entrer un artefact fraîchement construit sur
+  # l'hôte, pas des données applicatives) — d'où le ":Z" (CLAUDE.md), inoffensif si
+  # SELinux n'est pas actif sur la distribution finalement choisie pour le VPS.
+  frontend-publish:
+    image: docker.io/library/alpine:3
+    volumes:
+      - frontend_dist:/dest
+      - ./frontend/dist:/src:ro,Z
+    command: ["sh", "-c", "rm -rf /dest/* && cp -r /src/. /dest/"]
+    profiles: ["tools"]
+
+  proxy:
+    image: docker.io/library/caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro,Z
+      - frontend_dist:/srv/frontend:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      API_DOMAIN: ${API_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    depends_on:
+      - api
+    networks:
+      - edge
+    restart: unless-stopped
+
+networks:
+  internal:
+  edge:
+
+volumes:
+  postgres_data:
+  frontend_dist:
+  caddy_data:
+  caddy_config:
