@@ -113,6 +113,11 @@ export DOCKER_HOST="unix:///run/user/$(id -u)/podman/podman.sock"
 export TESTCONTAINERS_RYUK_DISABLED=true   # ryuk (reaper) pose problème en rootless ; le fixture ferme le conteneur explicitement
 ```
 
+Un test qui insère des données contre un schéma intermédiaire (migration
+partielle, base de test à un état antérieur) passe par du SQL brut, jamais par
+EF : le modèle courant porte toutes les colonnes et l'insert échoue dès qu'une
+migration ultérieure en ajoute une.
+
 ## Règles d'architecture
 
 - Les couches ne remontent jamais : Domain ← Application ← Infrastructure ← Api.
@@ -175,6 +180,10 @@ commercial du produit.
   corrigés — `Content-Disposition` non exposé par la politique CORS, un `POST`
   sans corps rejeté en 415 faute de `Content-Type`, puis rejeté en 400 par un
   paramètre `[FromBody]` non nullable une fois le `Content-Type` posé.
+- Après une navigation React Router dans un test Playwright, attendre un élément
+  propre à la nouvelle page avant d'interagir : la route bascule côté client, la
+  page précédente ne se démonte pas immédiatement, et une saisie qui arrive trop
+  tôt remplit un champ homonyme sur le point de disparaître — silencieusement.
 
 ## Git
 
