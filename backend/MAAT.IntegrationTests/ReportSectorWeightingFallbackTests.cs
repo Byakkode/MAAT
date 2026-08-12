@@ -21,10 +21,12 @@ namespace MAAT.IntegrationTests;
 // quand un seul domaine était actif — la renormalisation de scoring.md (cas 7) ramène alors le
 // coefficient effectif à 1.00 que la pondération d'origine soit spécifique ou par défaut,
 // rendant les deux cas indiscernables. Ce test reproduit exactement cette condition : conteneur
-// dédié, seul le référentiel de base seedé (ENV-01/02/03, les trois dans le domaine
-// Environnement — MAAT.Infrastructure/Seed/questions.csv), comme QuestionnaireScoringFailureTests
-// et RecommendationSelectionFailureTests pour la même raison. IReportGenerator substitué par
-// CapturingReportGenerator, comme ReportContentApiFixture.
+// dédié, seul le domaine Environnement du référentiel réel reste actif (les quatre autres
+// domaines sont désactivés juste après le seed, ReferenceDataIsolation — le nombre de
+// questions réelles du domaine conservé n'a pas d'importance ici, seul compte qu'un seul
+// domaine soit actif), même principe que QuestionnaireScoringFailureTests et
+// RecommendationSelectionFailureTests pour l'isolation du conteneur. IReportGenerator
+// substitué par CapturingReportGenerator, comme ReportContentApiFixture.
 public class ReportSectorWeightingFallbackTests : IAsyncLifetime
 {
     private const string ValidPassword = "MotDePasseValide2026!";
@@ -59,9 +61,10 @@ public class ReportSectorWeightingFallbackTests : IAsyncLifetime
         using var scope = _factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<MaatDbContext>();
         await context.Database.MigrateAsync();
-        // ENV-01/02/03 viennent de MAAT.Infrastructure/Seed/questions.csv, pas des migrations —
-        // toutes les trois dans le domaine Environnement, donc un seul domaine actif ici.
+        // Le référentiel réel (MAAT.Infrastructure/Seed/*.csv) vient du seed ; seul le
+        // domaine Environnement reste actif ensuite (voir commentaire de classe).
         await new ReferenceDataSeeder(context).SeedAsync();
+        await ReferenceDataIsolation.DeactivateExceptDomainAsync(context, RseDomain.Environmental);
     }
 
     public async Task DisposeAsync()
@@ -122,12 +125,10 @@ public class ReportSectorWeightingFallbackTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
         var diagnosticId = (await createResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 
-        foreach (var code in new[] { "ENV-01", "ENV-02", "ENV-03" })
-        {
-            var answer = await client.SendAsync(
-                AuthorizedRequest(HttpMethod.Put, $"/api/diagnostics/{diagnosticId}/responses/{code}", token, new { value = 3 }));
-            Assert.True(answer.IsSuccessStatusCode, $"Échec de réponse à {code} : {answer.StatusCode}");
-        }
+        // docs/specs/referentiel.md : jamais une liste de codes codée en dur. Répond à
+        // toutes les questions actives — exactement celles du domaine Environnement, seul
+        // domaine laissé actif par ce fixture (voir son commentaire).
+        await DiagnosticQuestionAnswering.AnswerActiveQuestionsAsync(client, token, diagnosticId, defaultValue: 3);
 
         var completeResponse = await client.SendAsync(
             AuthorizedRequest(HttpMethod.Post, $"/api/diagnostics/{diagnosticId}/complete", token));

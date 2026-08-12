@@ -109,11 +109,12 @@ public class ReportTests(ReportApiFixture fixture)
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
         var diagnosticId = (await createResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 
-        foreach (var (code, value) in answers)
-        {
-            var answer = await client.SendAsync(AuthorizedRequest(HttpMethod.Put, $"/api/diagnostics/{diagnosticId}/responses/{code}", token, new { value }));
-            Assert.True(answer.IsSuccessStatusCode, $"Échec de réponse à {code} : {answer.StatusCode}");
-        }
+        // docs/specs/referentiel.md : jamais une liste de codes codée en dur. Répond à
+        // toutes les questions réellement actives (GET .../questions) ; `answers` ne fixe
+        // que celles dont ce fichier a besoin pour ses assertions, les autres reçoivent 5
+        // par défaut (aucune recommandation réelle ne se déclenche à cette valeur,
+        // trigger_max_value = 3 pour les 45 recommandations du seed).
+        await DiagnosticQuestionAnswering.AnswerActiveQuestionsAsync(client, token, diagnosticId, overrides: answers);
 
         var completeResponse = await client.SendAsync(AuthorizedRequest(HttpMethod.Post, $"/api/diagnostics/{diagnosticId}/complete", token));
         Assert.Equal(HttpStatusCode.OK, completeResponse.StatusCode);

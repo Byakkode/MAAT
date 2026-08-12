@@ -81,11 +81,10 @@ public class ReportDeterminismTests(ReportDeterminismApiFixture fixture)
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
         var diagnosticId = (await createResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 
-        foreach (var (code, value) in StandardAnswers)
-        {
-            var answer = await client.SendAsync(AuthorizedRequest(HttpMethod.Put, $"/api/diagnostics/{diagnosticId}/responses/{code}", token, new { value }));
-            Assert.True(answer.IsSuccessStatusCode, $"Échec de réponse à {code} : {answer.StatusCode}");
-        }
+        // docs/specs/referentiel.md : jamais une liste de codes codée en dur — voir
+        // ReportTests.CompleteDiagnosticAsync pour le même principe. Seul le déterminisme
+        // (mêmes réponses -> mêmes octets) compte ici, pas les valeurs elles-mêmes.
+        await DiagnosticQuestionAnswering.AnswerActiveQuestionsAsync(client, token, diagnosticId, overrides: StandardAnswers);
 
         var completeResponse = await client.SendAsync(AuthorizedRequest(HttpMethod.Post, $"/api/diagnostics/{diagnosticId}/complete", token));
         Assert.Equal(HttpStatusCode.OK, completeResponse.StatusCode);

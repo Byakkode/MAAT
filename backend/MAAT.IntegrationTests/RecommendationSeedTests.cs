@@ -46,10 +46,16 @@ public class RecommendationSeedTests(PostgresFixture fixture)
         var seedWarnings = RecommendationCalibrationChecker.FindMiscalibrated(seededRecommendations, activeQuestions);
         Assert.Empty(seedWarnings);
 
-        // Recommandation fabriquée, jamais persistée : impact_points très supérieur au gain
-        // maximal théorique de sa question déclencheuse (ENV-01, poids 3, domaine
-        // Environnemental Σ5w = 30) — la borne pour un seuil de déclenchement à 2 est
-        // (5-2)×3/30×100 = 30. 99 est délibérément hors borne.
+        // Recommandation fabriquée, jamais persistée : impact_points (99) très supérieur au
+        // gain maximal théorique possible (borné à 100) quelle que soit la question
+        // déclencheuse — délibérément hors borne. La borne attendue se recalcule ici à partir
+        // du poids réel d'ENV-01 et de la somme Σ5w de son domaine, plutôt que d'être une
+        // valeur figée : les deux dérivent du contenu réel de questions.csv
+        // (docs/specs/referentiel.md), qui évolue.
+        var triggerQuestion = activeQuestions.Single(q => q.Code == "ENV-01");
+        var domainWeightSum = activeQuestions.Where(q => q.Domain == RseDomain.Environmental).Sum(q => q.Weight * 5m);
+        var expectedMaxGain = (5 - 2) * triggerQuestion.Weight / domainWeightSum * 100m;
+
         var miscalibrated = new Recommendation(
             "REC-TEST-MISCALIBRATED", RseDomain.Environmental, "Recommandation de test mal calibrée.",
             impactPoints: 99.00m, EffortLevel.Low, triggerQuestionCode: "ENV-01", triggerMaxValue: 2);
@@ -60,6 +66,6 @@ public class RecommendationSeedTests(PostgresFixture fixture)
         var warning = Assert.Single(withFabricated);
         Assert.Equal("REC-TEST-MISCALIBRATED", warning.RecommendationCode);
         Assert.Equal(99.00m, warning.ImpactPoints);
-        Assert.Equal(30.0m, warning.MaxTheoreticalGain);
+        Assert.Equal(expectedMaxGain, warning.MaxTheoreticalGain);
     }
 }

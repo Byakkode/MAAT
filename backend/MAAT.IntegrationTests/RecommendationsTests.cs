@@ -94,26 +94,13 @@ public class RecommendationsTests(RecommendationsApiFixture fixture)
         client.SendAsync(AuthorizedRequest(
             HttpMethod.Put, $"/api/diagnostics/{diagnosticId}/responses/{questionCode}", accessToken, new { value }));
 
-    // Répond à toutes les questions actives avec la valeur maximale (5) : aucun seuil de
-    // déclenchement du fixture (tous ≤ 2) n'est atteint, donc rien ne se déclenche par
-    // défaut. Chaque test qui a besoin d'un déclenchement force ensuite explicitement la
-    // question concernée à une valeur plus basse.
-    private async Task AnswerAllActiveQuestionsAsync(HttpClient client, string accessToken, Guid diagnosticId)
-    {
-        foreach (var code in new[]
-        {
-            "ENV-01", "ENV-02", "ENV-03",
-            RecommendationsApiFixture.EnvTestQuestionCode,
-            RecommendationsApiFixture.SocialQuestionCode,
-            RecommendationsApiFixture.EthicsQuestionCode,
-            RecommendationsApiFixture.ProcurementQuestionCode,
-            RecommendationsApiFixture.GovernanceQuestionCode,
-        })
-        {
-            var response = await AnswerAsync(client, accessToken, diagnosticId, code, 5);
-            Assert.True(response.IsSuccessStatusCode, $"Échec de réponse à {code} : {response.StatusCode}");
-        }
-    }
+    // Répond à toutes les questions actives (docs/specs/referentiel.md : jamais une liste de
+    // codes codée en dur) avec la valeur maximale (5) : aucun seuil de déclenchement du
+    // fixture (tous ≤ 2) n'est atteint, donc rien ne se déclenche par défaut. Chaque test qui
+    // a besoin d'un déclenchement force ensuite explicitement la question concernée à une
+    // valeur plus basse.
+    private async Task AnswerAllActiveQuestionsAsync(HttpClient client, string accessToken, Guid diagnosticId) =>
+        await DiagnosticQuestionAnswering.AnswerActiveQuestionsAsync(client, accessToken, diagnosticId, defaultValue: 5);
 
     private static async Task<Guid> CompleteAsync(HttpClient client, string accessToken, Guid diagnosticId)
     {

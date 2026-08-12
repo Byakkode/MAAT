@@ -15,11 +15,15 @@ namespace MAAT.IntegrationTests;
 // comme QuestionnaireApiFixture (voir son commentaire : jeton à 2 s d'AuthApiFixture trop
 // court pour ces scénarios).
 //
-// En plus des 3 questions ENV-01/02/03 seedées par référence (QuestionConfiguration) et de
-// leurs 3 recommandations (RecommendationConfiguration), ce fixture ajoute une question de
-// test par domaine restant (poids 1, pour des calculs de priorité simples à vérifier à la
-// main) et un jeu de recommandations conçu pour isoler chaque facteur de la formule de
-// priorisation (impact, ρ_domaine, coût d'effort) un par un.
+// Univers de questions et recommandations entièrement contrôlé par ce fixture, pas le
+// référentiel réel (docs/specs/referentiel.md, 45 questions actives et en évolution) : les
+// cas 6 à 8 dépendent d'un calcul de priorité exact (ρ_domaine, coût d'effort, départage),
+// qui casserait si des recommandations réelles se déclenchaient aussi. Les 45
+// questions/recommandations réelles sont donc désactivées juste après le seed
+// (ReferenceDataIsolation) — seul le secteur "4941A" (sector-weights.csv) reste utilisé tel
+// quel. Ce fixture ajoute une question de test par domaine (poids 1, pour des calculs de
+// priorité simples à vérifier à la main) et un jeu de recommandations conçu pour isoler
+// chaque facteur de la formule de priorisation (impact, ρ_domaine, coût d'effort) un par un.
 public class RecommendationsApiFixture : IAsyncLifetime
 {
     public const string EnvTestQuestionCode = "ENV-TEST01";
@@ -81,9 +85,11 @@ public class RecommendationsApiFixture : IAsyncLifetime
         using var scope = _factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<MaatDbContext>();
         await context.Database.MigrateAsync();
-        // ENV-01/02/03 et les sector_weights "4941A"/"6202A" (cas 11) viennent de
-        // MAAT.Infrastructure/Seed/*.csv, pas des migrations.
+        // Les sector_weights "4941A"/"6202A" (cas 11) viennent de MAAT.Infrastructure/Seed/*.csv,
+        // pas des migrations ; les questions et recommandations réelles sont désactivées
+        // juste après (voir commentaire de classe).
         await new ReferenceDataSeeder(context).SeedAsync();
+        await ReferenceDataIsolation.DeactivateAllAsync(context);
 
         context.Questions.AddRange(
             new Question(EnvTestQuestionCode, "Question environnementale de test.", RseDomain.Environmental, weight: 1m, displayOrder: 200),

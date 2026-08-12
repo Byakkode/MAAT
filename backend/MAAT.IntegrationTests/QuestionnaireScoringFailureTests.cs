@@ -118,15 +118,11 @@ public class QuestionnaireScoringFailureTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
         var diagnosticId = (await createResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 
-        // Les seules questions actives de ce conteneur dédié sont les trois de référence
-        // (QuestionConfiguration) : IScoringService substitué lève quel que soit son entrée,
-        // pas besoin de reproduire la couverture des cinq domaines ici.
-        foreach (var code in new[] { "ENV-01", "ENV-02", "ENV-03" })
-        {
-            var answer = await client.SendAsync(
-                AuthorizedRequest(HttpMethod.Put, $"/api/diagnostics/{diagnosticId}/responses/{code}", token, new { value = 3 }));
-            Assert.True(answer.IsSuccessStatusCode, $"Échec de réponse à {code} : {answer.StatusCode}");
-        }
+        // IScoringService substitué lève quel que soit son entrée : peu importe la valeur
+        // répondue, mais toutes les questions actives doivent l'être pour que la complétion
+        // dépasse le contrôle de complétude et atteigne réellement le service substitué
+        // (docs/specs/referentiel.md : jamais une liste de codes codée en dur).
+        await DiagnosticQuestionAnswering.AnswerActiveQuestionsAsync(client, token, diagnosticId, defaultValue: 3);
 
         var completeResponse = await client.SendAsync(
             AuthorizedRequest(HttpMethod.Post, $"/api/diagnostics/{diagnosticId}/complete", token));
