@@ -25,8 +25,8 @@ suivante, alignée sur les référentiels VSME, ISO 26000, ESRS et EcoVadis.
 | --- | --- | --- |
 | `Environmental` | Environnement | ISO 26000 §6.5 · VSME B3–B7 · ESRS E1–E5 · GRI 300 |
 | `Social` | Social & droits humains | ISO 26000 §6.3–6.4 · VSME B8–B10 · ESRS S1–S4 · GRI 400 |
-| `Ethics` | Éthique des affaires | ISO 26000 §6.6 · VSME B11 · ESRS G1 |
-| `Procurement` | Achats responsables | ISO 26000 §6.6.6 · VSME C8 · EcoVadis |
+| `Ethics` | Éthique des affaires | ISO 26000 §6.6 · §6.7 · VSME B11 · ESRS G1 |
+| `Procurement` | Achats responsables | ISO 26000 §6.6.6 · §6.8 · EcoVadis |
 | `Governance` | Gouvernance & pilotage | ISO 26000 §6.2 · VSME B1–B2, C1, C9 |
 
 L'énumération s'appelle `RseDomain`, pas `Domain` : le projet .NET racine du Domain
@@ -250,8 +250,14 @@ Répartition cible du MVP — 45 questions actives :
 | Environnement | 11 | `ENV-` |
 | Social & droits humains | 11 | `SOC-` |
 | Éthique des affaires | 8 | `ETH-` |
-| Achats responsables | 7 | `ACH-` |
-| Gouvernance & pilotage | 8 | `GOU-` |
+| Achats responsables | 7 | `PRO-` |
+| Gouvernance & pilotage | 8 | `GOV-` |
+
+`PRO-` et `GOV-` (plutôt que `ACH-`/`GOU-`) : les codes se lisent à côté de
+`RseDomain.Procurement` et `RseDomain.Governance` sans traduction, et le jeu de
+préfixes n'est pas moitié anglais moitié français. **Irréversible après le
+premier `seed` exécuté en production** : `code` est la clé d'upsert
+(`ReferenceDataSeeder`).
 
 `ecovadis_ref` est ajouté au modèle initial. EcoVadis est le déclencheur d'achat
 principal du produit : un utilisateur qui vient de recevoir un questionnaire
