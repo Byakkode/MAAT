@@ -7,6 +7,14 @@ import { expect, test } from '@playwright/test'
 // une régression dans le formulaire d'inscription, de connexion, ou dans le bouton de
 // démarrage lui-même — précisément ce que ce test doit prouver.
 test('un compte neuf s’inscrit, démarre un diagnostic et le complète — le tout via l’interface', async ({ page }) => {
+  // Le référentiel réel compte 45 questions actives (docs/specs/referentiel.md), chacune
+  // sauvegardée par un cycle debounce (500 ms, questionnaireStore.ts) + aller-retour réseau
+  // séquentiel — jusqu'à 45 cycles dans un seul test. Le timeout par défaut (30 s) suffisait
+  // pour la poignée de questions de test d'avant ce référentiel, plus maintenant : une seule
+  // latence de queue CI parmi 45 suffit à le dépasser sans qu'aucun cycle individuel ne soit
+  // anormalement lent.
+  test.setTimeout(120_000)
+
   const suffix = Math.random().toString(36).slice(2, 10)
   const email = `e2e-questionnaire-${suffix}@maat-test.local`
   const password = 'MotDePasseValide2026!'
@@ -54,8 +62,8 @@ test('un compte neuf s’inscrit, démarre un diagnostic et le complète — le 
 
   // Répond à toutes les questions de l'étape courante, avance, jusqu'à atteindre la dernière
   // étape et pouvoir terminer. Ne présuppose ni le nombre d'étapes ni le nombre de questions
-  // par étape : seul le jeu de données seedé (docs/specs/modele-donnees.md, 3 questions de
-  // démonstration en Environnement) le détermine.
+  // par étape : seul le référentiel réel seedé (docs/specs/referentiel.md, 45 questions
+  // actives réparties sur cinq domaines) le détermine.
   const maxSteps = 5
   let completed = false
   for (let step = 0; step < maxSteps && !completed; step += 1) {
@@ -66,7 +74,9 @@ test('un compte neuf s’inscrit, démarre un diagnostic et le complète — le 
     for (let i = 0; i < count; i += 1) {
       const fieldset = fieldsets.nth(i)
       await fieldset.getByRole('radio', { name: 'Pleinement en place et suivi' }).check()
-      await expect(fieldset.getByRole('status')).toHaveText('Enregistré', { timeout: 10_000 })
+      // 20 s plutôt que 10 s : marge sur la latence de queue CI d'un cycle individuel, pas
+      // sur un cycle réellement bloqué — voir test.setTimeout ci-dessus pour le budget global.
+      await expect(fieldset.getByRole('status')).toHaveText('Enregistré', { timeout: 20_000 })
     }
 
     const completeButton = page.getByRole('button', { name: 'Terminer' })
