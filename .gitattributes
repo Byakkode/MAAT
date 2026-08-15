@@ -1,0 +1,3 @@
+# docs/specs/referentiel.md, cas de test 12 : fins de ligne stables sur les CSV de seed,
+# pour que les diffs ne portent que sur le contenu que l'équipe relit régulièrement.
+*.csv text eol=lf

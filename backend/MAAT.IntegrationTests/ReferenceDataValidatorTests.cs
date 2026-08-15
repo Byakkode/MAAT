@@ -42,7 +42,7 @@ public class ReferenceDataValidatorTests
             ["sector-weights.csv"] = sectorWeightsCsv,
         };
 
-        IReadOnlyList<CsvRow> ReadCsv(string fileName)
+        CsvFileContent ReadCsv(string fileName)
         {
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(files[fileName]));
             return CsvFile.ReadRows(stream, fileName);
@@ -131,6 +131,51 @@ public class ReferenceDataValidatorTests
 
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, e => e.Contains("sector-weights.csv") && e.Contains("manquant") && e.Contains("Governance"));
+    }
+
+    [Fact]
+    public void Signale_une_colonne_facultative_absente_de_l_en_tete()
+    {
+        // help_text absent de l'en-tête : sans le contrôle d'en-tête, OrNull("help_text")
+        // renverrait silencieusement null pour chaque ligne, indiscernable d'une colonne
+        // présente mais vide (docs/specs/modele-donnees.md, « Fichiers et colonnes »).
+        const string questionsMissingOptionalColumn = """
+            code,domain,text,weight,display_order,vsme_ref,iso_ref,gri_ref,ecovadis_ref,is_active
+            Q1,Environmental,Question un,1.00,1,,,,,true
+            """;
+
+        var result = Validate(questionsMissingOptionalColumn, ValidRecommendations, ValidSectorWeights);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(
+            result.Errors,
+            e => e.Contains("questions.csv") && e.Contains("manquante") && e.Contains("help_text"));
+    }
+
+    [Fact]
+    public void Signale_une_colonne_inattendue_dans_l_en_tete()
+    {
+        // Renommage/faute de frappe imaginaire : "poids" au lieu de "weight". La colonne
+        // attendue est donc aussi signalée manquante (les deux erreurs sont complémentaires,
+        // pas redondantes : l'une dit ce qui a disparu, l'autre ce qui est apparu à la place).
+        const string sectorWeightsRenamedColumn = """
+            sector_code,domain,poids
+            ,Environmental,0.2
+            ,Social,0.2
+            ,Ethics,0.2
+            ,Procurement,0.2
+            ,Governance,0.2
+            """;
+
+        var result = Validate(ValidQuestions, ValidRecommendations, sectorWeightsRenamedColumn);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(
+            result.Errors,
+            e => e.Contains("sector-weights.csv") && e.Contains("inattendue") && e.Contains("poids"));
+        Assert.Contains(
+            result.Errors,
+            e => e.Contains("sector-weights.csv") && e.Contains("manquante") && e.Contains("weight"));
     }
 
     [Fact]

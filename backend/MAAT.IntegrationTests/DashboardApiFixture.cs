@@ -17,28 +17,39 @@ namespace MAAT.IntegrationTests;
 // (8 à 11) enregistrent plusieurs entreprises par test : un jeton à durée normale est d'autant
 // plus nécessaire ici.
 //
-// QuestionConfiguration ne seed que 3 questions actives, toutes en Environnement
-// (docs/specs/modele-donnees.md) : une question de test par domaine restant, poids 1, pour
-// obtenir les cinq DomainScore qu'exige le tableau de bord (cas 3). Même principe pour les
-// recommandations : les 3 réelles (REC-ENV-01/02/03) plus une par domaine restant, seuils
-// tous à 2 et impacts distincts, pour disposer de sept recommandations déclenchables au total
-// — nécessaire au cas 12 (cinq au maximum sur un total supérieur à cinq).
+// Univers de questions et recommandations entièrement contrôlé par ce fixture, pas le
+// référentiel réel (docs/specs/referentiel.md, 45 questions actives et en évolution) :
+// plusieurs cas comptent exactement les questions/recommandations actives (cas 2 :
+// totalActiveQuestions=7 ; cas 12/13 et TriggeredRecommendationCount : total=7), ce qui
+// casserait à chaque question ou recommandation ajoutée au seed réel. Les 45
+// questions/recommandations réelles sont donc désactivées juste après le seed
+// (ReferenceDataIsolation), et ce fixture les remplace par : trois questions en
+// Environnement (remplace ENV-01/02/03) + une par domaine restant, poids 1, pour obtenir les
+// cinq DomainScore qu'exige le tableau de bord (cas 3). Recommandations : trois en
+// Environnement (remplace REC-ENV-01/02/03) + une par domaine restant, seuils tous à 2 et
+// impacts distincts, pour disposer de sept recommandations déclenchables au total —
+// nécessaire au cas 12 (cinq au maximum sur un total supérieur à cinq).
 public class DashboardApiFixture : IAsyncLifetime
 {
+    public const string EnvQuestionCode1 = "ENV-TEST01";
+    public const string EnvQuestionCode2 = "ENV-TEST02";
+    public const string EnvQuestionCode3 = "ENV-TEST03";
     public const string SocialQuestionCode = "SOC-TEST01";
     public const string EthicsQuestionCode = "ETH-TEST01";
     public const string ProcurementQuestionCode = "ACH-TEST01";
     public const string GovernanceQuestionCode = "GOU-TEST01";
 
+    public const string RecEnvironmentalCode1 = "REC-ENV-TEST1";
+    public const string RecEnvironmentalCode2 = "REC-ENV-TEST2";
+    public const string RecEnvironmentalCode3 = "REC-ENV-TEST3";
     public const string RecSocialCode = "REC-SOC-TEST";
     public const string RecEthicsCode = "REC-ETH-TEST";
     public const string RecProcurementCode = "REC-ACH-TEST";
     public const string RecGovernanceCode = "REC-GOV-TEST";
 
-    // display_order 200+ : jamais en collision avec ENV-01/02/03 (1 à 3, voir questions.csv).
     public static readonly IReadOnlyList<string> AllActiveQuestionCodes =
     [
-        "ENV-01", "ENV-02", "ENV-03",
+        EnvQuestionCode1, EnvQuestionCode2, EnvQuestionCode3,
         SocialQuestionCode, EthicsQuestionCode, ProcurementQuestionCode, GovernanceQuestionCode,
     ];
 
@@ -65,17 +76,25 @@ public class DashboardApiFixture : IAsyncLifetime
         using var scope = _factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<MaatDbContext>();
         await context.Database.MigrateAsync();
-        // ENV-01/02/03 et les sector_weights par défaut (0,200 par domaine) viennent de
-        // MAAT.Infrastructure/Seed/*.csv, pas des migrations.
+        // Les sector_weights par défaut (0,200 par domaine) viennent de
+        // MAAT.Infrastructure/Seed/*.csv, pas des migrations ; les questions et
+        // recommandations réelles sont désactivées juste après (voir commentaire de classe).
         await new ReferenceDataSeeder(context).SeedAsync();
+        await ReferenceDataIsolation.DeactivateAllAsync(context);
 
         context.Questions.AddRange(
+            new Question(EnvQuestionCode1, "Question environnementale de test 1.", RseDomain.Environmental, weight: 1m, displayOrder: 1),
+            new Question(EnvQuestionCode2, "Question environnementale de test 2.", RseDomain.Environmental, weight: 1m, displayOrder: 2),
+            new Question(EnvQuestionCode3, "Question environnementale de test 3.", RseDomain.Environmental, weight: 1m, displayOrder: 3),
             new Question(SocialQuestionCode, "Question sociale de test.", RseDomain.Social, weight: 1m, displayOrder: 200),
             new Question(EthicsQuestionCode, "Question éthique de test.", RseDomain.Ethics, weight: 1m, displayOrder: 201),
             new Question(ProcurementQuestionCode, "Question achats de test.", RseDomain.Procurement, weight: 1m, displayOrder: 202),
             new Question(GovernanceQuestionCode, "Question gouvernance de test.", RseDomain.Governance, weight: 1m, displayOrder: 203));
 
         context.Recommendations.AddRange(
+            new Recommendation(RecEnvironmentalCode1, RseDomain.Environmental, "Action environnementale de test 1.", impactPoints: 10.00m, EffortLevel.Low, EnvQuestionCode1, triggerMaxValue: 2),
+            new Recommendation(RecEnvironmentalCode2, RseDomain.Environmental, "Action environnementale de test 2.", impactPoints: 9.00m, EffortLevel.Low, EnvQuestionCode2, triggerMaxValue: 2),
+            new Recommendation(RecEnvironmentalCode3, RseDomain.Environmental, "Action environnementale de test 3.", impactPoints: 3.00m, EffortLevel.Low, EnvQuestionCode3, triggerMaxValue: 2),
             new Recommendation(RecSocialCode, RseDomain.Social, "Action sociale de test.", impactPoints: 8.00m, EffortLevel.Low, SocialQuestionCode, triggerMaxValue: 2),
             new Recommendation(RecEthicsCode, RseDomain.Ethics, "Action éthique de test.", impactPoints: 6.00m, EffortLevel.Low, EthicsQuestionCode, triggerMaxValue: 2),
             new Recommendation(RecProcurementCode, RseDomain.Procurement, "Action achats de test.", impactPoints: 4.00m, EffortLevel.Low, ProcurementQuestionCode, triggerMaxValue: 2),

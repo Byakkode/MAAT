@@ -7,6 +7,14 @@ namespace MAAT.Infrastructure.Seed;
 // n'écrit pas de code (voir ReferenceDataValidator).
 internal sealed record CsvRow(int LineNumber, IReadOnlyDictionary<string, string> Fields);
 
+// Header exposé séparément des lignes : ReferenceDataRows ne lit les champs que par nom
+// (jamais par position), donc un en-tête qui ne correspond pas aux colonnes attendues de
+// modele-donnees.md passe inaperçu ligne par ligne — une colonne facultative absente
+// (OrNull) se lit comme "présente mais vide", pas comme une erreur. Voir
+// ReferenceDataValidator.CheckHeader, le contrôle qui compare cet en-tête à la liste
+// attendue avant toute analyse ligne par ligne.
+internal sealed record CsvFileContent(IReadOnlyList<string> Header, IReadOnlyList<CsvRow> Rows);
+
 // Analyseur CSV endurci face aux exports réels de tableur (Excel « CSV UTF-8 »,
 // LibreOffice Calc, Google Sheets) — voir docs/specs/modele-donnees.md :
 // - BOM UTF-8 en tête de fichier : détecté et retiré.
@@ -28,7 +36,7 @@ internal sealed record CsvRow(int LineNumber, IReadOnlyDictionary<string, string
 // le contenu est entièrement sous contrôle de l'équipe.
 internal static class CsvFile
 {
-    public static IReadOnlyList<CsvRow> ReadRows(Stream stream, string fileName)
+    public static CsvFileContent ReadRows(Stream stream, string fileName)
     {
         var content = ReadContentWithoutBom(stream);
         if (content.Length == 0)
@@ -71,7 +79,7 @@ internal static class CsvFile
             rows.Add(new CsvRow(lineNumber, row));
         }
 
-        return rows;
+        return new CsvFileContent(header, rows);
     }
 
     private static string ReadContentWithoutBom(Stream stream)

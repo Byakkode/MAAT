@@ -118,12 +118,11 @@ public class RecommendationSelectionFailureTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
         var diagnosticId = (await createResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 
-        foreach (var code in new[] { "ENV-01", "ENV-02", "ENV-03" })
-        {
-            var answer = await client.SendAsync(
-                AuthorizedRequest(HttpMethod.Put, $"/api/diagnostics/{diagnosticId}/responses/{code}", token, new { value = 3 }));
-            Assert.True(answer.IsSuccessStatusCode, $"Échec de réponse à {code} : {answer.StatusCode}");
-        }
+        // IRecommendationEngine substitué lève quel que soit son entrée : peu importe la
+        // valeur répondue, mais toutes les questions actives doivent l'être pour que la
+        // complétion dépasse le contrôle de complétude (docs/specs/referentiel.md : jamais
+        // une liste de codes codée en dur).
+        await DiagnosticQuestionAnswering.AnswerActiveQuestionsAsync(client, token, diagnosticId, defaultValue: 3);
 
         var completeResponse = await client.SendAsync(
             AuthorizedRequest(HttpMethod.Post, $"/api/diagnostics/{diagnosticId}/complete", token));

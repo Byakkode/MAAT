@@ -13,6 +13,7 @@ using MAAT.Infrastructure.Repositories;
 using MAAT.Infrastructure.Security;
 using MAAT.Infrastructure.Seed;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -49,6 +50,10 @@ builder.Services.AddScoped<IResponseRepository, ResponseRepository>();
 builder.Services.AddScoped<IDomainScoreRepository, DomainScoreRepository>();
 builder.Services.AddScoped<IDiagnosticRecommendationRepository, DiagnosticRecommendationRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
+
+// docs/specs/deploiement.md, section 6 : consommé par HealthController — pas
+// MaatDbContext directement (docs/adr/0005, ArchitectureTests).
+builder.Services.AddScoped<IDatabaseHealthCheck, DatabaseHealthCheck>();
 
 // docs/specs/dashboard.md, section 5 : seule exception au cloisonnement par entreprise
 // ci-dessus, voir son commentaire dans ISectorBenchmarkRepository.
@@ -166,6 +171,21 @@ builder.Services.AddHsts(options =>
 {
     options.IncludeSubDomains = true;
     options.MaxAge = TimeSpan.FromDays(365);
+});
+
+// docs/specs/deploiement.md, section 2 : en production, l'API n'est jamais jointe
+// directement — le proxy termine TLS et transmet en clair. Sans ceci, Request.IsHttps
+// vaut toujours false côté API, ce qui fait boucler UseHttpsRedirection (redirection vers
+// elle-même) et empêche UseHsts de jamais poser son en-tête (section 4 : les deux ne
+// s'activent que si IsHttps). KnownIPNetworks/KnownProxies vidées : le seul expéditeur
+// possible de cet en-tête est le proxy, sur le réseau Compose interne où l'API n'est de
+// toute façon joignable par personne d'autre (docker-compose.prod.yml) — une liste
+// blanche d'IP n'apporterait rien ici, contrairement à une API exposée directement.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
 });
 
 builder.Services.AddRateLimiter(options =>
@@ -391,6 +411,11 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+
+// Doit s'exécuter avant tout middleware qui lit Request.Scheme/IsHttps (HSTS,
+// redirection HTTPS ci-dessous) : voir le commentaire sur Configure<ForwardedHeadersOptions>
+// plus haut.
+app.UseForwardedHeaders();
 
 // Comme le reste de l'écosystème ASP.NET Core, HSTS n'a d'effet qu'en dehors de
 // Development : il indique au navigateur de forcer HTTPS pour ce domaine pendant

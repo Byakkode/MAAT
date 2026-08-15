@@ -7,7 +7,7 @@ namespace MAAT.Infrastructure.Repositories;
 
 public class SectorWeightRepository(MaatDbContext context) : ISectorWeightRepository
 {
-    public async Task<IReadOnlyDictionary<RseDomain, decimal>> GetForSectorOrDefaultAsync(string sectorCode, CancellationToken ct)
+    public async Task<SectorWeightLookup> GetForSectorOrDefaultAsync(string sectorCode, CancellationToken ct)
     {
         var sectorRows = await context.SectorWeights
             .Where(sw => sw.SectorCode == sectorCode)
@@ -15,13 +15,13 @@ public class SectorWeightRepository(MaatDbContext context) : ISectorWeightReposi
 
         if (sectorRows.Count > 0)
         {
-            return sectorRows.ToDictionary(sw => sw.Domain, sw => sw.Weight);
+            return new SectorWeightLookup(sectorRows.ToDictionary(sw => sw.Domain, sw => sw.Weight), UsedDefaultFallback: false);
         }
 
         var defaultRows = await context.SectorWeights
             .Where(sw => sw.IsDefault)
             .ToListAsync(ct);
 
-        return defaultRows.ToDictionary(sw => sw.Domain, sw => sw.Weight);
+        return new SectorWeightLookup(defaultRows.ToDictionary(sw => sw.Domain, sw => sw.Weight), UsedDefaultFallback: true);
     }
 }

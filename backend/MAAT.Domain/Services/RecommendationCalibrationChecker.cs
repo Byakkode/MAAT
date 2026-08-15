@@ -35,7 +35,18 @@ public static class RecommendationCalibrationChecker
             }
 
             var maxGain = (5 - recommendation.TriggerMaxValue) * question.Weight / domainWeightSum[question.Domain] * 100m;
-            if (recommendation.ImpactPoints > maxGain)
+
+            // docs/specs/recommandations.md, section 3 : l'avertissement vise un écart qui
+            // « dépasse nettement » la borne, pas un artefact d'arrondi. impact_points est
+            // stocké en numeric(4,2) (deux décimales, modele-donnees.md) ; la borne, elle, ne
+            // tombe pas toujours juste — ex. (5-3)×1/55×100 = 3,6363…, arrondi en 3,64 par
+            // quiconque rédige le contenu. Comparer 3,64 (arrondi) à 3,6363… (pleine
+            // précision) déclenche un faux positif systématique sur tout domaine dont Σ(5w)
+            // n'est pas un diviseur exact de 100 — indépendant de la qualité du calibrage.
+            // Comparer à la même précision que la colonne stockée élimine cet artefact sans
+            // masquer un écart réel.
+            var maxGainAtStoragePrecision = Math.Round(maxGain, 2, MidpointRounding.AwayFromZero);
+            if (recommendation.ImpactPoints > maxGainAtStoragePrecision)
             {
                 warnings.Add(new RecommendationCalibrationWarning(recommendation.Code, recommendation.ImpactPoints, maxGain));
             }

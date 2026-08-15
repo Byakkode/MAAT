@@ -219,7 +219,7 @@ public class DemoDataSeeder(MaatDbContext context, IScoringService scoringServic
 
         using var stream = assembly.GetManifestResourceStream(resourceName)
             ?? throw new InvalidOperationException($"Fichier de seed de démonstration introuvable : {resourceName}");
-        return CsvFile.ReadRows(stream, fileName);
+        return CsvFile.ReadRows(stream, fileName).Rows;
     }
 
     private sealed record DemoCompanyProfile(

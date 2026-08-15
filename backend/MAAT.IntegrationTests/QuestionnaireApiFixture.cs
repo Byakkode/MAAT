@@ -17,14 +17,20 @@ namespace MAAT.IntegrationTests;
 // 2 s de façon intermittente. Voir AccountPasswordConfirmationRateLimitTests pour le précédent
 // exact qui a motivé cette isolation.
 //
-// QuestionConfiguration ne seed que 3 questions actives, toutes en Environnement
-// (docs/specs/modele-donnees.md). Compléter un diagnostic exige de répondre à toutes les
-// questions actives (section 6 de questionnaire.md), et le cas 11 exige cinq lignes
-// DomainScore : il faut donc au moins une question active par domaine restant. Seedées ici
-// plutôt que dans QuestionConfiguration, qui reste un jeu d'exemple à but de démonstration,
-// pas un jeu de test.
+// Univers de questions entièrement contrôlé par ce fixture, pas le référentiel réel
+// (docs/specs/referentiel.md, 45 questions actives et en évolution) : plusieurs cas
+// (10, 21, 24) comptent ou énumèrent exactement les questions actives, ce qui casserait à
+// chaque question ajoutée ou retirée du seed réel. Les 45 questions et recommandations
+// réelles sont donc désactivées juste après le seed (ReferenceDataIsolation), et ce fixture
+// les remplace par sept questions actives : trois en Environnement (remplace ENV-01/02/03),
+// une par domaine restant. Compléter un diagnostic exige de répondre à toutes les questions
+// actives (section 6 de questionnaire.md), et le cas 11 exige cinq lignes DomainScore : il
+// faut donc au moins une question active par domaine.
 public class QuestionnaireApiFixture : IAsyncLifetime
 {
+    public const string EnvQuestionCode1 = "ENV-TEST01";
+    public const string EnvQuestionCode2 = "ENV-TEST02";
+    public const string EnvQuestionCode3 = "ENV-TEST03";
     public const string SocialQuestionCode = "SOC-TEST01";
     public const string EthicsQuestionCode = "ETH-TEST01";
     public const string ProcurementQuestionCode = "ACH-TEST01";
@@ -54,11 +60,16 @@ public class QuestionnaireApiFixture : IAsyncLifetime
         using var scope = _factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<MaatDbContext>();
         await context.Database.MigrateAsync();
-        // ENV-01/02/03 (référence) et les sector_weights "4941A"/"6202A" utilisés par
-        // QuestionnaireTests viennent de MAAT.Infrastructure/Seed/*.csv, pas des migrations.
+        // Les sector_weights "4941A"/"6202A" utilisés par QuestionnaireTests viennent de
+        // MAAT.Infrastructure/Seed/*.csv, pas des migrations ; les questions et
+        // recommandations réelles sont désactivées juste après (voir commentaire de classe).
         await new ReferenceDataSeeder(context).SeedAsync();
+        await ReferenceDataIsolation.DeactivateAllAsync(context);
 
         context.Questions.AddRange(
+            new Question(EnvQuestionCode1, "Question environnementale de test 1.", RseDomain.Environmental, weight: 1m, displayOrder: 1),
+            new Question(EnvQuestionCode2, "Question environnementale de test 2.", RseDomain.Environmental, weight: 1m, displayOrder: 2),
+            new Question(EnvQuestionCode3, "Question environnementale de test 3.", RseDomain.Environmental, weight: 1m, displayOrder: 3),
             new Question(SocialQuestionCode, "Question sociale de test.", RseDomain.Social, weight: 1m, displayOrder: 100),
             new Question(EthicsQuestionCode, "Question éthique de test.", RseDomain.Ethics, weight: 1m, displayOrder: 101),
             new Question(ProcurementQuestionCode, "Question achats de test.", RseDomain.Procurement, weight: 1m, displayOrder: 102),

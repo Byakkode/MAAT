@@ -170,7 +170,7 @@ public class DiagnosticService(
 
         await unitOfWork.ExecuteInTransactionAsync(async innerCt =>
         {
-            var sectorWeights = await sectorWeightRepository.GetForSectorOrDefaultAsync(company.SectorCode, innerCt);
+            var sectorWeightLookup = await sectorWeightRepository.GetForSectorOrDefaultAsync(company.SectorCode, innerCt);
 
             var inputs = activeQuestions
                 .Select(q => new QuestionScoreInput(q.Domain, q.Weight, valueByQuestionId[q.Id]))
@@ -178,7 +178,7 @@ public class DiagnosticService(
 
             // Peut lever (pondération manquante pour un domaine, données incohérentes) :
             // la transaction englobante annule alors tout ce qui suit (cas 15).
-            var result = scoringService.CalculateScore(inputs, sectorWeights);
+            var result = scoringService.CalculateScore(inputs, sectorWeightLookup.Weights);
 
             foreach (var detail in result.DomainScores)
             {
@@ -189,6 +189,7 @@ public class DiagnosticService(
             diagnostic.GlobalScore = result.GlobalScore;
             diagnostic.Status = DiagnosticStatus.Completed;
             diagnostic.CompletedAt = DateTimeOffset.UtcNow;
+            diagnostic.DefaultSectorWeightingApplied = sectorWeightLookup.UsedDefaultFallback;
 
             // docs/specs/recommandations.md, section 1 : étape 5 de la complétion, dans la
             // même transaction. Peut lever (question déclencheuse sans réponse, domaine sans
@@ -359,6 +360,7 @@ public class DiagnosticService(
             completedAt,
             globalScore,
             ScoreLabel.For(roundedGlobalScore),
+            diagnostic.DefaultSectorWeightingApplied,
             reportDomainScores,
             reportRecommendations,
             allRecommendations.Count,

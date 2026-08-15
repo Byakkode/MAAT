@@ -15,12 +15,25 @@ namespace MAAT.IntegrationTests;
 
 // docs/specs/rapport-pdf.md, cas 12 à 18 : IReportGenerator substitué par
 // CapturingReportGenerator (voir son commentaire), même principe que
-// RecommendationSelectionFailureTests substituant IRecommendationEngine. Même seed que
-// ReportApiFixture — voir son commentaire pour le détail du secteur et des questions/
-// recommandations de test.
+// RecommendationSelectionFailureTests substituant IRecommendationEngine.
+//
+// Univers de questions et recommandations entièrement contrôlé par ce fixture, pas le
+// référentiel réel (docs/specs/referentiel.md, 45 questions actives et en évolution) : les
+// cas 13, 14, 16 et 22 attendent un score global exact ("50,3333…", tranche 50-69) dérivé de
+// trois questions Environnement de poids 3,00/2,00/1,00 — mêmes valeurs que le cas 4 de
+// scoring.md — qui casserait si le domaine comptait d'autres questions actives, réelles ou
+// non. Les 45 questions/recommandations réelles sont donc désactivées juste après le seed
+// (ReferenceDataIsolation) ; seul le secteur "4941A" (sector-weights.csv) reste utilisé tel
+// quel. Trois questions de test remplacent ENV-01/02/03 avec les mêmes poids.
 public class ReportContentApiFixture : IAsyncLifetime
 {
     public const string SectorCode = ReportApiFixture.SectorCode;
+
+    // Poids 3,00/2,00/1,00 : mêmes valeurs que le cas 4 de docs/specs/scoring.md, jamais
+    // renommées sans recalculer les scores attendus de ReportContentTests (cas 13, 14, 16, 22).
+    public const string EnvQuestionCodeWeight3 = "ENV-TEST01";
+    public const string EnvQuestionCodeWeight2 = "ENV-TEST02";
+    public const string EnvQuestionCodeWeight1 = "ENV-TEST03";
 
     public const string SocialQuestionCode = ReportApiFixture.SocialQuestionCode;
     public const string EthicsQuestionCode = ReportApiFixture.EthicsQuestionCode;
@@ -63,8 +76,12 @@ public class ReportContentApiFixture : IAsyncLifetime
         var context = scope.ServiceProvider.GetRequiredService<MaatDbContext>();
         await context.Database.MigrateAsync();
         await new ReferenceDataSeeder(context).SeedAsync();
+        await ReferenceDataIsolation.DeactivateAllAsync(context);
 
         context.Questions.AddRange(
+            new Question(EnvQuestionCodeWeight3, "Question environnementale de test, poids 3.", RseDomain.Environmental, weight: 3m, displayOrder: 1),
+            new Question(EnvQuestionCodeWeight2, "Question environnementale de test, poids 2.", RseDomain.Environmental, weight: 2m, displayOrder: 2),
+            new Question(EnvQuestionCodeWeight1, "Question environnementale de test, poids 1.", RseDomain.Environmental, weight: 1m, displayOrder: 3),
             new Question(SocialQuestionCode, "Question sociale de test.", RseDomain.Social, weight: 1m, displayOrder: 200),
             new Question(EthicsQuestionCode, "Question éthique de test.", RseDomain.Ethics, weight: 1m, displayOrder: 201),
             new Question(ProcurementQuestionCode, "Question achats de test.", RseDomain.Procurement, weight: 1m, displayOrder: 202),

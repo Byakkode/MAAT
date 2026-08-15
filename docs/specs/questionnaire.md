@@ -152,7 +152,9 @@ Traitement, dans **une seule transaction** :
    correspondant au `sector_code` de l'entreprise, ou la pondération par défaut ;
 2. écriture des cinq lignes `DomainScore`, avec le `sector_weight` effectivement
    appliqué ;
-3. écriture de `Diagnostic.global_score` ;
+3. écriture de `Diagnostic.global_score` et de
+   `Diagnostic.default_sector_weighting_applied` (vrai si l'étape 1 est retombée
+   sur la pondération par défaut, décidé à la source, pas redéduit plus tard) ;
 4. passage du statut à `Completed` et horodatage de `completed_at` ;
 5. génération des recommandations (module suivant, hors périmètre de cette spec).
 
@@ -228,7 +230,11 @@ En cas de doute sur une formulation, la reformuler plutôt que l'arbitrer.
 10. Complétion avec des réponses manquantes → 400 listant les codes concernés.
 11. Complétion valide → 5 lignes `DomainScore`, `global_score` renseigné, statut `Completed`, `completed_at` horodaté.
 12. Le `sector_weight` persisté correspond à la pondération du secteur de l'entreprise.
-13. Entreprise dont le code NAF n'est pas couvert → pondération par défaut appliquée et persistée.
+13. Entreprise dont le code NAF n'est pas couvert → pondération par défaut appliquée, et le
+    repli persisté sur `Diagnostic.default_sector_weighting_applied` (`modele-donnees.md`) —
+    jamais seulement déductible de `DomainScore.sector_weight`, que la renormalisation du cas 7
+    de `scoring.md` peut ramener à 1.00 aussi bien dans le cas par défaut que dans le cas
+    spécifique dès qu'un seul domaine est actif.
 14. Second appel à `complete` → 409, aucune ligne supplémentaire.
 15. Échec du calcul → transaction annulée, statut resté `InProgress`, aucune ligne `DomainScore`.
 

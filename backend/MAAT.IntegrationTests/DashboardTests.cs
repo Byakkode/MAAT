@@ -102,18 +102,13 @@ public class DashboardTests(DashboardApiFixture fixture)
         client.SendAsync(AuthorizedRequest(
             HttpMethod.Put, $"/api/diagnostics/{diagnosticId}/responses/{questionCode}", accessToken, new { value }));
 
-    // Répond à toutes les questions actives (les 3 réelles + les 4 de ce fixture) avec la
-    // même valeur : chaque domaine obtient alors le même score (value / 5 * 100), quelle que
-    // soit sa pondération sectorielle — pratique pour piloter un score global précis dans les
-    // tests de benchmark sans avoir à calculer une moyenne pondérée à la main.
-    private async Task AnswerAllQuestionsUniformlyAsync(HttpClient client, string accessToken, Guid diagnosticId, int value)
-    {
-        foreach (var code in DashboardApiFixture.AllActiveQuestionCodes)
-        {
-            var response = await AnswerAsync(client, accessToken, diagnosticId, code, value);
-            Assert.True(response.IsSuccessStatusCode, $"Échec de réponse à {code} : {response.StatusCode}");
-        }
-    }
+    // Répond à toutes les questions actives (docs/specs/referentiel.md : jamais une liste de
+    // codes codée en dur) avec la même valeur : chaque domaine obtient alors le même score
+    // (value / 5 * 100), quelle que soit sa pondération sectorielle — pratique pour piloter
+    // un score global précis dans les tests de benchmark sans avoir à calculer une moyenne
+    // pondérée à la main.
+    private async Task AnswerAllQuestionsUniformlyAsync(HttpClient client, string accessToken, Guid diagnosticId, int value) =>
+        await DiagnosticQuestionAnswering.AnswerActiveQuestionsAsync(client, accessToken, diagnosticId, defaultValue: value);
 
     private static async Task CompleteAsync(HttpClient client, string accessToken, Guid diagnosticId)
     {
@@ -171,7 +166,7 @@ public class DashboardTests(DashboardApiFixture fixture)
         var client = fixture.CreateClient();
         var (_, _, token) = await RegisterCompanyAndLoginAdminAsync(client);
         var diagnosticId = await CreateDiagnosticAsync(client, token);
-        await AnswerAsync(client, token, diagnosticId, "ENV-01", 3);
+        await AnswerAsync(client, token, diagnosticId, DashboardApiFixture.EnvQuestionCode1, 3);
 
         var (status, body, _) = await GetDashboardAsync(client, token);
 
@@ -487,8 +482,9 @@ public class DashboardTests(DashboardApiFixture fixture)
         var client = fixture.CreateClient();
         var (_, _, token) = await RegisterCompanyAndLoginAdminAsync(client, UniqueSectorCode());
         var diagnosticId = await CreateDiagnosticAsync(client, token);
-        // Les 3 recommandations réelles (REC-ENV-01/02/03) sont toutes en Environmental ; les 4
-        // du fixture en couvrent une chacune (Social, Ethics, Procurement, Governance).
+        // Les 3 recommandations de test en Environnement (REC-ENV-TEST1/2/3, DashboardApiFixture)
+        // couvrent ce domaine ; les 4 autres du fixture en couvrent une chacune (Social,
+        // Ethics, Procurement, Governance).
         await AnswerAllQuestionsUniformlyAsync(client, token, diagnosticId, 1);
         await CompleteAsync(client, token, diagnosticId);
 
@@ -526,7 +522,7 @@ public class DashboardTests(DashboardApiFixture fixture)
             HttpMethod.Patch, $"/api/diagnostics/{diagnosticId}/recommendations/{DashboardApiFixture.RecGovernanceCode}", token,
             new { isCompleted = true }));
         await client.SendAsync(AuthorizedRequest(
-            HttpMethod.Patch, $"/api/diagnostics/{diagnosticId}/recommendations/REC-ENV-01", token,
+            HttpMethod.Patch, $"/api/diagnostics/{diagnosticId}/recommendations/{DashboardApiFixture.RecEnvironmentalCode1}", token,
             new { isCompleted = true }));
 
         var (_, bodyAfter, _) = await GetDashboardAsync(client, token);

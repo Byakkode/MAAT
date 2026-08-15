@@ -96,23 +96,11 @@ public class QuestionnaireTests(QuestionnaireApiFixture fixture)
         client.SendAsync(AuthorizedRequest(
             HttpMethod.Put, $"/api/diagnostics/{diagnosticId}/responses/{questionCode}", accessToken, new { value }));
 
-    // Répond aux sept questions actives existantes (les trois seedées par référence + les
-    // quatre de test de QuestionnaireApiFixture), une par domaine restant.
-    private async Task AnswerAllActiveQuestionsAsync(HttpClient client, string accessToken, Guid diagnosticId)
-    {
-        foreach (var code in new[]
-        {
-            "ENV-01", "ENV-02", "ENV-03",
-            QuestionnaireApiFixture.SocialQuestionCode,
-            QuestionnaireApiFixture.EthicsQuestionCode,
-            QuestionnaireApiFixture.ProcurementQuestionCode,
-            QuestionnaireApiFixture.GovernanceQuestionCode,
-        })
-        {
-            var response = await AnswerAsync(client, accessToken, diagnosticId, code, 3);
-            Assert.True(response.IsSuccessStatusCode, $"Échec de réponse à {code} : {response.StatusCode}");
-        }
-    }
+    // Répond aux sept questions actives existantes (docs/specs/referentiel.md : jamais une
+    // liste de codes codée en dur — QuestionnaireApiFixture neutralise le référentiel réel
+    // et n'active que ces sept-là, mais ce fichier ne présuppose pas leurs codes ici).
+    private async Task AnswerAllActiveQuestionsAsync(HttpClient client, string accessToken, Guid diagnosticId) =>
+        await DiagnosticQuestionAnswering.AnswerActiveQuestionsAsync(client, accessToken, diagnosticId, defaultValue: 3);
 
     // ---- Cycle de vie ----
 
@@ -255,9 +243,12 @@ public class QuestionnaireTests(QuestionnaireApiFixture fixture)
         var client = fixture.CreateClient();
         var (_, _, token) = await RegisterCompanyAndLoginAdminAsync(client);
         var diagnosticId = await CreateDiagnosticAsync(client, token);
-        await AnswerAsync(client, token, diagnosticId, "ENV-01", 4);
-        await AnswerAsync(client, token, diagnosticId, "ENV-02", 3);
-        await AnswerAsync(client, token, diagnosticId, "ENV-03", 2);
+        // Incomplétion délibérée : seul le domaine Environnement (les trois questions de ce
+        // fixture) est répondu, les quatre autres domaines restent sans réponse — c'est ce
+        // que ce cas vérifie, pas un oubli (docs/specs/referentiel.md).
+        await AnswerAsync(client, token, diagnosticId, QuestionnaireApiFixture.EnvQuestionCode1, 4);
+        await AnswerAsync(client, token, diagnosticId, QuestionnaireApiFixture.EnvQuestionCode2, 3);
+        await AnswerAsync(client, token, diagnosticId, QuestionnaireApiFixture.EnvQuestionCode3, 2);
 
         var response = await client.SendAsync(AuthorizedRequest(HttpMethod.Post, $"/api/diagnostics/{diagnosticId}/complete", token));
 
@@ -357,7 +348,7 @@ public class QuestionnaireTests(QuestionnaireApiFixture fixture)
         var client = fixture.CreateClient();
         var (_, _, token) = await RegisterCompanyAndLoginAdminAsync(client);
         var diagnosticId = await CreateDiagnosticAsync(client, token);
-        await AnswerAsync(client, token, diagnosticId, "ENV-01", 4);
+        await AnswerAsync(client, token, diagnosticId, QuestionnaireApiFixture.EnvQuestionCode1, 4);
 
         var response = await client.SendAsync(AuthorizedRequest(HttpMethod.Get, "/api/diagnostics/current", token));
 
@@ -401,7 +392,7 @@ public class QuestionnaireTests(QuestionnaireApiFixture fixture)
         var diagnosticId = await CreateDiagnosticAsync(client, adminToken);
         var viewerToken = await AddViewerAndLoginAsync(client, companyId);
 
-        var response = await AnswerAsync(client, viewerToken, diagnosticId, "ENV-01", 3);
+        var response = await AnswerAsync(client, viewerToken, diagnosticId, QuestionnaireApiFixture.EnvQuestionCode1, 3);
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
@@ -427,7 +418,7 @@ public class QuestionnaireTests(QuestionnaireApiFixture fixture)
         var client = fixture.CreateClient();
         var (_, _, token) = await RegisterCompanyAndLoginAdminAsync(client);
         var diagnosticId = await CreateDiagnosticAsync(client, token);
-        await AnswerAsync(client, token, diagnosticId, "ENV-01", 4);
+        await AnswerAsync(client, token, diagnosticId, QuestionnaireApiFixture.EnvQuestionCode1, 4);
         await AnswerAsync(client, token, diagnosticId, QuestionnaireApiFixture.SocialQuestionCode, 2);
 
         var response = await client.SendAsync(AuthorizedRequest(HttpMethod.Get, $"/api/diagnostics/{diagnosticId}/questions", token));
@@ -444,7 +435,9 @@ public class QuestionnaireTests(QuestionnaireApiFixture fixture)
         Assert.Equal(
             new[]
             {
-                "ENV-01", "ENV-02", "ENV-03",
+                QuestionnaireApiFixture.EnvQuestionCode1,
+                QuestionnaireApiFixture.EnvQuestionCode2,
+                QuestionnaireApiFixture.EnvQuestionCode3,
                 QuestionnaireApiFixture.SocialQuestionCode,
                 QuestionnaireApiFixture.EthicsQuestionCode,
                 QuestionnaireApiFixture.ProcurementQuestionCode,
@@ -453,9 +446,9 @@ public class QuestionnaireTests(QuestionnaireApiFixture fixture)
             codesInOrder);
 
         // Réponse existante reflétée ; question non répondue porte une valeur nulle.
-        var env01 = questions.Single(q => q.GetProperty("code").GetString() == "ENV-01");
+        var env01 = questions.Single(q => q.GetProperty("code").GetString() == QuestionnaireApiFixture.EnvQuestionCode1);
         Assert.Equal(4, env01.GetProperty("value").GetInt32());
-        var env02 = questions.Single(q => q.GetProperty("code").GetString() == "ENV-02");
+        var env02 = questions.Single(q => q.GetProperty("code").GetString() == QuestionnaireApiFixture.EnvQuestionCode2);
         Assert.Equal(JsonValueKind.Null, env02.GetProperty("value").ValueKind);
     }
 

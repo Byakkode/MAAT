@@ -23,9 +23,9 @@ public class ReportContentTests(ReportContentApiFixture fixture)
 
     private static readonly IReadOnlyDictionary<string, int> StandardAnswers = new Dictionary<string, int>
     {
-        ["ENV-01"] = 5,
-        ["ENV-02"] = 2,
-        ["ENV-03"] = 0,
+        [ReportContentApiFixture.EnvQuestionCodeWeight3] = 5,
+        [ReportContentApiFixture.EnvQuestionCodeWeight2] = 2,
+        [ReportContentApiFixture.EnvQuestionCodeWeight1] = 0,
         [ReportContentApiFixture.SocialQuestionCode] = 4,
         [ReportContentApiFixture.EthicsQuestionCode] = 2,
         [ReportContentApiFixture.ProcurementQuestionCode] = 1,
@@ -34,9 +34,9 @@ public class ReportContentTests(ReportContentApiFixture fixture)
 
     private static readonly IReadOnlyDictionary<string, int> NoTriggerAnswers = new Dictionary<string, int>
     {
-        ["ENV-01"] = 5,
-        ["ENV-02"] = 5,
-        ["ENV-03"] = 5,
+        [ReportContentApiFixture.EnvQuestionCodeWeight3] = 5,
+        [ReportContentApiFixture.EnvQuestionCodeWeight2] = 5,
+        [ReportContentApiFixture.EnvQuestionCodeWeight1] = 5,
         [ReportContentApiFixture.SocialQuestionCode] = 5,
         [ReportContentApiFixture.EthicsQuestionCode] = 5,
         [ReportContentApiFixture.ProcurementQuestionCode] = 5,
@@ -97,11 +97,9 @@ public class ReportContentTests(ReportContentApiFixture fixture)
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
         var diagnosticId = (await createResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 
-        foreach (var (code, value) in answers)
-        {
-            var answer = await client.SendAsync(AuthorizedRequest(HttpMethod.Put, $"/api/diagnostics/{diagnosticId}/responses/{code}", token, new { value }));
-            Assert.True(answer.IsSuccessStatusCode, $"Échec de réponse à {code} : {answer.StatusCode}");
-        }
+        // docs/specs/referentiel.md : jamais une liste de codes codée en dur — voir
+        // ReportTests.CompleteDiagnosticAsync pour le même principe.
+        await DiagnosticQuestionAnswering.AnswerActiveQuestionsAsync(client, token, diagnosticId, overrides: answers);
 
         var completeResponse = await client.SendAsync(AuthorizedRequest(HttpMethod.Post, $"/api/diagnostics/{diagnosticId}/complete", token));
         Assert.Equal(HttpStatusCode.OK, completeResponse.StatusCode);
@@ -195,13 +193,13 @@ public class ReportContentTests(ReportContentApiFixture fixture)
             $"Somme des contributions ({sumOfContributions}) incohérente avec le score global ({data.GlobalScore}).");
     }
 
-    // docs/specs/rapport-pdf.md, cas 21 : la valeur « Transparence » n'existe que si le
+    // docs/specs/rapport-pdf.md, cas 22 : la valeur « Transparence » n'existe que si le
     // lecteur peut refaire le calcul avec les deux nombres imprimés sur la ligne et retomber
     // sur le score affiché — contrairement au cas 16 (cohérence globale, écart toléré), c'est
     // ici une égalité exacte entre deux valeurs déjà arrondies pour l'affichage : aucune
     // marge n'est recevable, une égalité approchée ne serait pas vérifiable à la main.
     [Fact]
-    public async Task Cas21_Numerateur_divise_par_denominateur_redonne_le_score_affiche_sur_la_meme_ligne()
+    public async Task Cas22_Numerateur_divise_par_denominateur_redonne_le_score_affiche_sur_la_meme_ligne()
     {
         var client = fixture.CreateClient();
         var (diagnosticId, token) = await CompleteVerifiedDiagnosticAsync(client, StandardAnswers);

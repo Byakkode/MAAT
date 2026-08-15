@@ -25,8 +25,8 @@ suivante, alignée sur les référentiels VSME, ISO 26000, ESRS et EcoVadis.
 | --- | --- | --- |
 | `Environmental` | Environnement | ISO 26000 §6.5 · VSME B3–B7 · ESRS E1–E5 · GRI 300 |
 | `Social` | Social & droits humains | ISO 26000 §6.3–6.4 · VSME B8–B10 · ESRS S1–S4 · GRI 400 |
-| `Ethics` | Éthique des affaires | ISO 26000 §6.6 · VSME B11 · ESRS G1 |
-| `Procurement` | Achats responsables | ISO 26000 §6.6.6 · VSME C8 · EcoVadis |
+| `Ethics` | Éthique des affaires | ISO 26000 §6.6 · §6.7 · VSME B11 · ESRS G1 |
+| `Procurement` | Achats responsables | ISO 26000 §6.6.6 · §6.8 · EcoVadis |
 | `Governance` | Gouvernance & pilotage | ISO 26000 §6.2 · VSME B1–B2, C1, C9 |
 
 L'énumération s'appelle `RseDomain`, pas `Domain` : le projet .NET racine du Domain
@@ -163,6 +163,7 @@ Session d'évaluation RSE.
 | `global_score` | numeric(5,2) | nullable |
 | `created_at` | timestamptz | requis |
 | `completed_at` | timestamptz | nullable |
+| `default_sector_weighting_applied` | boolean | requis, défaut `false` |
 
 `status` ∈ { `InProgress`, `Completed`, `Archived` }.
 
@@ -172,6 +173,16 @@ sur sa maturité RSE.
 
 `completed_at` est renseigné au moment exact du passage à `Completed`, et sert de
 date de référence dans le rapport PDF.
+
+`default_sector_weighting_applied` fige, au moment de la complétion
+(`questionnaire.md`, section 6, cas 13), si le calcul est retombé sur la
+pondération par défaut faute de code NAF couvert par `SectorWeight`. Ne jamais le
+dériver après coup de `DomainScore.sector_weight` : la renormalisation de
+`scoring.md` (cas 7) ramène le coefficient effectif à 1.00 quand un seul domaine
+est actif, que la pondération d'origine ait été spécifique ou par défaut, ce qui
+rend les deux cas indiscernables une fois `SectorWeight` seul observé. C'est la
+source de l'indicateur affiché sur la page de garde du rapport PDF
+(`rapport-pdf.md`, section 4).
 
 Relations : `1 Diagnostic → N Responses`, `1 Diagnostic → 5 DomainScores`,
 `1 Diagnostic → N Recommendations` (via table de jointure).
@@ -239,8 +250,14 @@ Répartition cible du MVP — 45 questions actives :
 | Environnement | 11 | `ENV-` |
 | Social & droits humains | 11 | `SOC-` |
 | Éthique des affaires | 8 | `ETH-` |
-| Achats responsables | 7 | `ACH-` |
-| Gouvernance & pilotage | 8 | `GOU-` |
+| Achats responsables | 7 | `PRO-` |
+| Gouvernance & pilotage | 8 | `GOV-` |
+
+`PRO-` et `GOV-` (plutôt que `ACH-`/`GOU-`) : les codes se lisent à côté de
+`RseDomain.Procurement` et `RseDomain.Governance` sans traduction, et le jeu de
+préfixes n'est pas moitié anglais moitié français. **Irréversible après le
+premier `seed` exécuté en production** : `code` est la clé d'upsert
+(`ReferenceDataSeeder`).
 
 `ecovadis_ref` est ajouté au modèle initial. EcoVadis est le déclencheur d'achat
 principal du produit : un utilisateur qui vient de recevoir un questionnaire

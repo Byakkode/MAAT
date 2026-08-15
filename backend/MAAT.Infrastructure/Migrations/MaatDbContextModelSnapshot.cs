@@ -87,6 +87,12 @@ namespace MAAT.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<bool>("DefaultSectorWeightingApplied")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("default_sector_weighting_applied");
+
                     b.Property<decimal?>("GlobalScore")
                         .HasPrecision(5, 2)
                         .HasColumnType("numeric(5,2)")

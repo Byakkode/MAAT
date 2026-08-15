@@ -11,6 +11,14 @@ public class Diagnostic
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset? CompletedAt { get; set; }
 
+    // Décidé une fois, à la complétion (questionnaire.md, section 6, cas 13), depuis
+    // SectorWeightLookup.UsedDefaultFallback — jamais dérivé de DomainScore.SectorWeight :
+    // la renormalisation de scoring.md (cas 7) ramène le coefficient effectif à 1.00 quand un
+    // seul domaine est actif, que la pondération d'origine soit spécifique ou par défaut, ce
+    // qui rendrait les deux cas indiscernables après coup. Sans signification tant que Status
+    // vaut InProgress.
+    public bool DefaultSectorWeightingApplied { get; set; }
+
     private Diagnostic()
     {
     }

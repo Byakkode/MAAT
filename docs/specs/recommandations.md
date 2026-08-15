@@ -157,6 +157,20 @@ direction RSE : une action concrète, un ordre de grandeur d'effort, et si possi
 un renvoi vers un dispositif existant — ADEME, Bpifrance, CCI, France Num. Une
 recommandation qui dit « mettre en place une politique RSE » n'aide personne.
 
+**Échelle d'`effort_level`, explicitée.** La colonne est le seul levier
+éditorial qui distingue deux recommandations de même poids, tant que les
+seuils de déclenchement sont uniformes. Elle ne se note pas à l'encouragement.
+
+- `Low` — une personne, moins d'une journée cumulée, sans dépense ni décision
+  engageant l'entreprise.
+- `Medium` — plusieurs demi-journées, ou une dépense modérée, ou plusieurs
+  personnes à mobiliser.
+- `High` — change une manière de travailler, engage une dépense significative
+  ou une négociation avec un tiers, s'étale sur plusieurs mois.
+
+Relire cette colonne **seule, sans les textes**, après chaque lot de
+rédaction.
+
 Ce travail de rédaction ne se délègue pas : c'est lui qui sera examiné en
 soutenance.
 

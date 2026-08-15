@@ -13,17 +13,6 @@ public static class RadarChartRenderer
     // à environ trois fois la taille d'affichage cible, pour ne pas pixelliser à l'impression).
     public const int RenderedSizePx = 1200;
 
-    // Ordre fixe des axes (section 5 : « même ordre des axes » que le tableau de bord) —
-    // celui de l'énumération RseDomain, aligné sur modele-donnees.md.
-    private static readonly RseDomain[] AxisOrder =
-    [
-        RseDomain.Environmental,
-        RseDomain.Social,
-        RseDomain.Ethics,
-        RseDomain.Procurement,
-        RseDomain.Governance,
-    ];
-
     // docs/specs/dashboard.md, section 3 : couleurs par domaine, à ne jamais réattribuer.
     private static readonly IReadOnlyDictionary<RseDomain, SKColor> DomainColors = new Dictionary<RseDomain, SKColor>
     {
@@ -51,7 +40,8 @@ public static class RadarChartRenderer
         var canvas = surface.Canvas;
         canvas.Clear(SKColors.Transparent);
 
-        var axisDirections = BuildAxisUnitVectors();
+        var axisPoints = RadarAxisLayout.Compute();
+        var axisDirections = axisPoints.Select(p => new SKPoint(p.DirectionX, p.DirectionY)).ToArray();
 
         using (var gridPaint = new SKPaint
         {
@@ -72,10 +62,10 @@ public static class RadarChartRenderer
             }
         }
 
-        var scorePoints = new SKPoint[AxisOrder.Length];
-        for (var i = 0; i < AxisOrder.Length; i++)
+        var scorePoints = new SKPoint[axisPoints.Count];
+        for (var i = 0; i < axisPoints.Count; i++)
         {
-            var score = scoreByDomain.TryGetValue(AxisOrder[i], out var value) ? value : 0m;
+            var score = scoreByDomain.TryGetValue(axisPoints[i].Domain, out var value) ? value : 0m;
             var ratio = (float)(Math.Clamp(score, 0m, 100m) / 100m);
             scorePoints[i] = new SKPoint(
                 center.X + (axisDirections[i].X * radius * ratio),
@@ -92,29 +82,15 @@ public static class RadarChartRenderer
             canvas.DrawPath(path, strokePaint);
         }
 
-        for (var i = 0; i < AxisOrder.Length; i++)
+        for (var i = 0; i < axisPoints.Count; i++)
         {
-            using var dotPaint = new SKPaint { Color = DomainColors[AxisOrder[i]], Style = SKPaintStyle.Fill, IsAntialias = true };
+            using var dotPaint = new SKPaint { Color = DomainColors[axisPoints[i].Domain], Style = SKPaintStyle.Fill, IsAntialias = true };
             canvas.DrawCircle(scorePoints[i], size * 0.012f, dotPaint);
         }
 
         using var image = surface.Snapshot();
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
         return data.ToArray();
-    }
-
-    private static SKPoint[] BuildAxisUnitVectors()
-    {
-        var points = new SKPoint[AxisOrder.Length];
-        for (var i = 0; i < AxisOrder.Length; i++)
-        {
-            // Premier axe vers le haut, sens horaire — même convention que RadarChart de
-            // Recharts côté frontend (DomainRadarChart.tsx), pour un ordre des axes identique.
-            var angle = (-Math.PI / 2) + (i * (2 * Math.PI / AxisOrder.Length));
-            points[i] = new SKPoint((float)Math.Cos(angle), (float)Math.Sin(angle));
-        }
-
-        return points;
     }
 
     private static void DrawPolygon(SKCanvas canvas, SKPaint paint, SKPoint center, SKPoint[] axisDirections, float radius)
