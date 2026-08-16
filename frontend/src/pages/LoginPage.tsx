@@ -15,7 +15,7 @@ export function LoginPage() {
     setSubmitting(true)
     try {
       await login(email, password)
-      navigate('/dashboard')
+      navigate('/')
     } catch {
       // L'erreur est déjà exposée par le store (state.error), affichée ci-dessous.
     } finally {

@@ -11,7 +11,9 @@ import { ApiError } from './authApi'
 export interface CurrentUser {
   userId: string
   companyId: string
+  companyName: string
   role: string
+  email: string
   emailVerified: boolean
 }
 
