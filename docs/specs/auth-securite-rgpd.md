@@ -224,6 +224,21 @@ navigateur.
 de suppression logique : un enregistrement marqué supprimé reste une donnée
 conservée.
 
+**Portée réelle, à ne pas confondre avec le compte de l'appelant seul.**
+`AccountService.DeleteAccountAsync` ne distingue aucun rôle et ne compte pas
+les administrateurs restants : il supprime systématiquement l'entreprise
+entière — tous ses `User` quel que soit leur rôle, et tous ses `Diagnostic`
+avec leurs `Response`, `DomainScore`, `DiagnosticRecommendation` et `Report`.
+Un `Viewer` seul qui exerce son droit à l'effacement emporte donc avec lui les
+comptes `Admin` et `User` de la même entreprise, sans leur consentement. Les
+diagnostics n'ont pas de propriétaire individuel en base : ils sont déjà
+rattachés à l'entreprise, pas à un utilisateur. `AccountRgpdTests.cs` ne teste
+que des entreprises à un seul compte et ne couvre donc pas ce comportement.
+
+Un mécanisme dépendant du rôle et du nombre d'administrateurs restants (voir
+`coquille-et-compte.md`, section 6) est à la feuille de route mais n'est pas
+implémenté : ne pas l'annoncer dans une interface tant qu'il ne l'est pas.
+
 Les deux opérations exigent une reconfirmation du mot de passe, transmise dans
 le corps JSON de la requête (jamais en en-tête ni en query string — section 5).
 
