@@ -20,13 +20,17 @@ fi
 : "${COMPOSE_CMD:=docker compose}"
 : "${IMAGE_TAG:=$(git rev-parse --short HEAD)}"
 export IMAGE_TAG
-COMPOSE="$COMPOSE_CMD -f docker-compose.prod.yml --env-file .env.production"
+COMPOSE="$COMPOSE_CMD -f docker-compose.prod.yml --env-file .env.production --profile tools"
 
 echo "==> [1/8] Démarrage de la base (si arrêtée)"
 $COMPOSE up -d db
 
 echo "==> [2/8] Sauvegarde avant migration"
-./deploy/backup.sh
+if [ "${SKIP_BACKUP:-0}" = "1" ]; then
+    echo "    ignorée (SKIP_BACKUP=1)"
+else
+    ./deploy/backup.sh
+fi
 
 echo "==> [3/8] Construction des images (tag ${IMAGE_TAG})"
 $COMPOSE build
@@ -38,6 +42,8 @@ echo "==> [5/8] Chargement des données de référence (idempotent)"
 $COMPOSE run --rm api seed
 
 echo "==> [6/8] Construction et publication du frontend statique"
+set -a; . ./.env.production; set +a
+export VITE_API_URL="https://${API_DOMAIN}"
 npm --prefix frontend ci
 npm --prefix frontend run build
 $COMPOSE run --rm frontend-publish
