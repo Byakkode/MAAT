@@ -16,11 +16,11 @@ public static class RadarChartRenderer
     // docs/specs/dashboard.md, section 3 : couleurs par domaine, à ne jamais réattribuer.
     private static readonly IReadOnlyDictionary<RseDomain, SKColor> DomainColors = new Dictionary<RseDomain, SKColor>
     {
-        [RseDomain.Environmental] = SKColor.Parse("#29CC6A"),
+        [RseDomain.Environmental] = SKColor.Parse("#1B9E5F"),
         [RseDomain.Social] = SKColor.Parse("#1E88E5"),
         [RseDomain.Ethics] = SKColor.Parse("#7E57C2"),
-        [RseDomain.Procurement] = SKColor.Parse("#FFB74D"),
-        [RseDomain.Governance] = SKColor.Parse("#42A5F5"),
+        [RseDomain.Procurement] = SKColor.Parse("#E08A1E"),
+        [RseDomain.Governance] = SKColor.Parse("#4A5568"),
     };
 
     private static readonly SKColor GridColor = SKColor.Parse("#E5E7EB"); // --color-border (charte-maat)

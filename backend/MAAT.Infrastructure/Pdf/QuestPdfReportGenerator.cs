@@ -24,8 +24,9 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
         "plateforme MAAT. Il ne constitue ni une certification, ni un audit, ni une notation par " +
         "un organisme tiers indépendant.";
 
+    // docs/specs/charte-maat-v2.md, section 6 : mêmes valeurs que frontend/src/index.css.
     private static readonly Color TextColor = "#1E1E2D";
-    private static readonly Color MutedColor = "#6B7280";
+    private static readonly Color MutedColor = "#5B6472";
     private static readonly Color BorderColor = "#E5E7EB";
     private static readonly Color BlueMaat = "#1565FF";
     private static readonly Color BgColor = "#F8F9FC";
