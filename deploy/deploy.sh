@@ -17,7 +17,7 @@ if [ ! -f .env.production ]; then
     exit 1
 fi
 
-: "${COMPOSE_CMD:=podman compose}"
+: "${COMPOSE_CMD:=docker compose}"
 : "${IMAGE_TAG:=$(git rev-parse --short HEAD)}"
 export IMAGE_TAG
 COMPOSE="$COMPOSE_CMD -f docker-compose.prod.yml --env-file .env.production"

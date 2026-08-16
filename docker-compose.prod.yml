@@ -16,6 +16,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+      ASPNETCORE_ENVIRONMENT: Production
     volumes:
       # Volume nommé, jamais de bind mount (CLAUDE.md) : le mappage d'UID en Podman
       # rootless le ferait échouer. Point de montage /var/lib/postgresql (pas
