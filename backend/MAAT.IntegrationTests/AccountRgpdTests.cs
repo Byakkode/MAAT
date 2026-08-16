@@ -218,6 +218,52 @@ public class AccountRgpdTests(AuthApiFixture fixture)
         Assert.False(await context.Diagnostics.AnyAsync(d => d.Id == diagnosticId));
     }
 
+    // Défense en profondeur : isLastAdmin (GET /api/auth/me) n'est qu'un champ d'affichage —
+    // DELETE /api/me ne l'accepte pas en entrée (PasswordConfirmationRequest ne porte qu'un
+    // Password) et ne décide qu'à partir de l'état réel en base (rôle de l'appelant relu
+    // depuis la table User, nombre d'administrateurs recompté), jamais d'une valeur fournie par
+    // le client. Un champ isLastAdmin injecté dans le corps est silencieusement ignoré par le
+    // model binder (propriété JSON inconnue, comportement par défaut d'ASP.NET Core) — vérifié
+    // ici dans les deux sens, contre l'API elle-même, pas seulement contre l'écran.
+
+    [Fact]
+    public async Task Viewer_ne_peut_pas_declencher_la_suppression_de_l_entreprise_en_injectant_isLastAdmin_dans_le_corps()
+    {
+        var client = fixture.CreateClient();
+        var (companyId, adminUserId, _, adminAccessToken) = await RegisterCompanyAndLoginAdminAsync(client);
+        var (diagnosticId, _, _, _, _) = await SeedCompanyDataAsync(client, adminAccessToken, adminUserId);
+        var (viewerUserId, _, viewerAccessToken) = await AddUserToCompanyAsync(client, companyId, UserRole.Viewer);
+
+        var deleteResponse = await client.SendAsync(
+            AuthorizedRequest(HttpMethod.Delete, "/api/me", viewerAccessToken, new { password = ValidPassword, isLastAdmin = true }));
+
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        await using var context = fixture.CreateDbContext();
+        Assert.False(await context.Users.AnyAsync(u => u.Id == viewerUserId));
+        Assert.True(await context.Users.AnyAsync(u => u.Id == adminUserId));
+        Assert.True(await context.Companies.AnyAsync(c => c.Id == companyId));
+        Assert.True(await context.Diagnostics.AnyAsync(d => d.Id == diagnosticId));
+    }
+
+    [Fact]
+    public async Task Dernier_Admin_ne_peut_pas_eviter_la_suppression_de_l_entreprise_en_injectant_isLastAdmin_false()
+    {
+        var client = fixture.CreateClient();
+        var (companyId, adminUserId, _, adminAccessToken) = await RegisterCompanyAndLoginAdminAsync(client);
+        var (diagnosticId, _, _, _, _) = await SeedCompanyDataAsync(client, adminAccessToken, adminUserId);
+
+        var deleteResponse = await client.SendAsync(
+            AuthorizedRequest(HttpMethod.Delete, "/api/me", adminAccessToken, new { password = ValidPassword, isLastAdmin = false }));
+
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        await using var context = fixture.CreateDbContext();
+        Assert.False(await context.Users.AnyAsync(u => u.Id == adminUserId));
+        Assert.False(await context.Companies.AnyAsync(c => c.Id == companyId));
+        Assert.False(await context.Diagnostics.AnyAsync(d => d.Id == diagnosticId));
+    }
+
     // Report.generated_by_user_id est en ON DELETE RESTRICT (ReportConfiguration) : supprimer
     // un compte qui n'est pas le dernier Admin ne doit emporter que SES propres rapports, sans
     // quoi la suppression du User échouerait sur cette contrainte — jamais ceux d'un autre
