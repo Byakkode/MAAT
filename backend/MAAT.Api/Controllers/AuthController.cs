@@ -10,7 +10,11 @@ namespace MAAT.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController(AuthService authService, IUserRepository userRepository, ILogger<AuthController> logger) : ControllerBase
+public class AuthController(
+    AuthService authService,
+    IUserRepository userRepository,
+    ICompanyRepository companyRepository,
+    ILogger<AuthController> logger) : ControllerBase
 {
     private const string RefreshCookieName = "refresh_token";
     private const string CookiePath = "/api/auth";
@@ -118,11 +122,13 @@ public class AuthController(AuthService authService, IUserRepository userReposit
     {
         var userId = Guid.Parse(User.FindFirst("sub")!.Value);
         var user = await userRepository.GetByIdAsync(userId, ct);
+        var company = user is not null ? await companyRepository.GetByIdAsync(user.CompanyId, ct) : null;
 
         return Ok(new
         {
             userId = User.FindFirst("sub")?.Value,
             companyId = User.FindFirst("company_id")?.Value,
+            companyName = company?.Name,
             role = User.FindFirst("role")?.Value,
             email = user?.Email,
             emailVerified = user?.EmailVerified ?? false,
