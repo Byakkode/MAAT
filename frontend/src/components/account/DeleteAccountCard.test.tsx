@@ -55,9 +55,22 @@ describe('DeleteAccountCard', () => {
     expect(tokenStore.notifySessionExpired).toHaveBeenCalled()
   })
 
-  it('énonce ce qui disparaît avant la saisie', () => {
+  it('dernier Admin : énonce que l’entreprise entière disparaît, avant la saisie', () => {
+    useCurrentUserStore.setState({ isLastAdmin: true })
+
     render(<DeleteAccountCard />)
 
-    expect(screen.getByText(/tous ses comptes utilisateurs — pas seulement le vôtre/i)).toBeDefined()
+    expect(screen.getByText(/tous ses comptes utilisateurs, pas seulement le vôtre/i)).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Supprimer définitivement mon compte et mon entreprise' })).toBeDefined()
+  })
+
+  it('pas le dernier Admin : énonce que seul le compte disparaît, l’entreprise reste', () => {
+    useCurrentUserStore.setState({ isLastAdmin: false })
+
+    render(<DeleteAccountCard />)
+
+    expect(screen.getByText(/ne supprime que votre propre compte/i)).toBeDefined()
+    expect(screen.queryByText(/tous ses comptes utilisateurs/i)).toBeNull()
+    expect(screen.getByRole('button', { name: 'Supprimer définitivement mon compte' })).toBeDefined()
   })
 })

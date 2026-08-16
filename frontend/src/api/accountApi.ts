@@ -16,6 +16,10 @@ export interface CurrentUser {
   email: string
   emailVerified: boolean
   createdAt: string
+  // docs/specs/coquille-et-compte.md, section 6 : DELETE /api/me ne supprime l'entreprise que
+  // si l'appelant en est le dernier Admin — l'écran de suppression lit cette valeur avant la
+  // saisie pour annoncer le résultat qui s'applique réellement.
+  isLastAdmin: boolean
 }
 
 async function readErrorMessage(response: Response, fallback: string): Promise<string> {

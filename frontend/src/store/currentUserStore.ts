@@ -11,6 +11,7 @@ interface CurrentUserState {
   companyName: string | null
   createdAt: string | null
   emailVerified: boolean
+  isLastAdmin: boolean
   // docs/specs/coquille-et-compte.md, section 4 : "Le bandeau se ferme pour la session, jamais
   // définitivement." — un simple drapeau en mémoire suffit : il retombe à false à chaque
   // rechargement complet de page, jamais persisté (localStorage réapparaîtrait "pour la
@@ -30,6 +31,7 @@ export const useCurrentUserStore = create<CurrentUserState>((set, get) => ({
   companyName: null,
   createdAt: null,
   emailVerified: false,
+  isLastAdmin: false,
   bannerDismissed: false,
   resendStatus: 'idle',
   resendError: null,
@@ -44,6 +46,7 @@ export const useCurrentUserStore = create<CurrentUserState>((set, get) => ({
         companyName: user.companyName,
         createdAt: user.createdAt,
         emailVerified: user.emailVerified,
+        isLastAdmin: user.isLastAdmin,
       })
     } catch {
       set({ status: 'error' })

@@ -7,12 +7,15 @@ import { useCurrentUserStore } from '../../store/currentUserStore'
 type Status = 'idle' | 'submitting' | 'error'
 
 // docs/specs/coquille-et-compte.md, section 6. Vérifié contre AccountService.DeleteAccountAsync
-// (docs/specs/auth-securite-rgpd.md, section 6, et coquille-et-compte.md, section 6) : la
-// suppression emporte toute l'entreprise — tous ses comptes, tous ses diagnostics — quel que
-// soit le rôle de l'appelant et sans distinction du nombre d'administrateurs restants. Le texte
-// ci-dessous décrit ce comportement réel, pas une intention non implémentée.
+// (docs/specs/auth-securite-rgpd.md, section 6) : la portée dépend du rôle de l'appelant et du
+// nombre d'administrateurs restants — seul le dernier Admin d'une entreprise emporte
+// l'entreprise entière avec lui ; dans tous les autres cas (Viewer, User, ou Admin alors qu'un
+// autre Admin existe), seul son propre compte disparaît. isLastAdmin (GET /api/auth/me) est lu
+// avant la saisie pour annoncer le résultat qui s'applique réellement, jamais un texte unique
+// qui décrirait le pire cas pour tout le monde.
 export function DeleteAccountCard() {
   const email = useCurrentUserStore((s) => s.email)
+  const isLastAdmin = useCurrentUserStore((s) => s.isLastAdmin)
   const [confirmationEmail, setConfirmationEmail] = useState('')
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState<Status>('idle')
@@ -45,15 +48,31 @@ export function DeleteAccountCard() {
       <h2 id="delete-heading" className="mb-1 text-base font-semibold text-text">
         Suppression du compte
       </h2>
-      <p className="mb-1 text-sm text-text">
-        Cette action est irréversible. Elle supprime immédiatement l&apos;intégralité de votre entreprise : tous ses
-        comptes utilisateurs — pas seulement le vôtre — et tous ses diagnostics, réponses, scores et rapports. Rien de
-        tout cela n&apos;est conservé.
-      </p>
-      <p className="mb-3 text-sm text-text-muted">
-        Cette portée s&apos;applique quel que soit votre rôle, y compris si d&apos;autres comptes existent dans votre
-        entreprise.
-      </p>
+      {isLastAdmin ? (
+        <>
+          <p className="mb-1 text-sm text-text">
+            Vous êtes la seule personne administratrice de cette entreprise. Cette action est irréversible : elle
+            supprime immédiatement l&apos;intégralité de votre entreprise — tous ses comptes utilisateurs, pas
+            seulement le vôtre, et tous ses diagnostics, réponses, scores et rapports. Rien de tout cela
+            n&apos;est conservé.
+          </p>
+          <p className="mb-3 text-sm text-text-muted">
+            Désignez une autre personne administratrice avant de supprimer votre compte si vous souhaitez que
+            l&apos;entreprise et ses diagnostics survivent.
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="mb-1 text-sm text-text">
+            Cette action est irréversible, mais elle ne supprime que votre propre compte. Votre entreprise, les
+            autres comptes et l&apos;ensemble des diagnostics restent intacts.
+          </p>
+          <p className="mb-3 text-sm text-text-muted">
+            Seuls les rapports que vous avez vous-même générés sont supprimés avec votre compte ; ceux générés
+            par d&apos;autres comptes restent accessibles.
+          </p>
+        </>
+      )}
       <form onSubmit={(e) => void handleSubmit(e)} noValidate className="flex flex-col gap-3">
         <div>
           <label htmlFor="delete-confirmation-email" className="mb-1 block text-sm text-text">
@@ -92,7 +111,11 @@ export function DeleteAccountCard() {
           disabled={!emailMatches || status === 'submitting'}
           className="w-fit rounded-button bg-red px-4 py-2 font-medium text-white shadow-button disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {status === 'submitting' ? 'Suppression…' : 'Supprimer définitivement mon compte et mon entreprise'}
+          {status === 'submitting'
+            ? 'Suppression…'
+            : isLastAdmin
+              ? 'Supprimer définitivement mon compte et mon entreprise'
+              : 'Supprimer définitivement mon compte'}
         </button>
       </form>
     </section>
