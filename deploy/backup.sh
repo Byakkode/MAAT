@@ -24,7 +24,7 @@ source .env.production
 set +a
 
 : "${BACKUP_RETENTION_DAYS:=30}"
-: "${COMPOSE_CMD:=podman compose}"
+: "${COMPOSE_CMD:=docker compose}"
 : "${BACKUP_GPG_RECIPIENT:?BACKUP_GPG_RECIPIENT manquant dans .env.production}"
 : "${RCLONE_REMOTE:?RCLONE_REMOTE manquant dans .env.production}"
 COMPOSE="$COMPOSE_CMD -f docker-compose.prod.yml --env-file .env.production"

@@ -16,6 +16,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+      ASPNETCORE_ENVIRONMENT: Production
     volumes:
       # Volume nommé, jamais de bind mount (CLAUDE.md) : le mappage d'UID en Podman
       # rootless le ferait échouer. Point de montage /var/lib/postgresql (pas
@@ -38,6 +39,10 @@ services:
       Jwt__Audience: ${JWT_AUDIENCE:-maat-client}
       Jwt__AccessTokenLifetimeSeconds: ${JWT_ACCESS_TOKEN_LIFETIME_SECONDS:-900}
       Cors__AllowedOrigins__0: ${FRONTEND_ORIGIN}
+      # "none" par défaut (ADR 0009) : NullEmailSender, coupe-circuit assumé tant qu'aucun
+      # fournisseur transactionnel n'est provisionné. Vérification d'adresse et rapport PDF
+      # inopérants dans cet état — basculer EMAIL_PROVIDER dès qu'un fournisseur réel existe.
+      Email__Provider: ${EMAIL_PROVIDER:-none}
     depends_on:
       - db
     networks:
