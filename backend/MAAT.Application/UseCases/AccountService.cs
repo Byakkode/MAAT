@@ -1,6 +1,7 @@
 using MAAT.Application.DTOs;
 using MAAT.Application.Exceptions;
 using MAAT.Application.Interfaces;
+using MAAT.Application.Security;
 
 namespace MAAT.Application.UseCases;
 
@@ -17,7 +18,9 @@ public class AccountService(
     IDomainScoreRepository domainScoreRepository,
     IDiagnosticRecommendationRepository diagnosticRecommendationRepository,
     IReportRepository reportRepository,
+    IRefreshTokenRepository refreshTokenRepository,
     IPasswordHasher passwordHasher,
+    ICompromisedPasswordChecker compromisedPasswordChecker,
     ICurrentUserContext currentUser,
     IUnitOfWork unitOfWork)
 {
@@ -59,6 +62,43 @@ public class AccountService(
             await userRepository.DeleteAllForCompanyAsync(companyId, innerCt);
             await companyRepository.DeleteAsync(companyId, innerCt);
         }, ct);
+    }
+
+    // docs/specs/coquille-et-compte.md, section 5 : "Un changement réussi invalide les autres
+    // sessions." La session courante (celle qui vient de fournir l'ancien mot de passe avec
+    // succès) reste connectée — currentRefreshTokenPlaintext identifie laquelle préserver ;
+    // absent ou introuvable (cookie manquant, jeton déjà expiré), tout est révoqué par prudence
+    // plutôt que de risquer d'en préserver un mauvais.
+    public async Task ChangePasswordAsync(string currentPassword, string newPassword, string? currentRefreshTokenPlaintext, CancellationToken ct)
+    {
+        var user = await GetCurrentUserOrThrowAsync(currentPassword, ct);
+
+        if (newPassword.Length < PasswordPolicy.MinimumLength)
+        {
+            throw new WeakPasswordException($"Le mot de passe doit contenir au moins {PasswordPolicy.MinimumLength} caractères.");
+        }
+
+        if (await compromisedPasswordChecker.IsCompromisedAsync(newPassword, ct))
+        {
+            throw new CompromisedPasswordException("Ce mot de passe a été compromis lors d'une fuite de données connue. Choisissez-en un autre.");
+        }
+
+        user.PasswordHash = passwordHasher.Hash(newPassword);
+
+        var currentToken = currentRefreshTokenPlaintext is not null
+            ? await refreshTokenRepository.FindByPlaintextAsync(currentRefreshTokenPlaintext, ct)
+            : null;
+
+        if (currentToken is not null)
+        {
+            await refreshTokenRepository.RevokeAllActiveForUserExceptAsync(user.Id, currentToken.Id, ct);
+        }
+        else
+        {
+            await refreshTokenRepository.RevokeAllActiveForUserAsync(user.Id, ct);
+        }
+
+        await unitOfWork.SaveChangesAsync(ct);
     }
 
     private async Task<Domain.Entities.User> GetCurrentUserOrThrowAsync(string passwordConfirmation, CancellationToken ct)

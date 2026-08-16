@@ -20,15 +20,14 @@ public class AuthService(
 {
     private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(7);
     private static readonly TimeSpan EmailVerificationTokenLifetime = TimeSpan.FromHours(24);
-    private const int MinimumPasswordLength = 12;
 
     public async Task RegisterAsync(RegisterRequest request, CancellationToken ct)
     {
         var email = request.Email.Trim().ToLowerInvariant();
 
-        if (request.Password.Length < MinimumPasswordLength)
+        if (request.Password.Length < PasswordPolicy.MinimumLength)
         {
-            throw new WeakPasswordException($"Le mot de passe doit contenir au moins {MinimumPasswordLength} caractères.");
+            throw new WeakPasswordException($"Le mot de passe doit contenir au moins {PasswordPolicy.MinimumLength} caractères.");
         }
 
         if (await compromisedPasswordChecker.IsCompromisedAsync(request.Password, ct))

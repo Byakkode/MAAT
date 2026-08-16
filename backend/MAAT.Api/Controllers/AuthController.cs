@@ -132,6 +132,7 @@ public class AuthController(
             role = User.FindFirst("role")?.Value,
             email = user?.Email,
             emailVerified = user?.EmailVerified ?? false,
+            createdAt = user?.CreatedAt,
         });
     }
 

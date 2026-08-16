@@ -34,6 +34,36 @@ public class AccountController(AccountService accountService, ILogger<AccountCon
         }
     }
 
+    // docs/specs/coquille-et-compte.md, section 5. Même politique de débit que
+    // export/delete : accepte un mot de passe en clair et le vérifie, donc même oracle
+    // potentiel sans limitation (section 5 de auth-securite-rgpd.md).
+    [HttpPut("password")]
+    [EnableRateLimiting("password-confirmation")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest request, CancellationToken ct)
+    {
+        Request.Cookies.TryGetValue("refresh_token", out var currentRefreshToken);
+
+        try
+        {
+            await accountService.ChangePasswordAsync(request.CurrentPassword, request.NewPassword, currentRefreshToken, ct);
+        }
+        catch (PasswordConfirmationFailedException ex)
+        {
+            LogConfirmationFailure();
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (WeakPasswordException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (CompromisedPasswordException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+
+        return NoContent();
+    }
+
     [HttpDelete]
     [EnableRateLimiting("password-confirmation")]
     public async Task<IActionResult> Delete(PasswordConfirmationRequest request, CancellationToken ct)
