@@ -71,7 +71,7 @@ export function LoginPage() {
         </button>
       </form>
       <p className="mt-4 text-sm text-text-muted">
-        Pas encore de compte ? <Link to="/register" className="text-blue-maat">Créer un compte</Link>
+        Pas encore de compte ? <Link to="/register" className="text-blue-maat-text">Créer un compte</Link>
       </p>
     </section>
   )

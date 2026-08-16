@@ -44,7 +44,7 @@ function RadarTooltipContent({ active, payload }: RadarTooltipContentProps) {
   const point = payload[0]!.payload
 
   return (
-    <div className="rounded-card border border-border bg-white p-3 text-sm shadow-card">
+    <div className="rounded-card border border-border bg-white p-3 text-sm shadow-card tabular-nums lining-nums">
       <p className="font-medium text-text">{point.label}</p>
       <p className="text-text-muted">Score : {Math.round(point.score)} / 100</p>
       <p className="text-text-muted">Pondération sectorielle : {formatPercent(point.sectorWeight)}</p>

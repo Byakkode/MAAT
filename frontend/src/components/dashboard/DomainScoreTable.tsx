@@ -11,7 +11,7 @@ interface DomainScoreTableProps {
 // (ni sr-only, ni aria-hidden), contrairement au conteneur du graphique lui-même.
 export function DomainScoreTable({ domainScores }: DomainScoreTableProps) {
   return (
-    <table className="w-full border-collapse text-sm">
+    <table className="w-full border-collapse text-sm tabular-nums lining-nums">
       <caption className="mb-2 text-left text-xs text-text-muted">Détail des cinq scores par domaine</caption>
       <thead>
         <tr className="border-b border-border text-left text-text-muted">

@@ -11,24 +11,29 @@
 @import "tailwindcss";
 
 @theme {
+  /* docs/specs/charte-maat-v2.md, section 6 : source de vérité des valeurs. Noms de tokens
+     inchangés (Tailwind v4 @theme génère les classes utilitaires depuis ces noms — les
+     renommer casserait toutes les classes text-, bg- et border- déjà posées dans les
+     composants pour un gain nul). Seules les valeurs viennent de la charte v2. */
   --color-blue-maat: #1565ff;
+  --color-blue-maat-text: #0d4fd6;
   --color-green-maat: #29cc6a;
-  --color-orange: #ffa64d;
-  --color-red: #e53935;
-  --color-green-light: #33d69f;
+  --color-green-maat-text: #12734a;
+  --color-red: #c62828;
   --color-bg: #f8f9fc;
   --color-text: #1e1e2d;
-  --color-text-muted: #6b7280;
+  --color-text-muted: #5b6472;
   --color-border: #e5e7eb;
+  --color-border-strong: #cbd5e1;
 
-  --color-chart-environnement: #29cc6a;
+  --color-chart-environnement: #1b9e5f;
   --color-chart-social: #1e88e5;
   --color-chart-ethique: #7e57c2;
-  --color-chart-gouvernance: #42a5f5;
+  --color-chart-gouvernance: #4a5568;
   /* "Achats" = domaine Procurement (docs/specs/dashboard.md, section 3 : "Achats
      responsables"). Nommé --color-chart-achats plutôt que -economique : RseDomain n'a pas de
      domaine Économique (voir backend/MAAT.Domain/Enums/RseDomain.cs). */
-  --color-chart-achats: #ffb74d;
+  --color-chart-achats: #e08a1e;
 
   --font-heading: "Poppins", system-ui, sans-serif;
   --font-body: "Inter", system-ui, sans-serif;
@@ -36,8 +41,11 @@
   --radius-button: 8px;
   --radius-card: 12px;
 
-  --shadow-button: 0 2px 8px rgba(0, 0, 0, 0.05);
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.03);
+  /* Charte v2, section 5 : l'ombre de carte disparaît au profit de la bordure 1px déjà posée
+     à côté de shadow-card dans chaque composant (border border-border) — aucune classe JSX à
+     toucher, seule la valeur change. Idem pour le bouton primaire : plus d'ombre du tout. */
+  --shadow-button: none;
+  --shadow-card: none;
 }
 
 body {
