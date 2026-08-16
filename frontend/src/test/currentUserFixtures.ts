@@ -9,6 +9,7 @@ export function makeCurrentUser(overrides: Partial<CurrentUser> = {}): CurrentUs
     role: 'Admin',
     email: 'admin@entreprise.test',
     emailVerified: true,
+    createdAt: '2026-01-15T09:00:00Z',
     ...overrides,
   }
 }
@@ -20,6 +21,7 @@ export function resetCurrentUserStore() {
     status: 'idle',
     email: null,
     companyName: null,
+    createdAt: null,
     emailVerified: false,
     bannerDismissed: false,
     resendStatus: 'idle',

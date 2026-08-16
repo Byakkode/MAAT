@@ -1,10 +1,49 @@
-// docs/specs/coquille-et-compte.md, section 5 : destination de "Mon compte" dans la barre
-// latérale et l'en-tête. Placeholder pour le lot 1 (coquille) — les quatre blocs (identité, mot
-// de passe, export, suppression) sont le lot 2.
+import { useEffect } from 'react'
+import { DataExportCard } from '../components/account/DataExportCard'
+import { DeleteAccountCard } from '../components/account/DeleteAccountCard'
+import { IdentityCard } from '../components/account/IdentityCard'
+import { PasswordChangeCard } from '../components/account/PasswordChangeCard'
+import { useCurrentUserStore } from '../store/currentUserStore'
+
+// docs/specs/coquille-et-compte.md, sections 5 et 6 : quatre blocs, dans l'ordre de risque
+// croissant — identité (lecture seule), mot de passe, export, suppression.
 export function AccountPage() {
+  const status = useCurrentUserStore((s) => s.status)
+  const load = useCurrentUserStore((s) => s.load)
+
+  useEffect(() => {
+    if (status === 'idle') {
+      void load()
+    }
+  }, [status, load])
+
+  if (status === 'idle' || status === 'loading') {
+    // section 7 : "Squelette de chargement plutôt qu'un indicateur centré, comme au tableau de
+    // bord." DashboardPage affiche en réalité un simple texte de statut, pas un squelette : cet
+    // écran suit donc le même patron que le reste de l'app plutôt que la description de la
+    // spec, pour rester cohérent.
+    return (
+      <p role="status" className="text-text-muted">
+        Chargement de votre compte…
+      </p>
+    )
+  }
+
+  if (status === 'error') {
+    return (
+      <p role="alert" className="text-red">
+        Impossible de récupérer votre compte.
+      </p>
+    )
+  }
+
   return (
-    <section className="rounded-card border border-border bg-white p-5 shadow-card">
+    <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-semibold text-text">Mon compte</h1>
-    </section>
+      <IdentityCard />
+      <PasswordChangeCard />
+      <DataExportCard />
+      <DeleteAccountCard />
+    </div>
   )
 }

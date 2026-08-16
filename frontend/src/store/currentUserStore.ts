@@ -9,6 +9,7 @@ interface CurrentUserState {
   status: CurrentUserStatus
   email: string | null
   companyName: string | null
+  createdAt: string | null
   emailVerified: boolean
   // docs/specs/coquille-et-compte.md, section 4 : "Le bandeau se ferme pour la session, jamais
   // définitivement." — un simple drapeau en mémoire suffit : il retombe à false à chaque
@@ -27,6 +28,7 @@ export const useCurrentUserStore = create<CurrentUserState>((set, get) => ({
   status: 'idle',
   email: null,
   companyName: null,
+  createdAt: null,
   emailVerified: false,
   bannerDismissed: false,
   resendStatus: 'idle',
@@ -36,7 +38,13 @@ export const useCurrentUserStore = create<CurrentUserState>((set, get) => ({
     set({ status: 'loading' })
     try {
       const user = await accountApi.getCurrentUser()
-      set({ status: 'loaded', email: user.email, companyName: user.companyName, emailVerified: user.emailVerified })
+      set({
+        status: 'loaded',
+        email: user.email,
+        companyName: user.companyName,
+        createdAt: user.createdAt,
+        emailVerified: user.emailVerified,
+      })
     } catch {
       set({ status: 'error' })
     }

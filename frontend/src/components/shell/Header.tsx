@@ -1,17 +1,8 @@
 import { LogOut, Menu } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { ROLE_LABELS } from '../../constants/roleLabels'
 import { useAuthStore } from '../../store/authStore'
 import { useCurrentUserStore } from '../../store/currentUserStore'
-
-// docs/specs/coquille-et-compte.md, section 4 : "Le rôle est affiché en toutes lettres [...]
-// un utilisateur qui se voit refuser une action doit pouvoir comprendre pourquoi." Les valeurs
-// brutes (Admin/User/Viewer) sont les noms de MAAT.Domain.Enums.UserRole, jamais montrés tels
-// quels à l'écran.
-const ROLE_LABELS: Record<string, string> = {
-  Admin: 'Administrateur',
-  User: 'Utilisateur',
-  Viewer: 'Lecteur',
-}
 
 interface HeaderProps {
   onOpenMobileNav: () => void
