@@ -55,6 +55,30 @@ public class AuthService(
         var user = new User(email, passwordHash, company.Id, UserRole.Admin);
         await userRepository.AddAsync(user, ct);
 
+        await IssueAndSendVerificationEmailAsync(user, email, ct);
+    }
+
+    // docs/specs/auth-securite-rgpd.md, section 1 : renvoi de l'e-mail de vérification. Même
+    // anti-énumération que RegisterAsync — aucune branche visible de l'extérieur : le
+    // contrôleur renvoie une réponse identique que l'adresse existe, soit déjà vérifiée, ou
+    // non. Le jeton précédent est invalidé avant l'émission du nouveau (RevokeAllUnconsumed...)
+    // pour qu'un seul jeton reste utilisable à la fois.
+    public async Task ResendVerificationEmailAsync(string emailInput, CancellationToken ct)
+    {
+        var email = emailInput.Trim().ToLowerInvariant();
+        var user = await userRepository.FindByEmailAsync(email, ct);
+
+        if (user is null || user.EmailVerified)
+        {
+            return;
+        }
+
+        await emailVerificationTokenRepository.RevokeAllUnconsumedForUserAsync(user.Id, ct);
+        await IssueAndSendVerificationEmailAsync(user, email, ct);
+    }
+
+    private async Task IssueAndSendVerificationEmailAsync(User user, string email, CancellationToken ct)
+    {
         var verificationToken = SecureTokenGenerator.Generate();
         await emailVerificationTokenRepository.IssueAsync(user.Id, verificationToken, DateTimeOffset.UtcNow.Add(EmailVerificationTokenLifetime), ct);
 

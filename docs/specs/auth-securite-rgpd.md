@@ -42,6 +42,19 @@ Le fournisseur d'e-mails transactionnels doit être européen (Brevo, Scaleway T
 Un prestataire hors UE contredirait l'argument de souveraineté sur lequel repose
 le positionnement du produit.
 
+**Renvoi de l'e-mail de vérification.** `POST /api/auth/resend-verification`,
+anonyme, `{ email }`. Même anti-énumération que l'inscription : réponse
+identique (`202`, message générique), que l'adresse existe, soit déjà
+vérifiée, ou non — aucune des trois situations n'est jamais distinguable de
+l'extérieur. Si l'adresse correspond à un compte non vérifié, un nouveau
+jeton est émis et l'ancien (ou les anciens, s'il y en avait plusieurs)
+invalidé — un seul jeton reste utilisable à la fois, jamais deux en
+parallèle. Limitation de débit **par adresse soumise**, pas par IP + adresse
+comme la connexion : la ressource protégée ici est la boîte mail du
+destinataire (éviter de le spammer de renvois), pas une tentative de
+connexion à deviner — 5 requêtes par tranche de 15 minutes, même middleware
+de capture du corps que la politique `login`.
+
 **Anti-énumération.** La réponse ne doit jamais révéler si une adresse est déjà
 enregistrée. En cas de doublon, retourner la même réponse de succès et envoyer à
 l'adresse concernée un message l'informant d'une tentative d'inscription.
@@ -356,6 +369,17 @@ Tests d'intégration sous `MAAT.IntegrationTests`, contre PostgreSQL réel.
 18. Export → contient l'intégralité des données du compte, dans un format exploitable.
 19. Suppression de compte → aucune ligne résiduelle dans les neuf tables concernées.
 20. Suppression de compte → les tables de référence restent intactes.
+
+**Renvoi de vérification**
+
+21. Renvoi vers une adresse inconnue → réponse strictement identique (statut et corps) à celle
+    d'une adresse connue mais non vérifiée, aucun compte créé.
+22. Renvoi vers une adresse déjà vérifiée → même réponse générique, mais aucun nouveau jeton
+    n'est émis.
+23. Renvoi vers une adresse connue et non vérifiée → nouveau jeton émis, et l'ancien devient
+    invalide (`POST /api/auth/verify-email` avec l'ancien jeton échoue après le renvoi).
+24. Vérification avec le nouveau jeton après renvoi → succès, compte marqué vérifié.
+25. Sixième renvoi en moins de 15 minutes pour la même adresse → `429`.
 
 Les cas 13 à 15 sont ceux à montrer en soutenance. Ce sont eux qui prouvent que
 la confidentialité vendue par le produit est vérifiée par le code, et non promise

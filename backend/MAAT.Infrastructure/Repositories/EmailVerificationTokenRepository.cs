@@ -25,4 +25,9 @@ public class EmailVerificationTokenRepository(MaatDbContext context) : IEmailVer
         token.ConsumedAt = DateTimeOffset.UtcNow;
         return Task.CompletedTask;
     }
+
+    public Task RevokeAllUnconsumedForUserAsync(Guid userId, CancellationToken ct) =>
+        context.EmailVerificationTokens
+            .Where(t => t.UserId == userId && t.ConsumedAt == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.ConsumedAt, DateTimeOffset.UtcNow), ct);
 }

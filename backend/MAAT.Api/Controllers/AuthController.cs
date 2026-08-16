@@ -124,7 +124,25 @@ public class AuthController(AuthService authService, IUserRepository userReposit
             userId = User.FindFirst("sub")?.Value,
             companyId = User.FindFirst("company_id")?.Value,
             role = User.FindFirst("role")?.Value,
+            email = user?.Email,
             emailVerified = user?.EmailVerified ?? false,
+        });
+    }
+
+    // docs/specs/coquille-et-compte.md, section 4 : le bandeau d'adresse non vérifiée dépend de
+    // cet endpoint. Anonyme et anti-énumération, même principe que Register ci-dessus : réponse
+    // identique que l'adresse existe, soit déjà vérifiée, ou non — le frontend l'appelle depuis
+    // une session authentifiée avec l'adresse lue sur Me(), mais l'endpoint lui-même ne le
+    // suppose pas et ne l'exige pas.
+    [HttpPost("resend-verification")]
+    [EnableRateLimiting("resend-verification")]
+    public async Task<IActionResult> ResendVerification(ResendVerificationRequest request, CancellationToken ct)
+    {
+        await authService.ResendVerificationEmailAsync(request.Email, ct);
+
+        return StatusCode(StatusCodes.Status202Accepted, new
+        {
+            message = "Si un compte existe pour cette adresse et n'est pas encore vérifié, un nouvel e-mail de vérification vient d'être envoyé.",
         });
     }
 
