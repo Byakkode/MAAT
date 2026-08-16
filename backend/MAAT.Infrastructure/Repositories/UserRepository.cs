@@ -1,5 +1,6 @@
 using MAAT.Application.Interfaces;
 using MAAT.Domain.Entities;
+using MAAT.Domain.Enums;
 using MAAT.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,4 +19,10 @@ public class UserRepository(MaatDbContext context) : IUserRepository
 
     public Task<int> DeleteAllForCompanyAsync(Guid companyId, CancellationToken ct) =>
         context.Users.Where(u => u.CompanyId == companyId).ExecuteDeleteAsync(ct);
+
+    public Task<int> CountAdminsForCompanyAsync(Guid companyId, CancellationToken ct) =>
+        context.Users.CountAsync(u => u.CompanyId == companyId && u.Role == UserRole.Admin, ct);
+
+    public Task DeleteAsync(Guid userId, CancellationToken ct) =>
+        context.Users.Where(u => u.Id == userId).ExecuteDeleteAsync(ct);
 }

@@ -2,6 +2,7 @@ using MAAT.Application.DTOs;
 using MAAT.Application.Exceptions;
 using MAAT.Application.Interfaces;
 using MAAT.Application.UseCases;
+using MAAT.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -124,6 +125,14 @@ public class AuthController(
         var user = await userRepository.GetByIdAsync(userId, ct);
         var company = user is not null ? await companyRepository.GetByIdAsync(user.CompanyId, ct) : null;
 
+        // docs/specs/coquille-et-compte.md, section 6 : l'écran de suppression du compte doit
+        // annoncer un résultat différent selon que l'appelant est le dernier Admin de son
+        // entreprise — la seule condition sous laquelle DELETE /api/me supprime l'entreprise
+        // entière plutôt que le seul compte de l'appelant (AccountService.DeleteAccountAsync).
+        var isLastAdmin = user is not null
+            && user.Role == UserRole.Admin
+            && await userRepository.CountAdminsForCompanyAsync(user.CompanyId, ct) == 1;
+
         return Ok(new
         {
             userId = User.FindFirst("sub")?.Value,
@@ -133,6 +142,7 @@ public class AuthController(
             email = user?.Email,
             emailVerified = user?.EmailVerified ?? false,
             createdAt = user?.CreatedAt,
+            isLastAdmin,
         });
     }
 

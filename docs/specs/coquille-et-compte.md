@@ -137,37 +137,33 @@ spec et contre le comportement réel de `AccountRgpdTests` avant de rédiger le
 texte : une promesse d'effacement que le code ne tient pas est pire que pas de
 promesse du tout.
 
-**Vérifié contre le code (`AccountService.DeleteAccountAsync`,
-`AccountRgpdTests.cs`) : il n'existe aucune distinction de rôle ni de comptage
-d'administrateurs.** `DELETE /api/me` supprime toujours l'entreprise entière —
-tous ses comptes, quel que soit leur rôle, et tous ses diagnostics, réponses,
-scores et rapports — quel que soit le rôle de l'appelant et qu'un autre `Admin`
-existe ou non. Un `Viewer` seul qui supprime son propre compte emporte donc
-l'`Admin` et tous les `User` de son entreprise avec lui. Les diagnostics
-n'appartiennent d'ailleurs pas à un utilisateur individuel (pas de propriétaire
-en base) : ils sont déjà rattachés à l'entreprise entière, donc « que
-deviennent mes diagnostics » se réduit à « que devient mon entreprise ».
+**Corrigé — c'était une élévation de privilège, pas seulement un écart de
+documentation.** La version précédente de cette section documentait fidèlement
+un comportement serveur où `DELETE /api/me` supprimait toujours l'entreprise
+entière, sans distinction de rôle ni comptage d'administrateurs : un `Viewer`
+seul pouvait ainsi supprimer l'`Admin`, tous les `User` et tous les
+diagnostics de son entreprise en supprimant son propre compte. `AccountService.
+DeleteAccountAsync` applique désormais la règle suivante, vérifiée par les cas
+19 à 22bis (`AccountRgpdTests.cs`, y compris sur des entreprises à plusieurs
+comptes — la classe ne testait auparavant que des entreprises à administrateur
+unique, ce qui explique que le défaut ne soit jamais apparu) :
 
-C'est la troisième option envisagée plus bas — en pire, puisqu'elle ne se
-limite même pas au dernier `Admin`. `AccountRgpdTests.cs` ne couvre que des
-entreprises à un seul compte (`RegisterCompanyAndLoginAdminAsync` crée toujours
-une entreprise fraîche avec un unique `Admin`) : aucun test ne détecte ce
-comportement sur une entreprise à plusieurs comptes.
+- si l'appelant est le **dernier `Admin`** de son entreprise (le seul, en
+  comptant lui-même) : l'entreprise entière disparaît avec lui — tous ses
+  comptes, tous ses diagnostics, réponses, scores et rapports ;
+- sinon (`Viewer`, `User`, ou `Admin` alors qu'un autre `Admin` existe) :
+  **seul son propre compte** disparaît. L'entreprise, les autres comptes et
+  tous les diagnostics restent intacts. Les rapports que ce compte a lui-même
+  générés disparaissent avec lui (`Report.generated_by_user_id` est en
+  `ON DELETE RESTRICT` — ils doivent être purgés avant le compte, sans quoi la
+  suppression échouerait), jamais ceux générés par un autre compte.
 
-Les trois options envisageables restent, pour la feuille de route (aucune
-n'est implémentée aujourd'hui) :
-
-- refuser la suppression tant qu'un autre `Admin` n'a pas été désigné ;
-- supprimer le compte et l'entreprise avec lui, mais seulement si l'appelant
-  est effectivement le dernier `Admin` ;
-- supprimer uniquement le compte de l'appelant, l'entreprise et les autres
-  comptes restant intacts, si l'appelant n'est pas le dernier `Admin`.
-
-**Tant que ce n'est pas implémenté, l'écran doit annoncer le comportement réel,
-pas celui souhaité** : *toute* suppression de compte, quel que soit le rôle,
-supprime l'intégralité de l'entreprise — tous ses comptes et tous ses
-diagnostics. Ne pas promettre que les autres comptes ou les diagnostics
-survivent ; le code ne le tient pas.
+`GET /api/auth/me` expose `isLastAdmin` : c'est cette valeur, lue avant la
+saisie, qui détermine lequel des deux textes l'écran affiche (section 7).
+Les diagnostics n'appartiennent pas à un utilisateur individuel (pas de
+propriétaire en base) : ils sont rattachés à l'entreprise entière, donc « que
+deviennent mes diagnostics » ne se pose que dans le cas du dernier `Admin` —
+dans tous les autres cas, la réponse est « rien, ils restent ».
 
 ---
 
@@ -218,18 +214,27 @@ inventée.
 **Suppression**
 
 18. Confirmation par une adresse e-mail incorrecte → refusée.
-19. Suppression par un `Admin` alors qu'un autre `Admin` existe → **l'entreprise
-    et tous ses comptes disparaissent avec lui**, comportement réel vérifié
-    contre `AccountService.DeleteAccountAsync`, pas le comportement souhaité de
-    la section 6.
-20. Suppression par un `Viewer` alors qu'un `Admin` et d'autres comptes
-    existent → même résultat que le cas 19 : l'entreprise entière disparaît.
-    C'est le cas qui montre que la portée n'est pas liée au rôle.
-21. Après suppression, la reconnexion avec les mêmes identifiants échoue,
-    pour le compte supprimé **et** pour les autres comptes de l'entreprise.
-22. Les tables de référence — questions, recommandations, pondérations — sont intactes.
+19. Suppression par un `Viewer` ou un `User` → **seul son propre compte
+    disparaît** ; l'entreprise, les autres comptes et les diagnostics restent
+    intacts.
+20. Suppression par un `Admin` alors qu'un autre `Admin` existe → même
+    résultat que le cas 19 : seul son propre compte disparaît.
+21. Suppression par le **dernier** `Admin` → l'entreprise entière disparaît
+    avec lui — tous ses comptes, tous ses diagnostics — et l'écran l'avait
+    annoncé (section 6).
+22. Suppression d'un compte qui a lui-même généré un rapport, alors qu'il
+    n'est pas le dernier `Admin` → réussit, et n'emporte que ce rapport, pas
+    ceux générés par un autre compte pour le même diagnostic.
+22bis. Après suppression, la reconnexion avec les mêmes identifiants échoue —
+    pour le compte supprimé seul dans les cas 19/20/22, pour tous les comptes
+    de l'entreprise dans le cas 21.
+23. Les tables de référence — questions, recommandations, pondérations — sont intactes.
 
-Les cas 19 et 20 sont ceux à vérifier réellement plutôt qu'à asserter : ce sont
-eux qui détruisent des données d'entreprise au-delà du compte de l'appelant, et
-ce sont eux dont le texte d'interface doit correspondre exactement au
-comportement du serveur — pas à un comportement souhaité mais non implémenté.
+Les cas 19 à 22 sont ceux à vérifier réellement plutôt qu'à asserter : ce sont
+eux qui déterminent la portée exacte d'une action irréversible, et ce sont eux
+dont le texte d'interface doit correspondre exactement au comportement du
+serveur. `AccountRgpdTests.cs` ne testait auparavant que des entreprises à
+administrateur unique (`RegisterCompanyAndLoginAdminAsync` crée toujours une
+entreprise fraîche avec un seul `Admin`) — les cas 19, 20 et 22 exigent une
+entreprise à plusieurs comptes, sans quoi l'élévation de privilège corrigée par
+ce commit resterait indétectable.

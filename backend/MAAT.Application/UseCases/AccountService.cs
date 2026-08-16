@@ -2,6 +2,7 @@ using MAAT.Application.DTOs;
 using MAAT.Application.Exceptions;
 using MAAT.Application.Interfaces;
 using MAAT.Application.Security;
+using MAAT.Domain.Enums;
 
 namespace MAAT.Application.UseCases;
 
@@ -46,22 +47,42 @@ public class AccountService(
             [.. reports.Select(r => new ReportExport(r.Id, r.DiagnosticId, r.Format, r.GeneratedAt, r.GeneratedByUserId))]);
     }
 
-    public async Task DeleteAccountAsync(string passwordConfirmation, CancellationToken ct)
+    // docs/specs/coquille-et-compte.md, section 6 : DELETE /api/me ne supprime l'entreprise que
+    // si l'appelant en est le dernier Admin — dans tous les autres cas (Viewer, User, ou Admin
+    // alors qu'un autre Admin existe), seul son propre compte disparaît. Corrige une élévation
+    // de privilège : la version précédente supprimait toujours l'entreprise entière, y compris
+    // pour un Viewer, sans condition de rôle ni comptage d'administrateurs.
+    public async Task<bool> DeleteAccountAsync(string passwordConfirmation, CancellationToken ct)
     {
-        await GetCurrentUserOrThrowAsync(passwordConfirmation, ct);
-
+        var user = await GetCurrentUserOrThrowAsync(passwordConfirmation, ct);
         var companyId = currentUser.CompanyId;
+
+        var isLastAdmin = user.Role == UserRole.Admin && await userRepository.CountAdminsForCompanyAsync(companyId, ct) == 1;
 
         await unitOfWork.ExecuteInTransactionAsync(async innerCt =>
         {
-            // Ordre impératif : Diagnostic avant User. Report.generated_by_user_id
-            // référence User en ON DELETE RESTRICT ; supprimer les Diagnostic d'abord
-            // fait cascader la suppression des Report (entre autres) avant qu'on
-            // supprime les User, sans quoi la suppression des User échouerait.
-            await diagnosticRepository.DeleteAllForCurrentCompanyAsync(innerCt);
-            await userRepository.DeleteAllForCompanyAsync(companyId, innerCt);
-            await companyRepository.DeleteAsync(companyId, innerCt);
+            if (isLastAdmin)
+            {
+                // Ordre impératif : Diagnostic avant User. Report.generated_by_user_id
+                // référence User en ON DELETE RESTRICT ; supprimer les Diagnostic d'abord
+                // fait cascader la suppression des Report (entre autres) avant qu'on
+                // supprime les User, sans quoi la suppression des User échouerait.
+                await diagnosticRepository.DeleteAllForCurrentCompanyAsync(innerCt);
+                await userRepository.DeleteAllForCompanyAsync(companyId, innerCt);
+                await companyRepository.DeleteAsync(companyId, innerCt);
+            }
+            else
+            {
+                // Seul ce compte disparaît : l'entreprise, les autres comptes et les
+                // diagnostics restent intacts. Les rapports générés par CE compte doivent
+                // disparaître avant lui, même contrainte ON DELETE RESTRICT que ci-dessus —
+                // jamais ceux des autres comptes.
+                await reportRepository.DeleteAllGeneratedByUserAsync(user.Id, innerCt);
+                await userRepository.DeleteAsync(user.Id, innerCt);
+            }
         }, ct);
+
+        return isLastAdmin;
     }
 
     // docs/specs/coquille-et-compte.md, section 5 : "Un changement réussi invalide les autres

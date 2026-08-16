@@ -231,26 +231,37 @@ En `POST`, pas en `GET` : la reconfirmation de mot de passe (voir plus bas) doit
 passer par le corps de la requête, qu'un `GET` ne porte pas de façon fiable côté
 navigateur.
 
-`DELETE /api/me` — droit à l'effacement (art. 17). Purge en cascade de `User`,
-`RefreshToken`, `EmailVerificationToken`, `Company`, `Diagnostic`, `Response`,
-`DomainScore`, `DiagnosticRecommendation` et `Report`. Suppression réelle, pas
-de suppression logique : un enregistrement marqué supprimé reste une donnée
+`DELETE /api/me` — droit à l'effacement (art. 17). Suppression réelle, pas de
+suppression logique : un enregistrement marqué supprimé reste une donnée
 conservée.
 
-**Portée réelle, à ne pas confondre avec le compte de l'appelant seul.**
-`AccountService.DeleteAccountAsync` ne distingue aucun rôle et ne compte pas
-les administrateurs restants : il supprime systématiquement l'entreprise
-entière — tous ses `User` quel que soit leur rôle, et tous ses `Diagnostic`
-avec leurs `Response`, `DomainScore`, `DiagnosticRecommendation` et `Report`.
-Un `Viewer` seul qui exerce son droit à l'effacement emporte donc avec lui les
-comptes `Admin` et `User` de la même entreprise, sans leur consentement. Les
-diagnostics n'ont pas de propriétaire individuel en base : ils sont déjà
-rattachés à l'entreprise, pas à un utilisateur. `AccountRgpdTests.cs` ne teste
-que des entreprises à un seul compte et ne couvre donc pas ce comportement.
+**Portée dépendante du rôle et du nombre d'administrateurs restants — corrigée
+après une élévation de privilège.** Une version antérieure de
+`AccountService.DeleteAccountAsync` ne distinguait aucun rôle et ne comptait
+pas les administrateurs restants : `DELETE /api/me` supprimait systématiquement
+l'entreprise entière, si bien qu'un `Viewer` seul exerçant son droit à
+l'effacement personnel emportait avec lui les comptes `Admin` et `User` de la
+même entreprise, sans leur consentement — `AccountRgpdTests.cs` ne testait que
+des entreprises à un seul compte et ne détectait donc pas ce comportement.
 
-Un mécanisme dépendant du rôle et du nombre d'administrateurs restants (voir
-`coquille-et-compte.md`, section 6) est à la feuille de route mais n'est pas
-implémenté : ne pas l'annoncer dans une interface tant qu'il ne l'est pas.
+Le comportement actuel :
+
+- si l'appelant est le **dernier `Admin`** de son entreprise (le seul, en le
+  comptant) : purge en cascade de `User`, `RefreshToken`,
+  `EmailVerificationToken`, `Company`, `Diagnostic`, `Response`, `DomainScore`,
+  `DiagnosticRecommendation` et `Report` — l'entreprise entière disparaît ;
+- sinon (`Viewer`, `User`, ou `Admin` alors qu'un autre `Admin` existe) :
+  seuls le `User` appelant, ses `RefreshToken`, ses `EmailVerificationToken` et
+  les `Report` qu'il a lui-même générés sont supprimés. `Company`,
+  `Diagnostic`, `Response`, `DomainScore` et `DiagnosticRecommendation`
+  restent intacts, de même que les autres comptes.
+
+Les diagnostics n'ont pas de propriétaire individuel en base : ils sont déjà
+rattachés à l'entreprise, pas à un utilisateur — d'où l'asymétrie ci-dessus,
+purgés uniquement quand l'entreprise elle-même disparaît. `GET /api/auth/me`
+expose `isLastAdmin`, lu par l'écran de suppression avant la saisie pour
+annoncer le résultat qui s'applique réellement (`coquille-et-compte.md`,
+section 6).
 
 Les deux opérations exigent une reconfirmation du mot de passe, transmise dans
 le corps JSON de la requête (jamais en en-tête ni en query string — section 5).
@@ -367,8 +378,14 @@ Tests d'intégration sous `MAAT.IntegrationTests`, contre PostgreSQL réel.
 **RGPD**
 
 18. Export → contient l'intégralité des données du compte, dans un format exploitable.
-19. Suppression de compte → aucune ligne résiduelle dans les neuf tables concernées.
+19. Suppression par le dernier `Admin` d'une entreprise → aucune ligne résiduelle dans les neuf
+    tables concernées (entreprise entière supprimée).
 20. Suppression de compte → les tables de référence restent intactes.
+
+Les cas de portée par rôle et par nombre d'administrateurs restants (`Viewer`/`User` isolé,
+`Admin` non-dernier, rapport propre au compte supprimé) sont détaillés dans
+`coquille-et-compte.md`, cas 19 à 22bis — même suite de tests (`AccountRgpdTests.cs`), pas
+dupliqués ici.
 
 **Renvoi de vérification**
 

@@ -20,4 +20,7 @@ public class ReportRepository(MaatDbContext context, ICurrentUserContext current
 
     public async Task AddAsync(Report report, CancellationToken ct) =>
         await context.Reports.AddAsync(report, ct);
+
+    public Task DeleteAllGeneratedByUserAsync(Guid userId, CancellationToken ct) =>
+        context.Reports.Where(r => r.GeneratedByUserId == userId).ExecuteDeleteAsync(ct);
 }
