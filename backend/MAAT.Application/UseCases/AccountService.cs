@@ -1,6 +1,8 @@
 using MAAT.Application.DTOs;
 using MAAT.Application.Exceptions;
 using MAAT.Application.Interfaces;
+using MAAT.Application.Security;
+using MAAT.Domain.Enums;
 
 namespace MAAT.Application.UseCases;
 
@@ -17,7 +19,9 @@ public class AccountService(
     IDomainScoreRepository domainScoreRepository,
     IDiagnosticRecommendationRepository diagnosticRecommendationRepository,
     IReportRepository reportRepository,
+    IRefreshTokenRepository refreshTokenRepository,
     IPasswordHasher passwordHasher,
+    ICompromisedPasswordChecker compromisedPasswordChecker,
     ICurrentUserContext currentUser,
     IUnitOfWork unitOfWork)
 {
@@ -43,22 +47,79 @@ public class AccountService(
             [.. reports.Select(r => new ReportExport(r.Id, r.DiagnosticId, r.Format, r.GeneratedAt, r.GeneratedByUserId))]);
     }
 
-    public async Task DeleteAccountAsync(string passwordConfirmation, CancellationToken ct)
+    // docs/specs/coquille-et-compte.md, section 6 : DELETE /api/me ne supprime l'entreprise que
+    // si l'appelant en est le dernier Admin — dans tous les autres cas (Viewer, User, ou Admin
+    // alors qu'un autre Admin existe), seul son propre compte disparaît. Corrige une élévation
+    // de privilège : la version précédente supprimait toujours l'entreprise entière, y compris
+    // pour un Viewer, sans condition de rôle ni comptage d'administrateurs.
+    public async Task<bool> DeleteAccountAsync(string passwordConfirmation, CancellationToken ct)
     {
-        await GetCurrentUserOrThrowAsync(passwordConfirmation, ct);
-
+        var user = await GetCurrentUserOrThrowAsync(passwordConfirmation, ct);
         var companyId = currentUser.CompanyId;
+
+        var isLastAdmin = user.Role == UserRole.Admin && await userRepository.CountAdminsForCompanyAsync(companyId, ct) == 1;
 
         await unitOfWork.ExecuteInTransactionAsync(async innerCt =>
         {
-            // Ordre impératif : Diagnostic avant User. Report.generated_by_user_id
-            // référence User en ON DELETE RESTRICT ; supprimer les Diagnostic d'abord
-            // fait cascader la suppression des Report (entre autres) avant qu'on
-            // supprime les User, sans quoi la suppression des User échouerait.
-            await diagnosticRepository.DeleteAllForCurrentCompanyAsync(innerCt);
-            await userRepository.DeleteAllForCompanyAsync(companyId, innerCt);
-            await companyRepository.DeleteAsync(companyId, innerCt);
+            if (isLastAdmin)
+            {
+                // Ordre impératif : Diagnostic avant User. Report.generated_by_user_id
+                // référence User en ON DELETE RESTRICT ; supprimer les Diagnostic d'abord
+                // fait cascader la suppression des Report (entre autres) avant qu'on
+                // supprime les User, sans quoi la suppression des User échouerait.
+                await diagnosticRepository.DeleteAllForCurrentCompanyAsync(innerCt);
+                await userRepository.DeleteAllForCompanyAsync(companyId, innerCt);
+                await companyRepository.DeleteAsync(companyId, innerCt);
+            }
+            else
+            {
+                // Seul ce compte disparaît : l'entreprise, les autres comptes et les
+                // diagnostics restent intacts. Les rapports générés par CE compte doivent
+                // disparaître avant lui, même contrainte ON DELETE RESTRICT que ci-dessus —
+                // jamais ceux des autres comptes.
+                await reportRepository.DeleteAllGeneratedByUserAsync(user.Id, innerCt);
+                await userRepository.DeleteAsync(user.Id, innerCt);
+            }
         }, ct);
+
+        return isLastAdmin;
+    }
+
+    // docs/specs/coquille-et-compte.md, section 5 : "Un changement réussi invalide les autres
+    // sessions." La session courante (celle qui vient de fournir l'ancien mot de passe avec
+    // succès) reste connectée — currentRefreshTokenPlaintext identifie laquelle préserver ;
+    // absent ou introuvable (cookie manquant, jeton déjà expiré), tout est révoqué par prudence
+    // plutôt que de risquer d'en préserver un mauvais.
+    public async Task ChangePasswordAsync(string currentPassword, string newPassword, string? currentRefreshTokenPlaintext, CancellationToken ct)
+    {
+        var user = await GetCurrentUserOrThrowAsync(currentPassword, ct);
+
+        if (newPassword.Length < PasswordPolicy.MinimumLength)
+        {
+            throw new WeakPasswordException($"Le mot de passe doit contenir au moins {PasswordPolicy.MinimumLength} caractères.");
+        }
+
+        if (await compromisedPasswordChecker.IsCompromisedAsync(newPassword, ct))
+        {
+            throw new CompromisedPasswordException("Ce mot de passe a été compromis lors d'une fuite de données connue. Choisissez-en un autre.");
+        }
+
+        user.PasswordHash = passwordHasher.Hash(newPassword);
+
+        var currentToken = currentRefreshTokenPlaintext is not null
+            ? await refreshTokenRepository.FindByPlaintextAsync(currentRefreshTokenPlaintext, ct)
+            : null;
+
+        if (currentToken is not null)
+        {
+            await refreshTokenRepository.RevokeAllActiveForUserExceptAsync(user.Id, currentToken.Id, ct);
+        }
+        else
+        {
+            await refreshTokenRepository.RevokeAllActiveForUserAsync(user.Id, ct);
+        }
+
+        await unitOfWork.SaveChangesAsync(ct);
     }
 
     private async Task<Domain.Entities.User> GetCurrentUserOrThrowAsync(string passwordConfirmation, CancellationToken ct)

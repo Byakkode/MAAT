@@ -2,6 +2,7 @@ using MAAT.Application.DTOs;
 using MAAT.Application.Exceptions;
 using MAAT.Application.Interfaces;
 using MAAT.Application.UseCases;
+using MAAT.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -10,7 +11,11 @@ namespace MAAT.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController(AuthService authService, IUserRepository userRepository, ILogger<AuthController> logger) : ControllerBase
+public class AuthController(
+    AuthService authService,
+    IUserRepository userRepository,
+    ICompanyRepository companyRepository,
+    ILogger<AuthController> logger) : ControllerBase
 {
     private const string RefreshCookieName = "refresh_token";
     private const string CookiePath = "/api/auth";
@@ -118,13 +123,43 @@ public class AuthController(AuthService authService, IUserRepository userReposit
     {
         var userId = Guid.Parse(User.FindFirst("sub")!.Value);
         var user = await userRepository.GetByIdAsync(userId, ct);
+        var company = user is not null ? await companyRepository.GetByIdAsync(user.CompanyId, ct) : null;
+
+        // docs/specs/coquille-et-compte.md, section 6 : l'écran de suppression du compte doit
+        // annoncer un résultat différent selon que l'appelant est le dernier Admin de son
+        // entreprise — la seule condition sous laquelle DELETE /api/me supprime l'entreprise
+        // entière plutôt que le seul compte de l'appelant (AccountService.DeleteAccountAsync).
+        var isLastAdmin = user is not null
+            && user.Role == UserRole.Admin
+            && await userRepository.CountAdminsForCompanyAsync(user.CompanyId, ct) == 1;
 
         return Ok(new
         {
             userId = User.FindFirst("sub")?.Value,
             companyId = User.FindFirst("company_id")?.Value,
+            companyName = company?.Name,
             role = User.FindFirst("role")?.Value,
+            email = user?.Email,
             emailVerified = user?.EmailVerified ?? false,
+            createdAt = user?.CreatedAt,
+            isLastAdmin,
+        });
+    }
+
+    // docs/specs/coquille-et-compte.md, section 4 : le bandeau d'adresse non vérifiée dépend de
+    // cet endpoint. Anonyme et anti-énumération, même principe que Register ci-dessus : réponse
+    // identique que l'adresse existe, soit déjà vérifiée, ou non — le frontend l'appelle depuis
+    // une session authentifiée avec l'adresse lue sur Me(), mais l'endpoint lui-même ne le
+    // suppose pas et ne l'exige pas.
+    [HttpPost("resend-verification")]
+    [EnableRateLimiting("resend-verification")]
+    public async Task<IActionResult> ResendVerification(ResendVerificationRequest request, CancellationToken ct)
+    {
+        await authService.ResendVerificationEmailAsync(request.Email, ct);
+
+        return StatusCode(StatusCodes.Status202Accepted, new
+        {
+            message = "Si un compte existe pour cette adresse et n'est pas encore vérifié, un nouvel e-mail de vérification vient d'être envoyé.",
         });
     }
 

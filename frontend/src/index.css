@@ -20,6 +20,10 @@
   --color-green-maat: #29cc6a;
   --color-green-maat-text: #12734a;
   --color-red: #c62828;
+  /* charte-maat-v2.md, section 2 : "Alerte | --maat-amber | #B96D0A | Priorité moyenne, points
+     de vigilance" — jusqu'ici documenté mais jamais posé dans ce fichier faute d'usage. Premier
+     usage : le bandeau d'adresse non vérifiée (coquille-et-compte.md, section 4). */
+  --color-amber: #b96d0a;
   --color-bg: #f8f9fc;
   --color-text: #1e1e2d;
   --color-text-muted: #5b6472;

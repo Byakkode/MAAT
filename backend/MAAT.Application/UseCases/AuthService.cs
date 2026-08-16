@@ -20,15 +20,14 @@ public class AuthService(
 {
     private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(7);
     private static readonly TimeSpan EmailVerificationTokenLifetime = TimeSpan.FromHours(24);
-    private const int MinimumPasswordLength = 12;
 
     public async Task RegisterAsync(RegisterRequest request, CancellationToken ct)
     {
         var email = request.Email.Trim().ToLowerInvariant();
 
-        if (request.Password.Length < MinimumPasswordLength)
+        if (request.Password.Length < PasswordPolicy.MinimumLength)
         {
-            throw new WeakPasswordException($"Le mot de passe doit contenir au moins {MinimumPasswordLength} caractères.");
+            throw new WeakPasswordException($"Le mot de passe doit contenir au moins {PasswordPolicy.MinimumLength} caractères.");
         }
 
         if (await compromisedPasswordChecker.IsCompromisedAsync(request.Password, ct))
@@ -55,6 +54,30 @@ public class AuthService(
         var user = new User(email, passwordHash, company.Id, UserRole.Admin);
         await userRepository.AddAsync(user, ct);
 
+        await IssueAndSendVerificationEmailAsync(user, email, ct);
+    }
+
+    // docs/specs/auth-securite-rgpd.md, section 1 : renvoi de l'e-mail de vérification. Même
+    // anti-énumération que RegisterAsync — aucune branche visible de l'extérieur : le
+    // contrôleur renvoie une réponse identique que l'adresse existe, soit déjà vérifiée, ou
+    // non. Le jeton précédent est invalidé avant l'émission du nouveau (RevokeAllUnconsumed...)
+    // pour qu'un seul jeton reste utilisable à la fois.
+    public async Task ResendVerificationEmailAsync(string emailInput, CancellationToken ct)
+    {
+        var email = emailInput.Trim().ToLowerInvariant();
+        var user = await userRepository.FindByEmailAsync(email, ct);
+
+        if (user is null || user.EmailVerified)
+        {
+            return;
+        }
+
+        await emailVerificationTokenRepository.RevokeAllUnconsumedForUserAsync(user.Id, ct);
+        await IssueAndSendVerificationEmailAsync(user, email, ct);
+    }
+
+    private async Task IssueAndSendVerificationEmailAsync(User user, string email, CancellationToken ct)
+    {
         var verificationToken = SecureTokenGenerator.Generate();
         await emailVerificationTokenRepository.IssueAsync(user.Id, verificationToken, DateTimeOffset.UtcNow.Add(EmailVerificationTokenLifetime), ct);
 

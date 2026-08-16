@@ -193,9 +193,18 @@ commercial du produit.
 
 ## Vérification
 
-Ne déclare pas une tâche terminée sans avoir lancé `dotnet test` et
-`npm run build`, et sans montrer la sortie. « Ça devrait marcher » n'est pas
-une vérification.
+Ne déclare pas une tâche terminée sans avoir lancé `dotnet test`, `npm run
+build`, `npm run test` et `npm run test:e2e`, et sans montrer la sortie.
+« Ça devrait marcher » n'est pas une vérification.
+
+`npm run test:e2e` n'est pas optionnel : c'est le seul de ces quatre à
+traverser un vrai navigateur plutôt que jsdom ou un client HTTP direct. Trois
+défauts réels ne devaient leur détection qu'à lui — `Content-Disposition` non
+exposé par la politique CORS, un `POST` sans corps rejeté en 415 faute de
+`Content-Type`, un cache de navigation React Router périmé remplissant un
+champ homonyme sur le point de disparaître. Aucun des trois n'était visible
+depuis jsdom. L'omettre de cette règle, une fois, a suffi pour qu'un écran
+entier (Plan d'actions) reste muet sans qu'aucun test ne le remarque.
 
 ## Contexte projet
 

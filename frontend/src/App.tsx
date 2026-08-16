@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Link, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { AppShell } from './components/shell/AppShell'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { AccountPage } from './pages/AccountPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { PlanActionsPage } from './pages/PlanActionsPage'
@@ -21,23 +23,22 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-bg p-6">
-        <nav className="mb-4 flex gap-4 font-medium text-blue-maat">
-          <Link to="/questionnaire">Questionnaire</Link>
-          <Link to="/dashboard">Tableau de bord</Link>
-          <Link to="/rapport">Rapport</Link>
-        </nav>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route element={<ProtectedRoute />}>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route element={<ProtectedRoute />}>
+          {/* docs/specs/coquille-et-compte.md, section 1 : la coquille (barre latérale,
+              en-tête) entoure ce sous-arbre de routes et ne se remonte jamais entre deux
+              d'entre elles. */}
+          <Route element={<AppShell />}>
+            <Route path="/" element={<DashboardPage />} />
             <Route path="/questionnaire/:diagnosticId?" element={<QuestionnairePage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/plan-actions" element={<PlanActionsPage />} />
             <Route path="/rapport" element={<RapportPage />} />
+            <Route path="/compte" element={<AccountPage />} />
           </Route>
-        </Routes>
-      </div>
+        </Route>
+      </Routes>
     </BrowserRouter>
   )
 }

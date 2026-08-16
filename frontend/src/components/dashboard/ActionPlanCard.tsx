@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
+import { EFFORT_LABELS } from '../../constants/effortLabels'
 import { DOMAIN_LABELS } from '../../types/questionnaire'
-import type { ActionPlan, EffortLevel } from '../../types/dashboard'
+import type { ActionPlan } from '../../types/dashboard'
 
 interface ActionPlanCardProps {
   actionPlan: ActionPlan
@@ -8,12 +9,6 @@ interface ActionPlanCardProps {
   canEdit: boolean
   togglingCode: string | null
   onToggle: (code: string, isCompleted: boolean) => void
-}
-
-const EFFORT_LABELS: Record<EffortLevel, string> = {
-  Low: 'Effort faible',
-  Medium: 'Effort modéré',
-  High: 'Effort important',
 }
 
 function pluralize(count: number, singular: string, plural: string): string {

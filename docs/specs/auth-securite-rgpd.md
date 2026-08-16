@@ -42,6 +42,19 @@ Le fournisseur d'e-mails transactionnels doit être européen (Brevo, Scaleway T
 Un prestataire hors UE contredirait l'argument de souveraineté sur lequel repose
 le positionnement du produit.
 
+**Renvoi de l'e-mail de vérification.** `POST /api/auth/resend-verification`,
+anonyme, `{ email }`. Même anti-énumération que l'inscription : réponse
+identique (`202`, message générique), que l'adresse existe, soit déjà
+vérifiée, ou non — aucune des trois situations n'est jamais distinguable de
+l'extérieur. Si l'adresse correspond à un compte non vérifié, un nouveau
+jeton est émis et l'ancien (ou les anciens, s'il y en avait plusieurs)
+invalidé — un seul jeton reste utilisable à la fois, jamais deux en
+parallèle. Limitation de débit **par adresse soumise**, pas par IP + adresse
+comme la connexion : la ressource protégée ici est la boîte mail du
+destinataire (éviter de le spammer de renvois), pas une tentative de
+connexion à deviner — 5 requêtes par tranche de 15 minutes, même middleware
+de capture du corps que la politique `login`.
+
 **Anti-énumération.** La réponse ne doit jamais révéler si une adresse est déjà
 enregistrée. En cas de doublon, retourner la même réponse de succès et envoyer à
 l'adresse concernée un message l'informant d'une tentative d'inscription.
@@ -218,11 +231,37 @@ En `POST`, pas en `GET` : la reconfirmation de mot de passe (voir plus bas) doit
 passer par le corps de la requête, qu'un `GET` ne porte pas de façon fiable côté
 navigateur.
 
-`DELETE /api/me` — droit à l'effacement (art. 17). Purge en cascade de `User`,
-`RefreshToken`, `EmailVerificationToken`, `Company`, `Diagnostic`, `Response`,
-`DomainScore`, `DiagnosticRecommendation` et `Report`. Suppression réelle, pas
-de suppression logique : un enregistrement marqué supprimé reste une donnée
+`DELETE /api/me` — droit à l'effacement (art. 17). Suppression réelle, pas de
+suppression logique : un enregistrement marqué supprimé reste une donnée
 conservée.
+
+**Portée dépendante du rôle et du nombre d'administrateurs restants — corrigée
+après une élévation de privilège.** Une version antérieure de
+`AccountService.DeleteAccountAsync` ne distinguait aucun rôle et ne comptait
+pas les administrateurs restants : `DELETE /api/me` supprimait systématiquement
+l'entreprise entière, si bien qu'un `Viewer` seul exerçant son droit à
+l'effacement personnel emportait avec lui les comptes `Admin` et `User` de la
+même entreprise, sans leur consentement — `AccountRgpdTests.cs` ne testait que
+des entreprises à un seul compte et ne détectait donc pas ce comportement.
+
+Le comportement actuel :
+
+- si l'appelant est le **dernier `Admin`** de son entreprise (le seul, en le
+  comptant) : purge en cascade de `User`, `RefreshToken`,
+  `EmailVerificationToken`, `Company`, `Diagnostic`, `Response`, `DomainScore`,
+  `DiagnosticRecommendation` et `Report` — l'entreprise entière disparaît ;
+- sinon (`Viewer`, `User`, ou `Admin` alors qu'un autre `Admin` existe) :
+  seuls le `User` appelant, ses `RefreshToken`, ses `EmailVerificationToken` et
+  les `Report` qu'il a lui-même générés sont supprimés. `Company`,
+  `Diagnostic`, `Response`, `DomainScore` et `DiagnosticRecommendation`
+  restent intacts, de même que les autres comptes.
+
+Les diagnostics n'ont pas de propriétaire individuel en base : ils sont déjà
+rattachés à l'entreprise, pas à un utilisateur — d'où l'asymétrie ci-dessus,
+purgés uniquement quand l'entreprise elle-même disparaît. `GET /api/auth/me`
+expose `isLastAdmin`, lu par l'écran de suppression avant la saisie pour
+annoncer le résultat qui s'applique réellement (`coquille-et-compte.md`,
+section 6).
 
 Les deux opérations exigent une reconfirmation du mot de passe, transmise dans
 le corps JSON de la requête (jamais en en-tête ni en query string — section 5).
@@ -339,8 +378,25 @@ Tests d'intégration sous `MAAT.IntegrationTests`, contre PostgreSQL réel.
 **RGPD**
 
 18. Export → contient l'intégralité des données du compte, dans un format exploitable.
-19. Suppression de compte → aucune ligne résiduelle dans les neuf tables concernées.
+19. Suppression par le dernier `Admin` d'une entreprise → aucune ligne résiduelle dans les neuf
+    tables concernées (entreprise entière supprimée).
 20. Suppression de compte → les tables de référence restent intactes.
+
+Les cas de portée par rôle et par nombre d'administrateurs restants (`Viewer`/`User` isolé,
+`Admin` non-dernier, rapport propre au compte supprimé) sont détaillés dans
+`coquille-et-compte.md`, cas 19 à 22bis — même suite de tests (`AccountRgpdTests.cs`), pas
+dupliqués ici.
+
+**Renvoi de vérification**
+
+21. Renvoi vers une adresse inconnue → réponse strictement identique (statut et corps) à celle
+    d'une adresse connue mais non vérifiée, aucun compte créé.
+22. Renvoi vers une adresse déjà vérifiée → même réponse générique, mais aucun nouveau jeton
+    n'est émis.
+23. Renvoi vers une adresse connue et non vérifiée → nouveau jeton émis, et l'ancien devient
+    invalide (`POST /api/auth/verify-email` avec l'ancien jeton échoue après le renvoi).
+24. Vérification avec le nouveau jeton après renvoi → succès, compte marqué vérifié.
+25. Sixième renvoi en moins de 15 minutes pour la même adresse → `429`.
 
 Les cas 13 à 15 sont ceux à montrer en soutenance. Ce sont eux qui prouvent que
 la confidentialité vendue par le produit est vérifiée par le code, et non promise

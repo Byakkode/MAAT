@@ -39,13 +39,16 @@ test('un compte neuf s’inscrit, démarre un diagnostic et le complète — le 
   await page.getByLabel('Adresse e-mail').fill(email)
   await page.getByLabel('Mot de passe').fill(password)
   await page.getByRole('button', { name: 'Se connecter' }).click()
-  await expect(page).toHaveURL(/\/dashboard$/)
+  await expect(page).toHaveURL('/')
   // exact: true — "Tableau de bord" est autrement un sous-texte de "Bienvenue sur votre
   // tableau de bord" (h2 affiché pour un compte sans diagnostic), qui ferait échouer le
   // localisateur en mode strict (deux titres correspondraient).
   await expect(page.getByRole('heading', { name: 'Tableau de bord', exact: true })).toBeVisible()
 
-  await page.getByRole('link', { name: 'Questionnaire', exact: true }).click()
+  // docs/specs/coquille-et-compte.md, section 3 : l'entrée de navigation s'appelle
+  // "Diagnostic", pas "Questionnaire" — le titre de l'écran qu'elle ouvre, lui, reste
+  // "Questionnaire" (assertion suivante).
+  await page.getByRole('link', { name: 'Diagnostic', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Questionnaire' })).toBeVisible()
 
   // docs/specs/questionnaire.md, section 5 : un compte neuf n'a aucun diagnostic en cours —

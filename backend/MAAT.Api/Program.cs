@@ -207,6 +207,26 @@ builder.Services.AddRateLimiter(options =>
             });
     });
 
+    // POST /api/auth/resend-verification (docs/specs/auth-securite-rgpd.md, section 1) est
+    // anonyme, donc partitionné par l'adresse soumise plutôt que par utilisateur authentifié
+    // (impossible ici, contrairement à "password-confirmation" ci-dessous) — et volontairement
+    // pas par IP+email comme "login" : la ressource protégée est la boîte mail du destinataire,
+    // pas une tentative de connexion, donc "par adresse" seule est le bon partitionnement. Même
+    // middleware de capture du corps que "login" (RateLimitEmail), étendu à ce chemin plus bas.
+    options.AddPolicy("resend-verification", context =>
+    {
+        var email = context.Items.TryGetValue("RateLimitEmail", out var value) ? value as string : null;
+
+        return System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            email ?? "unknown",
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0,
+            });
+    });
+
     // POST /api/me/export et DELETE /api/me acceptent un mot de passe de confirmation
     // (section 6) : sans limitation, ils forment un oracle de mot de passe hors du
     // chemin /api/auth/login, sans les protections de la section 2. Partitionné par
@@ -440,11 +460,13 @@ app.Use(async (context, next) =>
 
 app.UseCors("Default");
 
-// Capture l'email du corps de requête pour partitionner la limitation de débit
-// du login par couple IP + email, sans consommer le flux avant le model binding.
+// Capture l'email du corps de requête pour partitionner la limitation de débit du login (par
+// IP + email) et du renvoi de vérification (par adresse seule) sans consommer le flux avant le
+// model binding.
 app.Use(async (context, next) =>
 {
-    if (context.Request.Path.Equals("/api/auth/login", StringComparison.OrdinalIgnoreCase)
+    if ((context.Request.Path.Equals("/api/auth/login", StringComparison.OrdinalIgnoreCase)
+            || context.Request.Path.Equals("/api/auth/resend-verification", StringComparison.OrdinalIgnoreCase))
         && HttpMethods.IsPost(context.Request.Method))
     {
         context.Request.EnableBuffering();

@@ -40,6 +40,19 @@ public class RefreshTokenRepository(MaatDbContext context) : IRefreshTokenReposi
         }
     }
 
+    public async Task RevokeAllActiveForUserExceptAsync(Guid userId, Guid exceptTokenId, CancellationToken ct)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var activeTokens = await context.RefreshTokens
+            .Where(rt => rt.UserId == userId && rt.RevokedAt == null && rt.Id != exceptTokenId)
+            .ToListAsync(ct);
+
+        foreach (var token in activeTokens)
+        {
+            token.RevokedAt = now;
+        }
+    }
+
     public Task<int> PurgeExpiredOrRevokedBeforeAsync(DateTimeOffset cutoff, CancellationToken ct) =>
         context.RefreshTokens
             .Where(rt => rt.ExpiresAt < cutoff || (rt.RevokedAt != null && rt.RevokedAt < cutoff))

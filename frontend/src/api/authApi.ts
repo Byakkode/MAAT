@@ -84,6 +84,25 @@ export async function refresh(): Promise<AuthTokens | null> {
   }
 }
 
+// Anonyme et anti-énumération, comme register ci-dessus (auth-securite-rgpd.md, section 1) :
+// appelée depuis une session authentifiée (bandeau de vérification), mais l'endpoint lui-même
+// ne le suppose pas — d'où fetch brut plutôt que apiFetch, qui réserve son intercepteur 401 aux
+// endpoints protégés.
+export async function resendVerification(email: string): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/api/auth/resend-verification`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ email }),
+  })
+
+  if (!response.ok) {
+    throw new ApiError(await readErrorMessage(response, "Erreur lors du renvoi de l'e-mail de vérification."), response.status)
+  }
+
+  return (await response.json()) as { message: string }
+}
+
 export async function logout(): Promise<void> {
   await fetch(`${API_BASE_URL}/api/auth/logout`, {
     method: 'POST',
