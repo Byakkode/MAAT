@@ -140,7 +140,7 @@ export function QuestionnairePage() {
       <h1 className="mb-2 text-2xl font-semibold text-text">Questionnaire</h1>
 
       {completeStatus === 'completed' ? (
-        <p role="status" className="text-green-maat">
+        <p role="status" className="text-green-maat-text">
           Diagnostic complété. Vos réponses ont été enregistrées.
         </p>
       ) : (

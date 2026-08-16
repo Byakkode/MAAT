@@ -131,7 +131,7 @@ export function RegisterPage() {
           </p>
         )}
         {successMessage && (
-          <p role="status" className="mb-4 text-sm text-green-maat">
+          <p role="status" className="mb-4 text-sm text-green-maat-text">
             {successMessage}
           </p>
         )}
@@ -144,7 +144,7 @@ export function RegisterPage() {
         </button>
       </form>
       <p className="mt-4 text-sm text-text-muted">
-        Déjà un compte ? <Link to="/login" className="text-blue-maat">Se connecter</Link>
+        Déjà un compte ? <Link to="/login" className="text-blue-maat-text">Se connecter</Link>
       </p>
     </section>
   )

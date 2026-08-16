@@ -48,7 +48,7 @@ function EvolutionChartComponent({ history }: EvolutionChartProps) {
   return (
     <div className="rounded-card border border-border bg-white p-5 shadow-card">
       <h3 className="mb-1 text-base font-semibold text-text">Historique d&apos;évolution</h3>
-      <p className="mb-2 text-sm text-text-muted">
+      <p className="mb-2 text-sm text-text-muted tabular-nums lining-nums">
         {formatDelta(delta)} points depuis le {previous.dateLabel}
       </p>
 

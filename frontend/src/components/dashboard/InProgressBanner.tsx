@@ -18,7 +18,7 @@ export function InProgressBanner({ diagnostic }: InProgressBannerProps) {
         <h2 id="in-progress-heading" className="text-base font-semibold text-text">
           Diagnostic en cours
         </h2>
-        <p className="text-sm text-text-muted">
+        <p className="text-sm text-text-muted tabular-nums lining-nums">
           {diagnostic.answeredCount} question{diagnostic.answeredCount > 1 ? 's' : ''} répondue
           {diagnostic.answeredCount > 1 ? 's' : ''} sur {diagnostic.totalActiveQuestions}
         </p>

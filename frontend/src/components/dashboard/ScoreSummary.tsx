@@ -18,7 +18,7 @@ export function ScoreSummary({ score, sectorCode }: ScoreSummaryProps) {
         Votre score RSE
       </h2>
       <p>
-        <span className="text-4xl font-bold text-blue-maat">{rounded}</span>
+        <span className="text-4xl font-bold text-blue-maat tabular-nums lining-nums">{rounded}</span>
         <span className="text-lg text-text-muted"> / 100</span>
       </p>
       <p className="text-lg font-medium text-text">{label}</p>

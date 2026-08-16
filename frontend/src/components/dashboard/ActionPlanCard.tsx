@@ -27,7 +27,7 @@ export function ActionPlanCard({ actionPlan, canEdit, togglingCode, onToggle }: 
       <h3 id="action-plan-heading" className="mb-1 text-base font-semibold text-text">
         Plan d&apos;actions
       </h3>
-      <p className="mb-3 text-sm text-text-muted">
+      <p className="mb-3 text-sm text-text-muted tabular-nums lining-nums">
         {actionPlan.completedCount} {pluralize(actionPlan.completedCount, 'action terminée', 'actions terminées')} sur{' '}
         {actionPlan.totalCount}
       </p>
@@ -61,7 +61,7 @@ export function ActionPlanCard({ actionPlan, canEdit, togglingCode, onToggle }: 
         Cocher une action ne modifie pas le score : elle est prise en compte lors de votre prochain diagnostic.
       </p>
 
-      <Link to="/plan-actions" className="mt-2 inline-block text-sm font-medium text-blue-maat">
+      <Link to="/plan-actions" className="mt-2 inline-block text-sm font-medium text-blue-maat-text">
         Voir tout le plan d&apos;actions
       </Link>
     </section>

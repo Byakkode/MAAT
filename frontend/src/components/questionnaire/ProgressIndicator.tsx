@@ -16,7 +16,7 @@ export function ProgressIndicator({
   estimatedMinutesRemaining,
 }: ProgressIndicatorProps) {
   return (
-    <p role="status" aria-live="polite" className="mb-4 text-sm text-text-muted">
+    <p role="status" aria-live="polite" className="mb-4 text-sm text-text-muted tabular-nums lining-nums">
       Étape {currentStepIndex + 1} sur {totalSteps} · {answeredCount} question(s) répondue(s) sur {totalQuestions}
       {estimatedMinutesRemaining !== null && ` · environ ${estimatedMinutesRemaining} min restantes`}
     </p>

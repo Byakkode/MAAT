@@ -42,7 +42,7 @@ function QuestionItemComponent({ question }: QuestionItemProps) {
 
       {question.helpText && (
         <details className="mb-3 text-sm text-text-muted">
-          <summary className="cursor-pointer text-blue-maat">Aide</summary>
+          <summary className="cursor-pointer text-blue-maat-text">Aide</summary>
           <p className="mt-1">{question.helpText}</p>
         </details>
       )}
