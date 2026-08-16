@@ -198,6 +198,23 @@ contrôle du code applicatif. Toute reconfirmation de mot de passe (section 6)
 passe donc par le corps JSON, jamais par un en-tête dédié ni un paramètre de
 requête, même sur un endpoint en lecture seule.
 
+**`IEmailSender` hors Development : garde-fou et coupe-circuit assumé.**
+`Program.cs` refuse de démarrer hors Development si aucun `IEmailSender` réel n'est
+enregistré — `LoggingEmailSender` journalise l'adresse e-mail (donnée personnelle)
+et est donc réservé au poste de développement. Tant qu'aucun fournisseur
+transactionnel européen (Brevo, Scaleway TEM — CLAUDE.md) n'est provisionné,
+`Email__Provider=none` active `NullEmailSender` à la place : il n'envoie rien et ne
+journalise ni adresse e-mail ni jeton, seulement le type de message dont l'envoi a
+été demandé. C'est une décision de déploiement assumée et documentée (ADR 0009), pas
+un contournement du garde-fou — celui-ci continue d'exiger une activation explicite ;
+l'absence de configuration fait toujours échouer le démarrage.
+
+Conséquence à ne pas perdre de vue : avec `NullEmailSender`, l'e-mail de vérification
+n'est jamais envoyé. Un compte reste alors non vérifié indéfiniment — il peut se
+connecter (section 1) mais ne peut pas générer de rapport PDF, le livrable central
+du produit, tant qu'un fournisseur réel n'est pas configuré et `Email__Provider`
+basculé sur sa valeur.
+
 ---
 
 ## 6. RGPD

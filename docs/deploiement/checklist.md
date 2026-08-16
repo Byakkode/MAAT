@@ -90,7 +90,12 @@ commandé »), à compléter une fois connue plutôt qu'à deviner.
       config`, référencé dans `RCLONE_REMOTE`.
 - [ ] Fournisseur d'e-mail transactionnel européen configuré (Brevo, Scaleway TEM —
       CLAUDE.md) : `IEmailSender` réel enregistré, sans quoi le démarrage hors
-      Development échoue volontairement (garde-fou déjà présent dans Program.cs).
+      Development échoue volontairement (garde-fou déjà présent dans Program.cs). À
+      défaut, `EMAIL_PROVIDER=none` (valeur par défaut de `.env.production.example`)
+      démarre quand même via `NullEmailSender` (ADR 0009) — mais la vérification
+      d'adresse et donc le rapport PDF restent inopérants tant que cette variable
+      n'est pas basculée sur un fournisseur réel : à ne pas laisser en l'état au-delà
+      d'un premier déploiement de vérification.
 
 ## 6. Premier déploiement
 

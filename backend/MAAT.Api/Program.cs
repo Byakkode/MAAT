@@ -102,9 +102,26 @@ builder.Services.AddScoped<AccountService>();
 // fournisseur réel n'est encore branché (Brevo, Scaleway TEM — cf. CLAUDE.md et
 // ADR 0004) ; le garde-fou juste après builder.Build() fait échouer le démarrage
 // si aucun IEmailSender n'est enregistré hors Development.
+//
+// Email__Provider=none active NullEmailSender à la place : coupe-circuit assumé pour
+// le premier déploiement en Production, tant qu'aucun fournisseur transactionnel n'est
+// provisionné (ADR 0009, docs/specs/auth-securite-rgpd.md section 5). Uniquement sur
+// activation explicite de cette variable — son absence, ou toute autre valeur que
+// "none", continue de faire échouer le démarrage via le garde-fou plus bas. La lecture
+// de "Email:Provider" est résolue paresseusement via IConfiguration au moment de la
+// création du service, pas sur builder.Configuration au niveau du script : sinon, en
+// test, la configuration injectée par WithWebHostBuilder (fusionnée seulement après
+// builder.Build()) ne serait jamais vue (cf. CLAUDE.md).
 if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddScoped<IEmailSender, LoggingEmailSender>();
+}
+else
+{
+    builder.Services.AddScoped<IEmailSender>(sp =>
+        sp.GetRequiredService<IConfiguration>()["Email:Provider"] == "none"
+            ? ActivatorUtilities.CreateInstance<NullEmailSender>(sp)
+            : null!);
 }
 
 builder.Services.AddScoped<AuthService>();
@@ -343,7 +360,9 @@ if (!app.Environment.IsDevelopment())
             "Aucun IEmailSender réel n'est configuré. LoggingEmailSender journalise les adresses " +
             "e-mail et est réservé à l'environnement Development (docs/specs/auth-securite-rgpd.md, " +
             "section 5). Configurez un fournisseur transactionnel européen (Brevo, Scaleway TEM) " +
-            "avant de démarrer l'application hors Development.");
+            "avant de démarrer l'application hors Development, ou définissez explicitement " +
+            "Email__Provider=none pour démarrer sans envoi d'e-mail (NullEmailSender, ADR 0009) — " +
+            "la vérification d'adresse et donc le rapport PDF restent alors inopérants.");
     }
 }
 
