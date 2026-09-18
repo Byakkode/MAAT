@@ -49,7 +49,8 @@ function RadarTooltipContent({ active, payload }: RadarTooltipContentProps) {
       <p className="text-text-muted">Score : {Math.round(point.score)} / 100</p>
       <p className="text-text-muted">Pondération sectorielle : {formatPercent(point.sectorWeight)}</p>
       <p className="text-text-muted">
-        {point.triggeredRecommendationCount} recommandation{point.triggeredRecommendationCount > 1 ? 's' : ''} déclenchée
+        {point.triggeredRecommendationCount} recommandation
+        {point.triggeredRecommendationCount > 1 ? 's' : ''} déclenchée
         {point.triggeredRecommendationCount > 1 ? 's' : ''}
       </p>
     </div>
@@ -87,8 +88,8 @@ function DomainRadarChartComponent({ domainScores }: DomainRadarChartProps) {
 
   return (
     <div>
-      <h3 className="mb-2 text-base font-semibold text-text">Radar des cinq domaines</h3>
-      <div role="img" aria-label={description} className="h-72 w-full">
+      <h2 className="mb-3 text-base font-semibold text-text">Radar des cinq domaines</h2>
+      <div role="img" aria-label={description} className="h-64 w-full">
         {/* aria-hidden : la structure SVG de Recharts n'est jamais exposée séparément à
             l'AT, qui reçoit déjà la description complète ci-dessus (voir DomainScoreTable
             pour l'équivalent tabulaire, exigé par la même section). */}
@@ -99,14 +100,14 @@ function DomainRadarChartComponent({ domainScores }: DomainRadarChartProps) {
                 tableau alternatif ci-dessus — un seul mécanisme d'accessibilité par graphique. */}
             <RadarChart data={data} accessibilityLayer={false}>
               <PolarGrid stroke="var(--color-border)" />
-              <PolarAngleAxis dataKey="label" tick={{ fill: 'var(--color-text)', fontSize: 12 }} />
+              <PolarAngleAxis dataKey="label" tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }} />
               {/* Échelle fixe 0-100, jamais adaptée aux données (section 3). */}
               <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
               <Radar
                 dataKey="score"
                 stroke="var(--color-blue-maat)"
                 fill="var(--color-blue-maat)"
-                fillOpacity={0.25}
+                fillOpacity={0.15}
                 dot={(dotProps: DotItemDotProps) => {
                   const point = dotProps.payload as RadarPoint
                   return (
@@ -116,8 +117,8 @@ function DomainRadarChartComponent({ domainScores }: DomainRadarChartProps) {
                       cy={dotProps.cy ?? 0}
                       r={5}
                       fill={DOMAIN_COLORS[point.domain]}
-                      stroke="var(--color-bg)"
-                      strokeWidth={1}
+                      stroke="white"
+                      strokeWidth={1.5}
                     />
                   )
                 }}
@@ -127,6 +128,21 @@ function DomainRadarChartComponent({ domainScores }: DomainRadarChartProps) {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* Légende de couleur — absente de la version précédente, nécessaire pour lire les
+          points du radar sans survoler (accessibilité statique). */}
+      <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1" aria-label="Légende des domaines">
+        {data.map((point) => (
+          <li key={point.domain} className="flex items-center gap-1.5 text-xs text-text-muted">
+            <span
+              aria-hidden
+              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ backgroundColor: DOMAIN_COLORS[point.domain] }}
+            />
+            {point.label}
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

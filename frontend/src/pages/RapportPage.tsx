@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { ReportDownloadButton } from '../components/report/ReportDownloadButton'
+import { Card } from '../components/ui/Card'
 import { useDashboardStore } from '../store/dashboardStore'
 
 // docs/specs/rapport-pdf.md, section 6 : bouton de téléchargement sur la page de résultat
@@ -17,7 +18,7 @@ export function RapportPage() {
   }, [load])
 
   return (
-    <section className="rounded-card border border-border bg-white p-5 shadow-card">
+    <Card as="section">
       <h1 className="mb-4 text-2xl font-semibold text-text">Rapport</h1>
 
       {(loadStatus === 'idle' || loadStatus === 'loading') && (
@@ -40,6 +41,6 @@ export function RapportPage() {
             Aucun diagnostic complété pour le moment : terminez le questionnaire pour générer votre premier rapport.
           </p>
         ))}
-    </section>
+    </Card>
   )
 }

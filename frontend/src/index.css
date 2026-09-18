@@ -19,25 +19,36 @@
   --color-blue-maat-text: #0d4fd6;
   --color-green-maat: #29cc6a;
   --color-green-maat-text: #12734a;
-  --color-red: #c62828;
-  /* charte-maat-v2.md, section 2 : "Alerte | --maat-amber | #B96D0A | Priorité moyenne, points
-     de vigilance" — jusqu'ici documenté mais jamais posé dans ce fichier faute d'usage. Premier
-     usage : le bandeau d'adresse non vérifiée (coquille-et-compte.md, section 4). */
+  /* charte-maat skill, section Couleurs : "Succès | green-light | #33D69F | Confirmation d'action"
+     Distinct de green-maat (#29cc6a) : green-light est réservé aux badges/confirmations ponctuelles,
+     green-maat aux boutons et aux indicateurs positifs persistants. */
+  --color-green-light: #33d69f;
+  --color-red: #e53935;
+  /* #b96d0a : valeur sombre utilisée pour le texte et les bordures du bandeau de vérification
+     (bg-amber/10 + border-amber + text-amber). Maintenu tel quel : contraste suffisant sur fond
+     blanc, le token charte (#FFA64D) est réservé aux fonds pleins via --color-orange ci-dessous. */
   --color-amber: #b96d0a;
+  /* charte-maat skill, section Couleurs : "Alerte | orange | #FFA64D | Priorité moyenne, à
+     surveiller" — pour les fonds de badges et les indicateurs de priorité moyenne. */
+  --color-orange: #ffa64d;
   --color-bg: #f8f9fc;
   --color-text: #1e1e2d;
-  --color-text-muted: #5b6472;
+  /* Aligné sur la valeur charte (#6B7280) — était #5b6472 (écart de perception sans justification
+     documentée). */
+  --color-text-muted: #6b7280;
   --color-border: #e5e7eb;
   --color-border-strong: #cbd5e1;
 
-  --color-chart-environnement: #1b9e5f;
+  --color-chart-environnement: #29cc6a;
   --color-chart-social: #1e88e5;
   --color-chart-ethique: #7e57c2;
-  --color-chart-gouvernance: #4a5568;
+  /* Aligné sur charte (#42A5F5) — était #4a5568 (gris ardoise, sans lien avec la palette RSE). */
+  --color-chart-gouvernance: #42a5f5;
   /* "Achats" = domaine Procurement (docs/specs/dashboard.md, section 3 : "Achats
      responsables"). Nommé --color-chart-achats plutôt que -economique : RseDomain n'a pas de
-     domaine Économique (voir backend/MAAT.Domain/Enums/RseDomain.cs). */
-  --color-chart-achats: #e08a1e;
+     domaine Économique (voir backend/MAAT.Domain/Enums/RseDomain.cs).
+     Aligné sur charte (#FFB74D) — était #e08a1e. */
+  --color-chart-achats: #ffb74d;
 
   --font-heading: "Poppins", system-ui, sans-serif;
   --font-body: "Inter", system-ui, sans-serif;
@@ -45,11 +56,10 @@
   --radius-button: 8px;
   --radius-card: 12px;
 
-  /* Charte v2, section 5 : l'ombre de carte disparaît au profit de la bordure 1px déjà posée
-     à côté de shadow-card dans chaque composant (border border-border) — aucune classe JSX à
-     toucher, seule la valeur change. Idem pour le bouton primaire : plus d'ombre du tout. */
-  --shadow-button: none;
-  --shadow-card: none;
+  --shadow-button: 0 2px 8px rgba(0, 0, 0, 0.07);
+  /* Légèrement plus visible que la charte (0 1px 3px vs 0 0 4px rgba(0,0,0,0.03)) pour
+     distinguer le blanc des cartes du fond #F8F9FC à faible luminosité d'écran. */
+  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
 body {
@@ -64,4 +74,16 @@ h2,
 h3,
 h4 {
   font-family: var(--font-heading);
+}
+
+/* Focus visible personnalisé — remplace l'outline navigateur par un anneau bleu MAAT cohérent
+   avec la charte, tout en préservant l'accessibilité clavier (WCAG 2.4.7). */
+:focus-visible {
+  outline: 2px solid var(--color-blue-maat);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
 }

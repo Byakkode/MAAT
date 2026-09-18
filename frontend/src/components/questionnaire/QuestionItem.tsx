@@ -11,6 +11,13 @@ const SAVE_STATUS_TEXT: Record<SaveStatus, string> = {
   error: "Échec de l'enregistrement",
 }
 
+const SAVE_STATUS_COLOR: Record<SaveStatus, string> = {
+  idle: '',
+  saving: 'text-text-muted',
+  saved: 'text-green-maat-text',
+  error: 'text-red',
+}
+
 interface QuestionItemProps {
   question: QuestionAnswer
 }
@@ -36,20 +43,34 @@ function QuestionItemComponent({ question }: QuestionItemProps) {
       data-render-count={renderCount.current}
       className="mb-4 rounded-card border border-border bg-white p-5 shadow-card"
     >
-      <legend id={legendId} className="mb-2 px-1 text-base font-medium text-text">
+      <legend id={legendId} className="mb-3 px-1 text-base font-medium text-text">
         {question.text}
       </legend>
 
       {question.helpText && (
-        <details className="mb-3 text-sm text-text-muted">
-          <summary className="cursor-pointer text-blue-maat-text">Aide</summary>
-          <p className="mt-1">{question.helpText}</p>
+        <details className="mb-3 text-sm">
+          <summary className="cursor-pointer font-medium text-blue-maat-text hover:underline">
+            Aide
+          </summary>
+          <p className="mt-2 text-text-muted">{question.helpText}</p>
         </details>
       )}
 
       <div role="radiogroup" aria-labelledby={legendId} className="flex flex-col gap-2">
         {ANSWER_SCALE.map((option) => (
-          <label key={option.value} className="flex items-center gap-2 text-sm text-text">
+          <label
+            key={option.value}
+            className={[
+              'flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-2.5 text-sm transition-colors',
+              value === option.value
+                ? 'border-blue-maat bg-blue-maat/5 font-medium text-text'
+                : 'border-border text-text hover:border-blue-maat/30 hover:bg-bg',
+              !isEditable ? 'cursor-not-allowed opacity-80' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
+            {/* Radio natif sr-only — présent dans le DOM pour les tests et l'accessibilité */}
             <input
               type="radio"
               name={question.code}
@@ -57,14 +78,30 @@ function QuestionItemComponent({ question }: QuestionItemProps) {
               checked={value === option.value}
               disabled={!isEditable}
               onChange={() => setAnswer(question.code, option.value)}
-              className="h-4 w-4 accent-blue-maat"
+              className="sr-only"
             />
+            {/* Indicateur visuel personnalisé */}
+            <span
+              aria-hidden="true"
+              className={[
+                'flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
+                value === option.value ? 'border-blue-maat bg-blue-maat' : 'border-border bg-white',
+              ].join(' ')}
+            >
+              {value === option.value && (
+                <span className="h-1.5 w-1.5 rounded-full bg-white" />
+              )}
+            </span>
             {option.label}
           </label>
         ))}
       </div>
 
-      <p role="status" aria-live="polite" className="mt-2 text-sm text-text-muted">
+      <p
+        role="status"
+        aria-live="polite"
+        className={`mt-3 text-xs ${SAVE_STATUS_COLOR[status]}`}
+      >
         {SAVE_STATUS_TEXT[status]}
       </p>
     </fieldset>

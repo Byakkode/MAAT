@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from 'react'
 import * as accountApi from '../../api/accountApi'
 import { ApiError } from '../../api/authApi'
+import { Card } from '../ui/Card'
 
 type Status = 'idle' | 'submitting' | 'success' | 'error'
 
@@ -29,7 +30,7 @@ export function PasswordChangeCard() {
   }
 
   return (
-    <section aria-labelledby="password-heading" className="rounded-card border border-border bg-white p-5 shadow-card">
+    <Card as="section" aria-labelledby="password-heading">
       <h2 id="password-heading" className="mb-1 text-base font-semibold text-text">
         Mot de passe
       </h2>
@@ -48,7 +49,7 @@ export function PasswordChangeCard() {
             required
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full max-w-sm rounded-button border border-border px-3 py-2 text-text"
+            className="w-full max-w-sm rounded-button border border-border px-3 py-2 text-sm text-text transition-colors focus:border-blue-maat focus:outline-none focus:ring-2 focus:ring-blue-maat/20"
           />
         </div>
         <div>
@@ -63,7 +64,7 @@ export function PasswordChangeCard() {
             minLength={12}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full max-w-sm rounded-button border border-border px-3 py-2 text-text"
+            className="w-full max-w-sm rounded-button border border-border px-3 py-2 text-sm text-text transition-colors focus:border-blue-maat focus:outline-none focus:ring-2 focus:ring-blue-maat/20"
           />
         </div>
         {status === 'error' && error && (
@@ -84,6 +85,6 @@ export function PasswordChangeCard() {
           {status === 'submitting' ? 'Modification…' : 'Modifier le mot de passe'}
         </button>
       </form>
-    </section>
+    </Card>
   )
 }

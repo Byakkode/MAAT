@@ -1,6 +1,7 @@
 import { ROLE_LABELS } from '../../constants/roleLabels'
 import { useAuthStore } from '../../store/authStore'
 import { useCurrentUserStore } from '../../store/currentUserStore'
+import { Card } from '../ui/Card'
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -16,7 +17,7 @@ export function IdentityCard() {
   const createdAt = useCurrentUserStore((s) => s.createdAt)
 
   return (
-    <section aria-labelledby="identity-heading" className="rounded-card border border-border bg-white p-5 shadow-card">
+    <Card as="section" aria-labelledby="identity-heading">
       <h2 id="identity-heading" className="mb-3 text-base font-semibold text-text">
         Identité
       </h2>
@@ -39,6 +40,6 @@ export function IdentityCard() {
         </div>
       </dl>
       <p className="mt-3 text-sm text-text-muted">L&apos;adresse e-mail n&apos;est pas modifiable pour le moment.</p>
-    </section>
+    </Card>
   )
 }

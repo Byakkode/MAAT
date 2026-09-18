@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from 'react'
 import * as accountApi from '../../api/accountApi'
 import { ApiError } from '../../api/authApi'
+import { Card } from '../ui/Card'
 
 type Status = 'idle' | 'submitting' | 'success' | 'error'
 
@@ -26,7 +27,7 @@ export function DataExportCard() {
   }
 
   return (
-    <section aria-labelledby="export-heading" className="rounded-card border border-border bg-white p-5 shadow-card">
+    <Card as="section" aria-labelledby="export-heading">
       <h2 id="export-heading" className="mb-1 text-base font-semibold text-text">
         Mes données
       </h2>
@@ -45,7 +46,7 @@ export function DataExportCard() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full max-w-sm rounded-button border border-border px-3 py-2 text-text"
+            className="w-full max-w-sm rounded-button border border-border px-3 py-2 text-sm text-text transition-colors focus:border-blue-maat focus:outline-none focus:ring-2 focus:ring-blue-maat/20"
           />
         </div>
         {status === 'error' && error && (
@@ -66,6 +67,6 @@ export function DataExportCard() {
           {status === 'submitting' ? 'Export…' : 'Exporter mes données'}
         </button>
       </form>
-    </section>
+    </Card>
   )
 }

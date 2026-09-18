@@ -3,6 +3,7 @@ import { DataExportCard } from '../components/account/DataExportCard'
 import { DeleteAccountCard } from '../components/account/DeleteAccountCard'
 import { IdentityCard } from '../components/account/IdentityCard'
 import { PasswordChangeCard } from '../components/account/PasswordChangeCard'
+import { Card } from '../components/ui/Card'
 import { useCurrentUserStore } from '../store/currentUserStore'
 
 // docs/specs/coquille-et-compte.md, sections 5 et 6 : quatre blocs, dans l'ordre de risque
@@ -39,7 +40,9 @@ export function AccountPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold text-text">Mon compte</h1>
+      <Card>
+        <h1 className="text-2xl font-semibold text-text">Mon compte</h1>
+      </Card>
       <IdentityCard />
       <PasswordChangeCard />
       <DataExportCard />

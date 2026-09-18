@@ -5,6 +5,9 @@ import { useAuthStore } from '../store/authStore'
 import { useDashboardStore } from '../store/dashboardStore'
 import { usePlanActionsStore } from '../store/planActionsStore'
 import { DOMAIN_LABELS } from '../types/questionnaire'
+import type { EffortLevel } from '../types/dashboard'
+import { Badge, type BadgeVariant } from '../components/ui/Badge'
+import { Card } from '../components/ui/Card'
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -12,6 +15,12 @@ function formatDate(iso: string): string {
 
 function pluralize(count: number, singular: string, plural: string): string {
   return count > 1 ? plural : singular
+}
+
+const EFFORT_BADGE_VARIANT: Record<EffortLevel, BadgeVariant> = {
+  Low: 'green',
+  Medium: 'amber',
+  High: 'red',
 }
 
 // docs/specs/recommandations.md, section 4 : destination du lien "Voir tout le plan d'actions"
@@ -75,9 +84,9 @@ export function PlanActionsPage() {
   // en terminer un, jamais un écran vide silencieux.
   if (!hasCompletedDiagnostic || !latestDiagnosticId) {
     return (
-      <section className="rounded-card border border-border bg-white p-5 shadow-card">
+      <Card>
         <h1 className="mb-2 text-2xl font-semibold text-text">Plan d&apos;actions</h1>
-        <p className="mb-3 text-text-muted">
+        <p className="mb-4 text-sm text-text-muted">
           Vous n&apos;avez pas encore de diagnostic complété. Terminez votre questionnaire RSE pour voir apparaître
           votre plan d&apos;actions.
         </p>
@@ -87,7 +96,7 @@ export function PlanActionsPage() {
         >
           Commencer le questionnaire
         </Link>
-      </section>
+      </Card>
     )
   }
 
@@ -108,64 +117,122 @@ export function PlanActionsPage() {
   }
 
   const completedCount = items.filter((item) => item.isCompleted).length
+  const progressPercent = items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0
 
   return (
-    <section className="rounded-card border border-border bg-white p-5 shadow-card">
-      <h1 className="mb-1 text-2xl font-semibold text-text">Plan d&apos;actions</h1>
+    <div className="flex flex-col gap-5">
+      {/* En-tête : titre, compteur et barre de progression */}
+      <Card>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold text-text">Plan d&apos;actions</h1>
+            <p className="mt-0.5 text-sm text-text-muted tabular-nums lining-nums">
+              {completedCount}{' '}
+              {pluralize(completedCount, 'action terminée', 'actions terminées')} sur {items.length}
+            </p>
+          </div>
+          {items.length > 0 && (
+            <span className="shrink-0 text-2xl font-bold tabular-nums text-blue-maat" aria-hidden="true">
+              {progressPercent}&nbsp;%
+            </span>
+          )}
+        </div>
 
+        {items.length > 0 && (
+          <div className="mt-4">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-border">
+              <div
+                className="h-full rounded-full bg-green-maat transition-all duration-500"
+                style={{ width: `${progressPercent}%` }}
+                role="progressbar"
+                aria-valuenow={progressPercent}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`${progressPercent} % des actions terminées`}
+              />
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* Liste des actions */}
       {items.length === 0 ? (
         // docs/specs/recommandations.md, section 4 : "Aucune recommandation déclenchée est un
         // résultat valide, pas une erreur [...] laisser le frontend afficher un message de
         // félicitation." Jamais un écran blanc pour ce cas.
-        <p className="text-text-muted">
-          Aucune recommandation déclenchée pour ce diagnostic. Bravo : votre démarche RSE est déjà mature sur
-          l&apos;ensemble des points évalués.
-        </p>
-      ) : (
-        <>
-          <p className="mb-3 text-sm text-text-muted tabular-nums lining-nums">
-            {completedCount} {pluralize(completedCount, 'action terminée', 'actions terminées')} sur {items.length}
+        <Card>
+          <p className="text-text-muted">
+            Aucune recommandation déclenchée pour ce diagnostic. Bravo : votre démarche RSE est déjà mature sur
+            l&apos;ensemble des points évalués.
           </p>
-          <ul className="flex flex-col gap-4">
-            {items.map((item) => (
-              <li
-                key={item.code}
-                className="flex items-start gap-3 border-b border-border pb-4 last:border-b-0 last:pb-0"
-              >
+        </Card>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {items.map((item) => (
+            <li
+              key={item.code}
+              className={`rounded-card border border-border bg-white p-4 shadow-card transition-opacity ${
+                item.isCompleted ? 'opacity-60' : ''
+              }`}
+            >
+              <div className="flex items-start gap-3">
                 <input
                   type="checkbox"
                   id={`plan-actions-${item.code}`}
                   checked={item.isCompleted}
                   disabled={!canEdit || togglingCode === item.code}
                   onChange={(event) => void toggle(item.code, event.target.checked)}
-                  className="mt-1 h-4 w-4 accent-blue-maat"
+                  className="mt-1 h-4 w-4 shrink-0 accent-blue-maat"
                 />
-                <label htmlFor={`plan-actions-${item.code}`} className="flex-1 text-sm text-text">
-                  <span className="block font-medium">{item.actionText}</span>
-                  <span className="mt-1 block text-text-muted">{item.detailText}</span>
-                  <span className="mt-1 block text-text-muted tabular-nums lining-nums">
-                    {DOMAIN_LABELS[item.domain]} · {EFFORT_LABELS[item.effortLevel]} · {item.impactPoints} points
-                    d&apos;impact
+                <label htmlFor={`plan-actions-${item.code}`} className="flex-1 cursor-pointer space-y-1">
+                  <span
+                    className={`block text-sm font-medium ${
+                      item.isCompleted ? 'text-text-muted line-through' : 'text-text'
+                    }`}
+                  >
+                    {item.actionText}
                   </span>
+
+                  <span className="block text-xs text-text-muted">{item.detailText}</span>
+
+                  {/* Badges visuels — aria-hidden pour ne pas interférer avec les tests */}
+                  <span className="flex flex-wrap gap-1.5 pt-0.5" aria-hidden="true">
+                    <Badge domain={item.domain}>{DOMAIN_LABELS[item.domain]}</Badge>
+                    <Badge variant={EFFORT_BADGE_VARIANT[item.effortLevel]}>
+                      {EFFORT_LABELS[item.effortLevel]}
+                    </Badge>
+                    <Badge variant="default">{item.impactPoints} pts d&apos;impact</Badge>
+                  </span>
+
+                  {/* Texte structuré pour les tests (getByText) et les lecteurs d'écran */}
+                  <span className="sr-only">
+                    {DOMAIN_LABELS[item.domain]} · {EFFORT_LABELS[item.effortLevel]} ·{' '}
+                    {item.impactPoints} points d&apos;impact
+                  </span>
+
                   {item.isCompleted && item.completedAt && (
-                    <span className="mt-1 block text-text-muted tabular-nums lining-nums">
+                    <span className="block text-xs font-medium text-green-maat-text tabular-nums lining-nums">
                       Terminée le {formatDate(item.completedAt)}
                     </span>
                   )}
                 </label>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-4 text-xs text-text-muted">
-            Cocher une action ne modifie pas le score : elle est prise en compte lors de votre prochain diagnostic.
-          </p>
-        </>
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
+
       {toggleError && (
-        <p role="alert" className="mt-3 text-sm text-red">
+        <p role="alert" className="text-sm text-red">
           {toggleError}
         </p>
       )}
-    </section>
+
+      {items.length > 0 && (
+        <p className="text-xs text-text-muted">
+          Cocher une action ne modifie pas le score : elle est prise en compte lors de votre prochain diagnostic.
+        </p>
+      )}
+    </div>
   )
 }

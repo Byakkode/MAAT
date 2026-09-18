@@ -20,7 +20,7 @@ test('compte sans diagnostic complété → Plan d’actions affiche une invitat
   await expect(page.getByRole('status')).toBeVisible()
 
   await page.getByRole('link', { name: 'Se connecter' }).click()
-  await expect(page.getByRole('heading', { name: 'Connexion' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Connexion', exact: true })).toBeVisible()
   await page.getByLabel('Adresse e-mail').fill(email)
   await page.getByLabel('Mot de passe').fill(password)
   await page.getByRole('button', { name: 'Se connecter' }).click()
@@ -56,7 +56,7 @@ test('diagnostic complété avec des réponses faibles → recommandations visib
   await expect(page.getByRole('status')).toBeVisible()
 
   await page.getByRole('link', { name: 'Se connecter' }).click()
-  await expect(page.getByRole('heading', { name: 'Connexion' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Connexion', exact: true })).toBeVisible()
   await page.getByLabel('Adresse e-mail').fill(email)
   await page.getByLabel('Mot de passe').fill(password)
   await page.getByRole('button', { name: 'Se connecter' }).click()
