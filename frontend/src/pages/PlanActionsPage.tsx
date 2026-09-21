@@ -381,6 +381,7 @@ export function PlanActionsPage() {
               notes: result.notes,
               progressUpdatedAt: result.progressUpdatedAt,
               isCompleted: result.status === 'Done',
+              completedAt: result.completedAt,
             }
           : i
       )

@@ -38,6 +38,7 @@ export interface UpsertResult {
   dueDate: string | null
   notes: string | null
   progressUpdatedAt: string
+  completedAt: string | null
 }
 
 async function readError(res: Response, fallback: string): Promise<string> {

@@ -17,14 +17,29 @@ test('compte sans diagnostic complété → Plan d’actions affiche une invitat
   await page.getByLabel('Code NAF').fill('6201Z')
   await page.getByRole('option', { name: /6201Z/ }).first().click()
   await page.getByLabel('Région').selectOption('Île-de-France')
-  await page.getByRole('button', { name: "S'inscrire" }).click()
-  await expect(page.getByRole('status')).toBeVisible()
+  // Même raison que pour le login ci-dessous : bcrypt WorkFactor=12 peut dépasser les 5 s
+  // de timeout par défaut de toBeVisible() sous charge parallèle. On attend la réponse réseau
+  // pour garantir que l'utilisateur est en base avant de tenter la connexion.
+  await Promise.all([
+    page.waitForResponse(
+      (resp) => resp.url().includes('/api/auth/register') && resp.request().method() === 'POST',
+    ),
+    page.getByRole('button', { name: "S'inscrire" }).click(),
+  ])
+  await expect(page.getByRole('status').filter({ hasText: 'Vérifiez votre boîte mail' })).toBeVisible()
 
   await page.getByRole('link', { name: 'Se connecter' }).click()
   await expect(page.getByRole('heading', { name: 'Connexion', exact: true })).toBeVisible()
   await page.getByLabel('Adresse e-mail').fill(email)
   await page.getByLabel('Mot de passe').fill(password)
-  await page.getByRole('button', { name: 'Se connecter' }).click()
+  // bcrypt WorkFactor=12 peut prendre plusieurs secondes sous charge parallèle — attendre la
+  // réponse réseau avant de vérifier la navigation évite de dépendre d'un timeout arbitraire.
+  await Promise.all([
+    page.waitForResponse(
+      (resp) => resp.url().includes('/api/auth/login') && resp.request().method() === 'POST',
+    ),
+    page.getByRole('button', { name: 'Se connecter' }).click(),
+  ])
   await expect(page).toHaveURL('/')
   await expect(page.getByRole('heading', { name: 'Tableau de bord', exact: true })).toBeVisible()
 
@@ -54,14 +69,26 @@ test('diagnostic complété avec des réponses faibles → recommandations visib
   await page.getByLabel('Code NAF').fill('6201Z')
   await page.getByRole('option', { name: /6201Z/ }).first().click()
   await page.getByLabel('Région').selectOption('Île-de-France')
-  await page.getByRole('button', { name: "S'inscrire" }).click()
-  await expect(page.getByRole('status')).toBeVisible()
+  // Même raison que pour le premier test.
+  await Promise.all([
+    page.waitForResponse(
+      (resp) => resp.url().includes('/api/auth/register') && resp.request().method() === 'POST',
+    ),
+    page.getByRole('button', { name: "S'inscrire" }).click(),
+  ])
+  await expect(page.getByRole('status').filter({ hasText: 'Vérifiez votre boîte mail' })).toBeVisible()
 
   await page.getByRole('link', { name: 'Se connecter' }).click()
   await expect(page.getByRole('heading', { name: 'Connexion', exact: true })).toBeVisible()
   await page.getByLabel('Adresse e-mail').fill(email)
   await page.getByLabel('Mot de passe').fill(password)
-  await page.getByRole('button', { name: 'Se connecter' }).click()
+  // Même raison que ci-dessus : bcrypt sous charge parallèle peut dépasser 5 s.
+  await Promise.all([
+    page.waitForResponse(
+      (resp) => resp.url().includes('/api/auth/login') && resp.request().method() === 'POST',
+    ),
+    page.getByRole('button', { name: 'Se connecter' }).click(),
+  ])
   await expect(page).toHaveURL('/')
 
   await page.getByRole('link', { name: 'Diagnostic', exact: true }).click()
@@ -84,7 +111,10 @@ test('diagnostic complété avec des réponses faibles → recommandations visib
 
     for (let i = 0; i < count; i += 1) {
       const fieldset = fieldsets.nth(i)
-      await fieldset.getByRole('radio', { name: "Non, ce n'est pas en place" }).check()
+      // Même raison que questionnaire.spec.ts : contrôle React, check() échoue sur le re-render async.
+      await fieldset
+        .getByRole('radio', { name: "Non, ce n'est pas en place" })
+        .evaluate((el) => (el as HTMLInputElement).click())
       await expect(fieldset.getByRole('status')).toHaveText('Enregistré', { timeout: 20_000 })
     }
 
@@ -108,22 +138,23 @@ test('diagnostic complété avec des réponses faibles → recommandations visib
   await expect(page.getByRole('heading', { name: "Plan d'actions" })).toBeVisible()
 
   // Écran non vide : au moins une recommandation, jamais un écran blanc pour ce compte.
-  const checkboxes = page.getByRole('checkbox')
-  await expect(checkboxes.first()).toBeVisible()
-  const totalBefore = await checkboxes.count()
-  expect(totalBefore).toBeGreaterThan(0)
+  // Les actions utilisent un bouton de statut cyclique (4 états : Planifié → En cours →
+  // Bloqué → Terminé), pas de case à cocher binaire.
+  const statusButtons = page.getByRole('button', { name: /Statut :/ })
+  await expect(statusButtons.first()).toBeVisible()
+  expect(await statusButtons.count()).toBeGreaterThan(0)
 
-  // Coche la première action et vérifie que l'état survit à un rechargement complet — pas
-  // seulement un état local React qui disparaîtrait au premier F5. La case est contrôlée par
-  // l'état serveur (planActionsStore.toggle : PATCH puis re-fetch) plutôt que par un état local
-  // synchrone, donc .click() + assertion qui relance (toBeChecked), pas .check() qui vérifie
-  // une seule fois juste après le clic et échouerait sur ce délai réseau.
-  const firstItem = page.locator('li').filter({ has: checkboxes.first() })
-  await checkboxes.first().click()
-  await expect(checkboxes.first()).toBeChecked({ timeout: 10_000 })
+  // Fait passer la première action jusqu'à "Terminé" (3 clics) et vérifie que l'état survit
+  // à un rechargement complet — persisté côté serveur (PATCH + re-fetch), pas état React local.
+  // toHaveAccessibleName attend le re-rendu après chaque sauvegarde avant le clic suivant.
+  const firstItem = page.locator('li').filter({ has: statusButtons.first() })
+  for (const expectedLabel of [/Statut : En cours/, /Statut : Bloqué/, /Statut : Terminé/]) {
+    await statusButtons.first().click()
+    await expect(statusButtons.first()).toHaveAccessibleName(expectedLabel, { timeout: 10_000 })
+  }
   await expect(firstItem.getByText(/Terminée le/)).toBeVisible()
 
   await page.reload()
   await expect(page.getByRole('heading', { name: "Plan d'actions" })).toBeVisible()
-  await expect(page.getByRole('checkbox').first()).toBeChecked()
+  await expect(page.getByRole('button', { name: /Statut : Terminé/ }).first()).toBeVisible()
 })
