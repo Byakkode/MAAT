@@ -1,8 +1,7 @@
+using MAAT.Application.Interfaces;
 using MAAT.Domain.Entities;
-using MAAT.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace MAAT.Api.Controllers;
 
@@ -34,7 +33,7 @@ public sealed class RseIndicatorsDto
 [ApiController]
 [Route("api/indicators")]
 [Authorize]
-public class IndicatorsController(MaatDbContext db) : ControllerBase
+public class IndicatorsController(IRseIndicatorsRepository indicatorsRepository) : ControllerBase
 {
     [HttpGet("{year:int}")]
     public async Task<IActionResult> Get(int year, CancellationToken ct)
@@ -43,8 +42,7 @@ public class IndicatorsController(MaatDbContext db) : ControllerBase
         if (!Guid.TryParse(companyIdClaim, out var companyId))
             return Unauthorized();
 
-        var record = await db.RseIndicators
-            .FirstOrDefaultAsync(r => r.CompanyId == companyId && r.Year == year, ct);
+        var record = await indicatorsRepository.GetByCompanyAndYearAsync(companyId, year, ct);
 
         if (record is null)
             return NoContent();
@@ -62,13 +60,12 @@ public class IndicatorsController(MaatDbContext db) : ControllerBase
         if (!Guid.TryParse(companyIdClaim, out var companyId))
             return Unauthorized();
 
-        var record = await db.RseIndicators
-            .FirstOrDefaultAsync(r => r.CompanyId == companyId && r.Year == year, ct);
+        var record = await indicatorsRepository.GetByCompanyAndYearAsync(companyId, year, ct);
 
         if (record is null)
         {
             record = new RseIndicators(companyId, year);
-            db.RseIndicators.Add(record);
+            indicatorsRepository.Add(record);
         }
 
         record.Update(
@@ -91,7 +88,7 @@ public class IndicatorsController(MaatDbContext db) : ControllerBase
             dto.RseInvestmentEur,
             dto.ExportRevenuePct);
 
-        await db.SaveChangesAsync(ct);
+        await indicatorsRepository.SaveAsync(ct);
         return Ok(ToDto(record));
     }
 
@@ -102,11 +99,7 @@ public class IndicatorsController(MaatDbContext db) : ControllerBase
         if (!Guid.TryParse(companyIdClaim, out var companyId))
             return Unauthorized();
 
-        var years = await db.RseIndicators
-            .Where(r => r.CompanyId == companyId)
-            .Select(r => r.Year)
-            .OrderByDescending(y => y)
-            .ToListAsync(ct);
+        var years = await indicatorsRepository.GetYearsByCompanyAsync(companyId, ct);
 
         return Ok(years);
     }

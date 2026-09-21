@@ -5,6 +5,8 @@ import type { CompanySizeRange } from '../types/auth'
 import { AuthPanel } from '../components/auth/AuthPanel'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import { NafCombobox } from '../components/ui/NafCombobox'
+import { REGIONS, type Region } from '../constants/regions'
 
 const AUTH_BG: React.CSSProperties = { background: '#0c1322' }
 
@@ -23,7 +25,7 @@ export function RegisterPage() {
   const [companyName, setCompanyName] = useState('')
   const [sectorCode, setSectorCode] = useState('')
   const [sizeRange, setSizeRange] = useState<CompanySizeRange>('Micro')
-  const [region, setRegion] = useState('')
+  const [region, setRegion] = useState<Region>(REGIONS[0])
   const [submitting, setSubmitting] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
@@ -116,17 +118,14 @@ export function RegisterPage() {
             onChange={(e) => setCompanyName(e.target.value)}
           />
 
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Code NAF"
-              id="register-sector-code"
-              name="sectorCode"
-              type="text"
-              required
-              value={sectorCode}
-              onChange={(e) => setSectorCode(e.target.value)}
-            />
+          <NafCombobox
+            label="Secteur d'activité (code NAF)"
+            value={sectorCode}
+            onChange={setSectorCode}
+            required
+          />
 
+          <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="register-size-range" className="text-[13px] font-medium text-text">
                 Tranche d&apos;effectif
@@ -144,17 +143,25 @@ export function RegisterPage() {
                 ))}
               </select>
             </div>
-          </div>
 
-          <Input
-            label="Région"
-            id="register-region"
-            name="region"
-            type="text"
-            required
-            value={region}
-            onChange={(e) => setRegion(e.target.value)}
-          />
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="register-region" className="text-[13px] font-medium text-text">
+                Région
+              </label>
+              <select
+                id="register-region"
+                value={region}
+                onChange={(e) => setRegion(e.target.value as Region)}
+                className="w-full rounded-[10px] border border-border bg-white px-3.5 py-2.5 text-sm text-text shadow-[0_1px_2px_rgba(0,0,0,0.04)] focus:border-blue-maat/70 focus:outline-none focus:ring-2 focus:ring-blue-maat/10 transition-all duration-150"
+              >
+                {REGIONS.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
           {error && (
             <p role="alert" className="text-sm text-red">

@@ -1,10 +1,8 @@
 using MAAT.Application.Interfaces;
 using MAAT.Domain.Entities;
-using MAAT.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.EntityFrameworkCore;
 
 namespace MAAT.Api.Controllers;
 
@@ -43,7 +41,7 @@ file sealed record TicketDetailResponse(
 [Authorize]
 public class SupportController(
     IGitHubIssueService gitHubIssueService,
-    MaatDbContext db,
+    ISupportTicketRepository ticketRepository,
     ILogger<SupportController> logger) : ControllerBase
 {
     private static readonly HashSet<string> AllowedExtensions =
@@ -97,8 +95,8 @@ public class SupportController(
                 created.Number, created.HtmlUrl,
                 request.Title, request.Description, request.Type);
 
-            db.SupportTickets.Add(ticket);
-            await db.SaveChangesAsync(ct);
+            ticketRepository.Add(ticket);
+            await ticketRepository.SaveAsync(ct);
 
             return Created($"/api/support/tickets/{ticket.Id}", new { ticketId = ticket.Id });
         }
@@ -121,11 +119,7 @@ public class SupportController(
         if (!Guid.TryParse(companyIdClaim, out var companyId))
             return Unauthorized();
 
-        var tickets = await db.SupportTickets
-            .Where(t => t.CompanyId == companyId)
-            .OrderByDescending(t => t.CreatedAt)
-            .Take(50)
-            .ToListAsync(ct);
+        var tickets = await ticketRepository.GetByCompanyAsync(companyId, ct);
 
         // Récupère l'état GitHub en parallèle pour chaque ticket.
         var stateTasks = tickets.Select(t => gitHubIssueService.GetIssueStateAsync(t.GithubIssueNumber, ct));
@@ -151,8 +145,7 @@ public class SupportController(
         if (!Guid.TryParse(companyIdClaim, out var companyId))
             return Unauthorized();
 
-        var ticket = await db.SupportTickets
-            .FirstOrDefaultAsync(t => t.Id == id && t.CompanyId == companyId, ct);
+        var ticket = await ticketRepository.GetByIdAndCompanyAsync(id, companyId, ct);
 
         if (ticket is null)
             return NotFound();

@@ -65,6 +65,9 @@ builder.Services.AddScoped<ISectorBenchmarkRepository, SectorBenchmarkRepository
 builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
 builder.Services.AddScoped<ISectorWeightRepository, SectorWeightRepository>();
 builder.Services.AddScoped<IRecommendationRepository, RecommendationRepository>();
+builder.Services.AddScoped<IActionItemProgressRepository, ActionItemProgressRepository>();
+builder.Services.AddScoped<IRseIndicatorsRepository, RseIndicatorsRepository>();
+builder.Services.AddScoped<ISupportTicketRepository, SupportTicketRepository>();
 
 // Charge Question, Recommendation et SectorWeight depuis MAAT.Infrastructure/Seed/*.csv
 // (docs/specs/modele-donnees.md) — jamais depuis les migrations, qui ne portent que le

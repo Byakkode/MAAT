@@ -1,10 +1,9 @@
+using MAAT.Application.Interfaces;
 using MAAT.Application.UseCases;
 using MAAT.Domain.Entities;
 using MAAT.Domain.Enums;
-using MAAT.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace MAAT.Api.Controllers;
 
@@ -19,7 +18,9 @@ public sealed record UpsertProgressRequest(
 [ApiController]
 [Route("api/diagnostics/{diagnosticId:guid}/action-plan")]
 [Authorize]
-public class ActionPlanController(MaatDbContext db, DiagnosticService diagnosticService) : ControllerBase
+public class ActionPlanController(
+    IActionItemProgressRepository progressRepository,
+    DiagnosticService diagnosticService) : ControllerBase
 {
     // docs/specs/recommandations.md, section 4 : retourne les recommandations du diagnostic
     // enrichies du suivi ActionItemProgress. Null → 404 si diagnostic inconnu ou hors entreprise.
@@ -29,9 +30,7 @@ public class ActionPlanController(MaatDbContext db, DiagnosticService diagnostic
         var recommendations = await diagnosticService.GetRecommendationsAsync(diagnosticId, ct);
         if (recommendations is null) return NotFound();
 
-        var progressMap = await db.ActionItemProgresses
-            .Where(p => p.DiagnosticId == diagnosticId)
-            .ToDictionaryAsync(p => p.RecommendationCode, ct);
+        var progressMap = await progressRepository.GetMapByDiagnosticAsync(diagnosticId, ct);
 
         return Ok(recommendations.Select(r =>
         {
@@ -70,18 +69,16 @@ public class ActionPlanController(MaatDbContext db, DiagnosticService diagnostic
             diagnosticId, code, isCompleted, ct);
         if (entry is null) return NotFound();
 
-        var progress = await db.ActionItemProgresses
-            .FirstOrDefaultAsync(
-                p => p.DiagnosticId == diagnosticId && p.RecommendationCode == code, ct);
+        var progress = await progressRepository.GetByDiagnosticAndCodeAsync(diagnosticId, code, ct);
 
         if (progress is null)
         {
             progress = ActionItemProgress.Create(diagnosticId, code);
-            db.ActionItemProgresses.Add(progress);
+            progressRepository.Add(progress);
         }
 
         progress.Update(request.Status, request.AssignedTo, request.DueDate, request.Notes);
-        await db.SaveChangesAsync(ct);
+        await progressRepository.SaveAsync(ct);
 
         return Ok(new
         {
