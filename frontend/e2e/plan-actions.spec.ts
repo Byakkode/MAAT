@@ -140,9 +140,11 @@ test('diagnostic complété avec des réponses faibles → recommandations visib
   // Écran non vide : au moins une recommandation, jamais un écran blanc pour ce compte.
   // Les actions utilisent un bouton de statut cyclique (4 états : Planifié → En cours →
   // Bloqué → Terminé), pas de case à cocher binaire.
+  // timeout: 15 000 ms — en CI la page attend la réponse réseau du GET action-plan avant
+  // d'afficher les boutons ; count() est volontairement absent : c'est un snapshot
+  // non-retrying, flaky quand React est encore en train de réconcilier au même moment.
   const statusButtons = page.getByRole('button', { name: /Statut :/ })
-  await expect(statusButtons.first()).toBeVisible()
-  expect(await statusButtons.count()).toBeGreaterThan(0)
+  await expect(statusButtons.first()).toBeVisible({ timeout: 15_000 })
 
   // Fait passer la première action jusqu'à "Terminé" (3 clics) et vérifie que l'état survit
   // à un rechargement complet — persisté côté serveur (PATCH + re-fetch), pas état React local.
