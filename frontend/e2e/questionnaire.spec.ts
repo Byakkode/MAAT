@@ -24,9 +24,18 @@ test('un compte neuf s’inscrit, démarre un diagnostic et le complète — le 
   await page.getByLabel('Mot de passe').fill(password)
   await page.getByLabel("Nom de l'entreprise").fill(`Entreprise E2E ${suffix}`)
   await page.getByLabel('Code NAF').fill('6201Z')
+  await page.getByRole('option', { name: /6201Z/ }).first().click()
   await page.getByLabel('Région').selectOption('Île-de-France')
-  await page.getByRole('button', { name: "S'inscrire" }).click()
-  await expect(page.getByRole('status')).toBeVisible()
+  // Même raison que pour le login ci-dessous : bcrypt WorkFactor=12 peut dépasser les 5 s
+  // de timeout par défaut de toBeVisible() sous charge parallèle. On attend la réponse réseau
+  // pour garantir que l'utilisateur est en base avant de tenter la connexion.
+  await Promise.all([
+    page.waitForResponse(
+      (resp) => resp.url().includes('/api/auth/register') && resp.request().method() === 'POST',
+    ),
+    page.getByRole('button', { name: "S'inscrire" }).click(),
+  ])
+  await expect(page.getByRole('status').filter({ hasText: 'Vérifiez votre boîte mail' })).toBeVisible()
 
   // React Router bascule côté client : le clic déclenche la navigation, mais la page
   // précédente (Inscription) ne se démonte qu'au rendu suivant. Une saisie qui arrive
@@ -38,7 +47,14 @@ test('un compte neuf s’inscrit, démarre un diagnostic et le complète — le 
   await expect(page.getByRole('heading', { name: 'Connexion', exact: true })).toBeVisible()
   await page.getByLabel('Adresse e-mail').fill(email)
   await page.getByLabel('Mot de passe').fill(password)
-  await page.getByRole('button', { name: 'Se connecter' }).click()
+  // bcrypt WorkFactor=12 peut prendre plusieurs secondes sous charge parallèle — attendre la
+  // réponse réseau avant de vérifier la navigation évite de dépendre d'un timeout arbitraire.
+  await Promise.all([
+    page.waitForResponse(
+      (resp) => resp.url().includes('/api/auth/login') && resp.request().method() === 'POST',
+    ),
+    page.getByRole('button', { name: 'Se connecter' }).click(),
+  ])
   await expect(page).toHaveURL('/')
   // exact: true — "Tableau de bord" est autrement un sous-texte de "Bienvenue sur votre
   // tableau de bord" (h2 affiché pour un compte sans diagnostic), qui ferait échouer le
@@ -76,7 +92,15 @@ test('un compte neuf s’inscrit, démarre un diagnostic et le complète — le 
 
     for (let i = 0; i < count; i += 1) {
       const fieldset = fieldsets.nth(i)
-      await fieldset.getByRole('radio', { name: 'Pleinement en place et suivi' }).check()
+      // evaluate(el.click()) plutôt que check({ force: true }) : l'<input> est un contrôle React
+      // contrôlé (checked={value === option.value}). check() vérifie element.checked immédiatement
+      // après le click, avant que le re-render React ait pu mettre à jour la prop — d'où
+      // "did not change its state". el.click() déclenche le cycle natif click → change →
+      // React onChange → setAnswer sans vérifier l'état après coup ; c'est toHaveText
+      // ('Enregistré') ci-dessous qui confirme que la réponse a bien été persistée.
+      await fieldset
+        .getByRole('radio', { name: 'Pleinement en place et suivi' })
+        .evaluate((el) => (el as HTMLInputElement).click())
       // 20 s plutôt que 10 s : marge sur la latence de queue CI d'un cycle individuel, pas
       // sur un cycle réellement bloqué — voir test.setTimeout ci-dessus pour le budget global.
       await expect(fieldset.getByRole('status')).toHaveText('Enregistré', { timeout: 20_000 })

@@ -89,6 +89,7 @@ public class ActionPlanController(
             dueDate = progress.DueDate,
             notes = progress.Notes,
             progressUpdatedAt = progress.UpdatedAt,
+            completedAt = entry.CompletedAt,
         });
     }
 }
