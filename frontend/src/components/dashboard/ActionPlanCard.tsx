@@ -82,7 +82,7 @@ export function ActionPlanCard({ actionPlan, canEdit, togglingCode, onToggle }: 
       )}
 
       <p className="mt-3 text-xs text-text-muted">
-        Cocher une action ne modifie pas le score — prise en compte au prochain diagnostic.
+        Cocher une action ne modifie pas le score. Prise en compte au prochain diagnostic.
       </p>
 
       <Link to="/plan-actions" className="mt-2 inline-block text-sm font-medium text-blue-maat-text hover:underline">

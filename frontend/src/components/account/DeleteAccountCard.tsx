@@ -60,7 +60,7 @@ export function DeleteAccountCard() {
         <>
           <p className="mb-1 text-[13px] text-text">
             Vous êtes la seule personne administratrice de cette entreprise. Cette action est irréversible : elle
-            supprime immédiatement l&apos;intégralité de votre entreprise — tous ses comptes utilisateurs, pas
+            supprime immédiatement l&apos;intégralité de votre entreprise : tous ses comptes utilisateurs, pas
             seulement le vôtre, et tous ses diagnostics, réponses, scores et rapports. Rien de tout cela
             n&apos;est conservé.
           </p>

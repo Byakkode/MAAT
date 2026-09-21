@@ -102,7 +102,7 @@ describe('AppShell', () => {
     await screen.findByText('23 / 45')
   })
 
-  it('cas 4 : Viewer voit les six entrées de navigation', async () => {
+  it('cas 4 : Viewer voit les sept entrées de navigation', async () => {
     useAuthStore.setState({ status: 'authenticated', user: { userId: 'u-1', companyId: 'c-1', role: 'Viewer' }, error: null })
 
     renderShellAt('/')
@@ -117,6 +117,7 @@ describe('AppShell', () => {
     expect(within(sidebar).getByRole('link', { name: "Plan d'actions" })).toBeDefined()
     expect(within(sidebar).getByRole('link', { name: 'Rapports' })).toBeDefined()
     expect(within(sidebar).getByRole('link', { name: 'Mon compte' })).toBeDefined()
+    expect(within(sidebar).getByRole('link', { name: 'Indicateurs' })).toBeDefined()
     expect(within(sidebar).getByRole('link', { name: 'Support' })).toBeDefined()
   })
 

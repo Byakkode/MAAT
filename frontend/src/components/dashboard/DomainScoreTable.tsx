@@ -63,14 +63,14 @@ export function DomainScoreTable({ domainScores }: DomainScoreTableProps) {
                       <span className="w-5 text-right text-text">{score}</span>
                     </div>
                   ) : (
-                    <span className="text-right text-text-muted">—</span>
+                    <span className="text-right text-text-muted" />
                   )}
                 </td>
                 <td className="py-2.5 pr-3 text-right text-text-muted">
-                  {entry ? `${Math.round(entry.sectorWeight * 100)} %` : '—'}
+                  {entry ? `${Math.round(entry.sectorWeight * 100)} %` : ''}
                 </td>
                 <td className="py-2.5 text-right text-text-muted">
-                  {entry ? entry.triggeredRecommendationCount : '—'}
+                  {entry ? entry.triggeredRecommendationCount : ''}
                 </td>
               </tr>
             )

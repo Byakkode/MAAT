@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { motion } from 'framer-motion'
-import { BarChart2, CheckCircle, ClipboardList, FileText, LifeBuoy, Settings, X } from 'lucide-react'
+import { BarChart2, CheckCircle, ClipboardList, FileText, LifeBuoy, Settings, TrendingUp, X } from 'lucide-react'
 import { Link, NavLink } from 'react-router-dom'
 import { Tooltip } from '../ui/Tooltip'
 import { useDashboardStore } from '../../store/dashboardStore'
@@ -14,6 +14,7 @@ const NAV_SECTIONS: Array<{ label: string; items: NavItem[] }> = [
     items: [
       { to: '/', label: 'Tableau de bord', icon: BarChart2, end: true },
       { to: '/questionnaire', label: 'Diagnostic', icon: ClipboardList },
+      { to: '/indicateurs', label: 'Indicateurs', icon: TrendingUp },
     ],
   },
   {

@@ -9,6 +9,7 @@ import { PlanActionsPage } from './pages/PlanActionsPage'
 import { QuestionnairePage } from './pages/QuestionnairePage'
 import { RapportPage } from './pages/RapportPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { IndicatorsPage } from './pages/IndicatorsPage'
 import { SupportPage } from './pages/SupportPage'
 import { useAuthStore } from './store/authStore'
 
@@ -36,6 +37,7 @@ function App() {
             <Route path="/questionnaire/:diagnosticId?" element={<QuestionnairePage />} />
             <Route path="/plan-actions" element={<PlanActionsPage />} />
             <Route path="/rapport" element={<RapportPage />} />
+            <Route path="/indicateurs" element={<IndicatorsPage />} />
             <Route path="/compte" element={<AccountPage />} />
             <Route path="/support" element={<SupportPage />} />
           </Route>

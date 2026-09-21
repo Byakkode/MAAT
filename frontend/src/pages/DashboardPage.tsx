@@ -3,35 +3,25 @@ import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ActionPlanCard } from '../components/dashboard/ActionPlanCard'
 import { DomainRadarChart } from '../components/dashboard/DomainRadarChart'
+import { DomainScoreCard } from '../components/dashboard/DomainScoreCard'
+import { IndicatorsTrendCard } from '../components/dashboard/IndicatorsTrendCard'
 import { DomainScoreTable } from '../components/dashboard/DomainScoreTable'
 import { EvolutionChart } from '../components/dashboard/EvolutionChart'
 import { InProgressBanner } from '../components/dashboard/InProgressBanner'
 import { KpiCard } from '../components/dashboard/KpiCard'
-import { ScoreSummaryCard } from '../components/dashboard/ScoreSummaryCard'
 import { ReportDownloadButton } from '../components/report/ReportDownloadButton'
 import { Card } from '../components/ui/Card'
 import { PageHeader } from '../components/ui/PageHeader'
 import { SkeletonCard } from '../components/ui/Skeleton'
 import { buttonLinkClass } from '../components/ui/buttonStyles'
-import { DOMAIN_LABELS } from '../types/questionnaire'
+import { DOMAIN_ORDER } from '../types/questionnaire'
+import type { SectorBenchmark } from '../types/dashboard'
 import { useAuthStore } from '../store/authStore'
 import { useDashboardStore } from '../store/dashboardStore'
 import { getScoreLabel, roundScoreForDisplay } from '../constants/scoreLabels'
 
-/* Labels courts pour les titres de cartes KPI — les DOMAIN_LABELS complets
-   sont trop longs pour tenir confortablement dans une cellule text-2xl. */
-const DOMAIN_SHORT: Record<string, string> = {
-  Environmental: 'Environnement',
-  Social: 'Social',
-  Ethics: 'Éthique',
-  Procurement: 'Achats',
-  Governance: 'Gouvernance',
-}
-
-// docs/specs/dashboard.md, section 1 : trois états traités comme des écrans à part entière —
-// aucun diagnostic, diagnostic en cours seul, au moins un complété — jamais comme des cas
-// d'erreur. Un seul appel réseau au montage (section 8, "un seul appel réseau, un seul état
-// de chargement") : useDashboardStore.load() ci-dessous, jamais un fetch par section.
+// docs/specs/dashboard.md, section 1 : trois états traités comme des écrans à part entière.
+// Un seul appel réseau au montage (section 8).
 export function DashboardPage() {
   const load = useDashboardStore((s) => s.load)
   const loadStatus = useDashboardStore((s) => s.loadStatus)
@@ -40,6 +30,7 @@ export function DashboardPage() {
   const latestDiagnostic = useDashboardStore((s) => s.latestDiagnostic)
   const domainScores = useDashboardStore((s) => s.domainScores)
   const history = useDashboardStore((s) => s.history)
+  const benchmark = useDashboardStore((s) => s.benchmark)
   const actionPlan = useDashboardStore((s) => s.actionPlan)
   const inProgressDiagnostic = useDashboardStore((s) => s.inProgressDiagnostic)
   const togglingCode = useDashboardStore((s) => s.togglingCode)
@@ -58,18 +49,18 @@ export function DashboardPage() {
     return (
       <div className="flex flex-col gap-4">
         <PageHeader title="Tableau de bord" />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {[0, 1, 2, 3].map((i) => (
-            <SkeletonCard key={i} />
-          ))}
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => <SkeletonCard key={i} />)}
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+          {[0, 1, 2, 3, 4].map((i) => <SkeletonCard key={i} lines={3} />)}
         </div>
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[3fr_2fr]">
           <SkeletonCard lines={7} />
-          <SkeletonCard lines={7} />
-        </div>
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[2fr_1fr]">
-          <SkeletonCard lines={4} />
-          <SkeletonCard lines={6} />
+          <div className="flex flex-col gap-4">
+            <SkeletonCard lines={4} />
+            <SkeletonCard lines={5} />
+          </div>
         </div>
       </div>
     )
@@ -124,66 +115,73 @@ export function DashboardPage() {
         history[history.length - 1]!.globalScore - history[history.length - 2]!.globalScore)
     : null
 
-  const sortedByScore = [...domainScores].sort((a, b) => b.score - a.score)
-  const strongest = sortedByScore[0]
-  const weakest = sortedByScore[sortedByScore.length - 1]
+  const progressPercent =
+    actionPlan.totalCount > 0
+      ? Math.round((actionPlan.completedCount / actionPlan.totalCount) * 100)
+      : 0
+
+  const orderedDomainScores = DOMAIN_ORDER
+    .map((domain) => domainScores.find((s) => s.domain === domain))
+    .filter(Boolean) as typeof domainScores
 
   return (
     <div className="flex flex-col gap-4">
-      {/* section 7 : le diagnostic en cours est un bandeau, jamais une page de substitution — il
-          coexiste avec le reste de l'écran, complété ou non. */}
+      {/* section 7 : bandeau diagnostic en cours */}
       {inProgressDiagnostic && <InProgressBanner diagnostic={inProgressDiagnostic} />}
 
-      <div className="flex items-start justify-between gap-4">
+      {/* En-tête */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <PageHeader
           eyebrow={`Secteur ${latestDiagnostic.sectorCode}`}
           title="Tableau de bord"
-          subtitle={`Dernier diagnostic — ${new Date(latestDiagnostic.completedAt ?? '').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`}
+          subtitle={`Dernier diagnostic · ${new Date(latestDiagnostic.completedAt ?? '').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`}
         />
-        {/* docs/specs/rapport-pdf.md, section 6 : bouton de téléchargement sur le tableau
-            de bord, en plus de la page de résultat (RapportPage). */}
         <ReportDownloadButton diagnosticId={latestDiagnostic.id} />
       </div>
 
-      {/* Carte hero — score global */}
-      <ScoreSummaryCard
-        score={rounded}
-        scoreLabel={scoreLabel}
-        sectorCode={latestDiagnostic.sectorCode}
-        completedAt={latestDiagnostic.completedAt}
-        delta={scoreDelta}
-      />
+      {/* Ligne 1 : 4 indicateurs clés */}
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <KpiCard
+          title="Score RSE global"
+          value={String(rounded)}
+          unit="/ 100"
+          subtitle={scoreLabel}
+          delta={scoreDelta}
+          accent="blue"
+          delay={0}
+        />
 
-      {/* Ligne 1 — KPI secondaires */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {strongest && (
-          <KpiCard
-            title="Point fort"
-            value={DOMAIN_SHORT[strongest.domain] ?? DOMAIN_LABELS[strongest.domain]}
-            subtitle={`${Math.round(strongest.score)} / 100`}
-            accent="green"
-            delay={0}
-          />
-        )}
-        {weakest && weakest.domain !== strongest?.domain && (
-          <KpiCard
-            title="À renforcer"
-            value={DOMAIN_SHORT[weakest.domain] ?? DOMAIN_LABELS[weakest.domain]}
-            subtitle={`${Math.round(weakest.score)} / 100`}
-            accent="amber"
-            delay={0.08}
-          />
-        )}
+        <BenchmarkTile benchmark={benchmark} sectorCode={latestDiagnostic.sectorCode} />
+
         <KpiCard
           title="Plan d'actions"
-          value={`${actionPlan.completedCount} / ${actionPlan.totalCount}`}
-          subtitle="actions terminées"
-          accent="blue"
+          value={`${progressPercent}%`}
+          subtitle={`${actionPlan.completedCount} / ${actionPlan.totalCount} terminées`}
+          accent={progressPercent >= 70 ? 'green' : progressPercent >= 40 ? 'amber' : 'neutral'}
           delay={0.16}
+        />
+
+        <KpiCard
+          title="Diagnostics réalisés"
+          value={String(history.length)}
+          subtitle={history.length > 1 ? 'depuis le démarrage' : 'Premier diagnostic'}
+          accent="neutral"
+          delay={0.24}
         />
       </div>
 
-      {/* Ligne 2 — Radar + Tableau */}
+      {/* Ligne 2 : scores par domaine */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+        {orderedDomainScores.map((ds, i) => (
+          <DomainScoreCard
+            key={ds.domain}
+            domainScore={ds}
+            delay={0.05 * i}
+          />
+        ))}
+      </div>
+
+      {/* Ligne 3 : radar + table | évolution + plan d'actions */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[3fr_2fr]">
         <Card as="section">
           <DomainRadarChart domainScores={domainScores} />
@@ -192,7 +190,6 @@ export function DashboardPage() {
           </div>
         </Card>
 
-        {/* Ligne 3 — Évolution + Plan d'actions (empilés à droite du radar sur grand écran) */}
         <div className="flex flex-col gap-4">
           <EvolutionChart history={history} />
           <ActionPlanCard
@@ -208,6 +205,45 @@ export function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Ligne 4 : évolution des indicateurs RSE quantitatifs */}
+      <IndicatorsTrendCard />
     </div>
+  )
+}
+
+// Tuile benchmark : affiche le percentile sectoriel si disponible, sinon explique pourquoi.
+function BenchmarkTile({ benchmark, sectorCode }: { benchmark: SectorBenchmark | null; sectorCode: string }) {
+  if (!benchmark) {
+    return (
+      <KpiCard
+        title="Benchmark sectoriel"
+        value="N/A"
+        subtitle="Non encore calculé"
+        accent="neutral"
+        delay={0.08}
+      />
+    )
+  }
+  if (!benchmark.available) {
+    return (
+      <KpiCard
+        title="Benchmark sectoriel"
+        value="N/A"
+        subtitle={benchmark.reason ?? `Seuil non atteint pour ${sectorCode}`}
+        accent="neutral"
+        delay={0.08}
+      />
+    )
+  }
+  const topPct = 100 - Math.round(benchmark.percentile!)
+  return (
+    <KpiCard
+      title="Benchmark sectoriel"
+      value={`Top ${topPct}%`}
+      subtitle={`sur ${benchmark.sampleSize} entreprises`}
+      accent="green"
+      delay={0.08}
+    />
   )
 }

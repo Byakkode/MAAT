@@ -4,6 +4,13 @@ import { TrendingDown, TrendingUp } from 'lucide-react'
 
 export type KpiAccent = 'blue' | 'green' | 'amber' | 'neutral'
 
+const ACCENT_BORDER: Record<KpiAccent, string> = {
+  blue: 'border-l-[3px] border-l-blue-maat',
+  green: 'border-l-[3px] border-l-green-maat',
+  amber: 'border-l-[3px] border-l-orange',
+  neutral: '',
+}
+
 interface KpiCardProps {
   title: string
   value: string
@@ -15,7 +22,7 @@ interface KpiCardProps {
 }
 
 function DeltaPill({ delta }: { delta: number }) {
-  if (delta === 0) return <span className="text-[11px] text-text-muted tabular-nums">—</span>
+  if (delta === 0) return null
   const isUp = delta > 0
   const abs = Math.abs(Math.round(delta))
   const Icon = isUp ? TrendingUp : TrendingDown
@@ -31,10 +38,10 @@ function DeltaPill({ delta }: { delta: number }) {
   )
 }
 
-function KpiCardComponent({ title, value, unit, subtitle, delta, delay = 0 }: KpiCardProps) {
+function KpiCardComponent({ title, value, unit, subtitle, delta, accent = 'neutral', delay = 0 }: KpiCardProps) {
   return (
     <motion.div
-      className="rounded-xl border border-border bg-white p-5 shadow-card transition-shadow duration-200 hover:shadow-card-hover"
+      className={`rounded-xl border border-border bg-white p-5 shadow-card transition-shadow duration-200 hover:shadow-card-hover ${ACCENT_BORDER[accent]}`}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22, ease: 'easeOut', delay }}

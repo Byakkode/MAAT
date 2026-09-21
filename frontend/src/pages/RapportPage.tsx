@@ -107,7 +107,7 @@ export function RapportPage() {
         {/* Téléchargement */}
         <div className="border-t border-border pt-4">
           <p className="mb-3 text-sm text-text-muted">
-            Le rapport est généré à la demande en format PDF — aucun stockage permanent, conformément à notre politique de données souveraines.
+            Le rapport est généré à la demande en format PDF. Aucun stockage permanent, conformément à notre politique de données souveraines.
           </p>
           <ReportDownloadButton diagnosticId={latestDiagnostic.id} />
         </div>
