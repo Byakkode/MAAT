@@ -12,5 +12,5 @@ test('la page charge et redirige vers la connexion sans session', async ({ page 
   await page.goto('/')
 
   await expect(page).toHaveURL(/\/login$/)
-  await expect(page.getByRole('heading', { name: 'Connexion' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Connexion', exact: true })).toBeVisible()
 })

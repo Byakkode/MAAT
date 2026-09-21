@@ -67,7 +67,7 @@ describe('AppShell', () => {
     vi.restoreAllMocks()
   })
 
-  it('cas 1 : la navigation ne se remonte pas en changeant d’écran', async () => {
+  it("cas 1 : la navigation ne se remonte pas en changeant d’écran", async () => {
     renderShellAt('/')
     await screen.findByText('Tableau de bord (écran)')
     const navBefore = screen.getByRole('navigation', { name: 'Navigation principale' })
@@ -79,20 +79,20 @@ describe('AppShell', () => {
     expect(navAfter).toBe(navBefore)
   })
 
-  it('cas 2 : l’entrée active se signale par deux moyens distincts', async () => {
+  it("cas 2 : l’entrée active se signale par deux moyens distincts", async () => {
     renderShellAt('/')
     await screen.findByText('Tableau de bord (écran)')
 
     const active = screen.getByRole('link', { name: /tableau de bord/i })
     const inactive = screen.getByRole('link', { name: /rapports/i })
 
-    expect(active.className).toContain('bg-white/15')
-    expect(active.className).toContain('border-white')
-    expect(inactive.className).not.toContain('bg-white/15')
-    expect(inactive.className).not.toContain('border-white')
+    // docs/specs/coquille-et-compte.md : fond bg-white/[0.09] + graisse font-medium (non chromatique).
+    expect(active.className).toContain('bg-white/[0.09]')
+    expect(active.className).toContain('font-medium')
+    expect(inactive.className).not.toContain('bg-white/[0.09]')
   })
 
-  it('cas 3 : un diagnostic InProgress affiche son avancement dans l’entrée Diagnostic', async () => {
+  it("cas 3 : un diagnostic InProgress affiche son avancement dans l’entrée Diagnostic", async () => {
     dashboardApi.getDashboard.mockResolvedValue(
       makeDashboardView({ inProgressDiagnostic: makeInProgressDiagnostic({ answeredCount: 23, totalActiveQuestions: 45 }) }),
     )
@@ -102,7 +102,7 @@ describe('AppShell', () => {
     await screen.findByText('23 / 45')
   })
 
-  it('cas 4 : Viewer voit les cinq entrées de navigation', async () => {
+  it('cas 4 : Viewer voit les sept entrées de navigation', async () => {
     useAuthStore.setState({ status: 'authenticated', user: { userId: 'u-1', companyId: 'c-1', role: 'Viewer' }, error: null })
 
     renderShellAt('/')
@@ -117,9 +117,11 @@ describe('AppShell', () => {
     expect(within(sidebar).getByRole('link', { name: "Plan d'actions" })).toBeDefined()
     expect(within(sidebar).getByRole('link', { name: 'Rapports' })).toBeDefined()
     expect(within(sidebar).getByRole('link', { name: 'Mon compte' })).toBeDefined()
+    expect(within(sidebar).getByRole('link', { name: 'Indicateurs' })).toBeDefined()
+    expect(within(sidebar).getByRole('link', { name: 'Support' })).toBeDefined()
   })
 
-  it('cas 5 : le nom de l’application renvoie au tableau de bord', async () => {
+  it("cas 5 : le nom de l’application renvoie au tableau de bord", async () => {
     renderShellAt('/rapport')
     await screen.findByText('Rapports (écran)')
 
@@ -127,7 +129,7 @@ describe('AppShell', () => {
     expect(wordmark.getAttribute('href')).toBe('/')
   })
 
-  it('cas 6 : lien d’évitement présent, atteignable au premier Tab, menant au contenu principal', async () => {
+  it("cas 6 : lien d’évitement présent, atteignable au premier Tab, menant au contenu principal", async () => {
     renderShellAt('/')
     await screen.findByText('Tableau de bord (écran)')
 

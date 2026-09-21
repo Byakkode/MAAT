@@ -11,6 +11,13 @@ const SAVE_STATUS_TEXT: Record<SaveStatus, string> = {
   error: "Échec de l'enregistrement",
 }
 
+const SAVE_STATUS_COLOR: Record<SaveStatus, string> = {
+  idle: '',
+  saving: 'text-text-muted',
+  saved: 'text-green-maat-text',
+  error: 'text-red',
+}
+
 interface QuestionItemProps {
   question: QuestionAnswer
 }
@@ -34,22 +41,36 @@ function QuestionItemComponent({ question }: QuestionItemProps) {
   return (
     <fieldset
       data-render-count={renderCount.current}
-      className="mb-4 rounded-card border border-border bg-white p-5 shadow-card"
+      className="mb-3 rounded-xl border border-border bg-white p-5 shadow-card"
     >
-      <legend id={legendId} className="mb-2 px-1 text-base font-medium text-text">
+      <legend id={legendId} className="mb-4 px-0 text-[14.5px] font-medium leading-snug text-text">
         {question.text}
       </legend>
 
       {question.helpText && (
-        <details className="mb-3 text-sm text-text-muted">
-          <summary className="cursor-pointer text-blue-maat-text">Aide</summary>
-          <p className="mt-1">{question.helpText}</p>
+        <details className="mb-4 text-[13px]">
+          <summary className="cursor-pointer select-none font-medium text-blue-maat-text hover:underline">
+            Aide
+          </summary>
+          <p className="mt-2 rounded-lg bg-bg px-3 py-2.5 text-text-muted">{question.helpText}</p>
         </details>
       )}
 
       <div role="radiogroup" aria-labelledby={legendId} className="flex flex-col gap-2">
         {ANSWER_SCALE.map((option) => (
-          <label key={option.value} className="flex items-center gap-2 text-sm text-text">
+          <label
+            key={option.value}
+            className={[
+              'flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-[13.5px] transition-colors',
+              value === option.value
+                ? 'border-blue-maat bg-blue-maat/[0.07] font-medium text-text'
+                : 'border-border text-text hover:border-blue-maat/30 hover:bg-blue-maat/[0.03]',
+              !isEditable ? 'cursor-not-allowed opacity-75' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
+            {/* Radio natif sr-only — présent dans le DOM pour les tests et l'accessibilité */}
             <input
               type="radio"
               name={question.code}
@@ -57,14 +78,30 @@ function QuestionItemComponent({ question }: QuestionItemProps) {
               checked={value === option.value}
               disabled={!isEditable}
               onChange={() => setAnswer(question.code, option.value)}
-              className="h-4 w-4 accent-blue-maat"
+              className="sr-only"
             />
+            {/* Indicateur visuel personnalisé */}
+            <span
+              aria-hidden="true"
+              className={[
+                'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-[2px] transition-colors',
+                value === option.value ? 'border-blue-maat bg-blue-maat' : 'border-border bg-white',
+              ].join(' ')}
+            >
+              {value === option.value && (
+                <span className="h-2 w-2 rounded-full bg-white" />
+              )}
+            </span>
             {option.label}
           </label>
         ))}
       </div>
 
-      <p role="status" aria-live="polite" className="mt-2 text-sm text-text-muted">
+      <p
+        role="status"
+        aria-live="polite"
+        className={`mt-3 text-xs ${SAVE_STATUS_COLOR[status]}`}
+      >
         {SAVE_STATUS_TEXT[status]}
       </p>
     </fieldset>

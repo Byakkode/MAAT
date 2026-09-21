@@ -6,16 +6,16 @@ import { axe } from 'vitest-axe'
 const dashboardApi = vi.hoisted(() => ({ getDashboard: vi.fn() }))
 vi.mock('../api/dashboardApi', () => dashboardApi)
 
-const recommendationsApi = vi.hoisted(() => ({
-  getRecommendations: vi.fn(),
-  updateRecommendationProgress: vi.fn(),
+const actionPlanApiMock = vi.hoisted(() => ({
+  getActionPlan: vi.fn(),
+  upsertActionItemProgress: vi.fn(),
 }))
-vi.mock('../api/recommendationsApi', () => recommendationsApi)
+vi.mock('../api/actionPlanApi', () => actionPlanApiMock)
 
 import { PlanActionsPage } from './PlanActionsPage'
 import { useAuthStore } from '../store/authStore'
 import { makeDashboardView, makeLatestDiagnostic, resetDashboardStore } from '../test/dashboardFixtures'
-import { makeRecommendationDetail, resetPlanActionsStore } from '../test/planActionsFixtures'
+import { makeActionItemWithProgress, resetPlanActionsStore } from '../test/planActionsFixtures'
 
 function renderPage() {
   return render(
@@ -30,7 +30,7 @@ describe('PlanActionsPage (axe)', () => {
     resetDashboardStore()
     resetPlanActionsStore()
     dashboardApi.getDashboard.mockReset()
-    recommendationsApi.getRecommendations.mockReset()
+    actionPlanApiMock.getActionPlan.mockReset()
     useAuthStore.setState({ status: 'authenticated', user: { userId: 'u-1', companyId: 'c-1', role: 'Admin' }, error: null })
   })
 
@@ -51,7 +51,7 @@ describe('PlanActionsPage (axe)', () => {
     dashboardApi.getDashboard.mockResolvedValue(
       makeDashboardView({ hasCompletedDiagnostic: true, latestDiagnostic: makeLatestDiagnostic({ id: 'diag-1' }) }),
     )
-    recommendationsApi.getRecommendations.mockResolvedValue([])
+    actionPlanApiMock.getActionPlan.mockResolvedValue([])
 
     const { container } = renderPage()
     await screen.findByText(/bravo/i)
@@ -63,13 +63,13 @@ describe('PlanActionsPage (axe)', () => {
     dashboardApi.getDashboard.mockResolvedValue(
       makeDashboardView({ hasCompletedDiagnostic: true, latestDiagnostic: makeLatestDiagnostic({ id: 'diag-1' }) }),
     )
-    recommendationsApi.getRecommendations.mockResolvedValue([
-      makeRecommendationDetail({ code: 'REC-ENV-01' }),
-      makeRecommendationDetail({ code: 'REC-SOC-01', domain: 'Social', priorityRank: 2 }),
+    actionPlanApiMock.getActionPlan.mockResolvedValue([
+      makeActionItemWithProgress({ code: 'REC-ENV-01' }),
+      makeActionItemWithProgress({ code: 'REC-SOC-01', domain: 'Social', priorityRank: 2 }),
     ])
 
     const { container } = renderPage()
-    await screen.findAllByRole('checkbox')
+    await screen.findAllByRole('button', { name: /Statut/i })
 
     expect(await axe(container)).toHaveNoViolations()
   })

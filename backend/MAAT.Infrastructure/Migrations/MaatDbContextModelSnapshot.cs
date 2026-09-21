@@ -22,6 +22,54 @@ namespace MAAT.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("MAAT.Domain.Entities.ActionItemProgress", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AssignedTo")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("assigned_to");
+
+                    b.Property<Guid>("DiagnosticId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("diagnostic_id");
+
+                    b.Property<DateTimeOffset?>("DueDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_date");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("notes");
+
+                    b.Property<string>("RecommendationCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("recommendation_code");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DiagnosticId", "RecommendationCode")
+                        .IsUnique();
+
+                    b.ToTable("action_item_progress", (string)null);
+                });
+
             modelBuilder.Entity("MAAT.Domain.Entities.Company", b =>
                 {
                     b.Property<Guid>("Id")
@@ -442,6 +490,108 @@ namespace MAAT.Infrastructure.Migrations
                     b.ToTable("responses", (string)null);
                 });
 
+            modelBuilder.Entity("MAAT.Domain.Entities.RseIndicators", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int?>("ActiveSuppliersCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("active_suppliers_count");
+
+                    b.Property<double?>("Co2EmissionsTons")
+                        .HasColumnType("double precision")
+                        .HasColumnName("co2_emissions_tons");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<double?>("EmployeeCountFte")
+                        .HasColumnType("double precision")
+                        .HasColumnName("employee_count_fte");
+
+                    b.Property<double?>("EnergyConsumptionKwh")
+                        .HasColumnType("double precision")
+                        .HasColumnName("energy_consumption_kwh");
+
+                    b.Property<double?>("ExportRevenuePct")
+                        .HasColumnType("double precision")
+                        .HasColumnName("export_revenue_pct");
+
+                    b.Property<double?>("GenderEqualityIndex")
+                        .HasColumnType("double precision")
+                        .HasColumnName("gender_equality_index");
+
+                    b.Property<double?>("LocalSuppliersPct")
+                        .HasColumnType("double precision")
+                        .HasColumnName("local_suppliers_pct");
+
+                    b.Property<double?>("PermanentContractPct")
+                        .HasColumnType("double precision")
+                        .HasColumnName("permanent_contract_pct");
+
+                    b.Property<double?>("RecyclingRatePct")
+                        .HasColumnType("double precision")
+                        .HasColumnName("recycling_rate_pct");
+
+                    b.Property<double?>("RenewableEnergyPct")
+                        .HasColumnType("double precision")
+                        .HasColumnName("renewable_energy_pct");
+
+                    b.Property<double?>("RevenueEur")
+                        .HasColumnType("double precision")
+                        .HasColumnName("revenue_eur");
+
+                    b.Property<double?>("RseAssessedSuppliersPct")
+                        .HasColumnType("double precision")
+                        .HasColumnName("rse_assessed_suppliers_pct");
+
+                    b.Property<double?>("RseInvestmentEur")
+                        .HasColumnType("double precision")
+                        .HasColumnName("rse_investment_eur");
+
+                    b.Property<double?>("TrainingHoursPerEmployee")
+                        .HasColumnType("double precision")
+                        .HasColumnName("training_hours_per_employee");
+
+                    b.Property<double?>("TurnoverRatePct")
+                        .HasColumnType("double precision")
+                        .HasColumnName("turnover_rate_pct");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<double?>("WasteTons")
+                        .HasColumnType("double precision")
+                        .HasColumnName("waste_tons");
+
+                    b.Property<double?>("WaterConsumptionM3")
+                        .HasColumnType("double precision")
+                        .HasColumnName("water_consumption_m3");
+
+                    b.Property<double?>("WorkAccidentRate")
+                        .HasColumnType("double precision")
+                        .HasColumnName("work_accident_rate");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer")
+                        .HasColumnName("year");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "Year")
+                        .IsUnique();
+
+                    b.ToTable("rse_indicators", (string)null);
+                });
+
             modelBuilder.Entity("MAAT.Domain.Entities.SectorWeight", b =>
                 {
                     b.Property<Guid>("Id")
@@ -481,6 +631,59 @@ namespace MAAT.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("sector_weights", (string)null);
+                });
+
+            modelBuilder.Entity("MAAT.Domain.Entities.SupportTicket", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)")
+                        .HasColumnName("description");
+
+                    b.Property<int>("GithubIssueNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("github_issue_number");
+
+                    b.Property<string>("GithubIssueUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("github_issue_url");
+
+                    b.Property<string>("TicketType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("ticket_type");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.ToTable("support_tickets", (string)null);
                 });
 
             modelBuilder.Entity("MAAT.Domain.Entities.User", b =>

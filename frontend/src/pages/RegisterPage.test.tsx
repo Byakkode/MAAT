@@ -32,7 +32,11 @@ function fillMandatoryFields() {
   fireEvent.change(screen.getByLabelText('Adresse e-mail'), { target: { value: 'admin@entreprise.test' } })
   fireEvent.change(screen.getByLabelText('Mot de passe'), { target: { value: 'MotDePasseValide2026!' } })
   fireEvent.change(screen.getByLabelText("Nom de l'entreprise"), { target: { value: 'Entreprise Test' } })
-  fireEvent.change(screen.getByLabelText('Code NAF'), { target: { value: '6201Z' } })
+  // Combobox NAF : taper le code exact puis sélectionner le premier résultat au clavier
+  const nafInput = screen.getByLabelText("Secteur d'activité (code NAF)")
+  fireEvent.change(nafInput, { target: { value: '6201Z' } })
+  fireEvent.keyDown(nafInput, { key: 'ArrowDown' })
+  fireEvent.keyDown(nafInput, { key: 'Enter' })
   fireEvent.change(screen.getByLabelText('Région'), { target: { value: 'Île-de-France' } })
 }
 
