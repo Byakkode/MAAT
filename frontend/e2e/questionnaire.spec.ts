@@ -24,7 +24,7 @@ test('un compte neuf s’inscrit, démarre un diagnostic et le complète — le 
   await page.getByLabel('Mot de passe').fill(password)
   await page.getByLabel("Nom de l'entreprise").fill(`Entreprise E2E ${suffix}`)
   await page.getByLabel('Code NAF').fill('6201Z')
-  await page.getByLabel('Région').fill('Île-de-France')
+  await page.getByLabel('Région').selectOption('Île-de-France')
   await page.getByRole('button', { name: "S'inscrire" }).click()
   await expect(page.getByRole('status')).toBeVisible()
 
