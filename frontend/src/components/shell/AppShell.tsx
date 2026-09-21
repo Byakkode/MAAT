@@ -34,7 +34,7 @@ export function AppShell() {
   }, [dashboardLoadStatus, loadDashboard])
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="dot-grid min-h-screen bg-bg">
       <SkipLink />
       <div className="flex min-h-screen">
         <Sidebar mobileOpen={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />

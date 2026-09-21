@@ -1,6 +1,8 @@
 import { useRef } from 'react'
+import { motion } from 'framer-motion'
 import { BarChart2, CheckCircle, ClipboardList, FileText, Settings, X } from 'lucide-react'
 import { Link, NavLink } from 'react-router-dom'
+import { Tooltip } from '../ui/Tooltip'
 import { useDashboardStore } from '../../store/dashboardStore'
 import { useFocusTrap } from './useFocusTrap'
 
@@ -27,10 +29,13 @@ const NAV_SECTIONS: Array<{ label: string; items: NavItem[] }> = [
   },
 ]
 
+// Index global des items nav pour le stagger — calculé une fois hors du rendu.
+const ALL_NAV_ITEMS = NAV_SECTIONS.flatMap((s) => s.items)
+
 function Wordmark() {
   return (
     <Link to="/" className="flex items-center gap-3 px-1">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-maat">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-maat shadow-[0_0_18px_rgba(21,101,255,0.45)] ring-1 ring-blue-maat/60">
         <span className="text-sm font-bold text-white">M</span>
       </div>
       <div>
@@ -53,7 +58,16 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           </p>
           <ul className="flex flex-col gap-0.5">
             {items.map(({ to, label: itemLabel, icon: Icon, end }) => (
-              <li key={to}>
+              <motion.li
+                key={to}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{
+                  duration: 0.22,
+                  ease: 'easeOut',
+                  delay: 0.08 + ALL_NAV_ITEMS.findIndex((item) => item.to === to) * 0.05,
+                }}
+              >
                 <NavLink
                   to={to}
                   end={end}
@@ -71,12 +85,14 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                   <Icon size={18} strokeWidth={1.5} aria-hidden="true" />
                   <span className="flex-1">{itemLabel}</span>
                   {to === '/questionnaire' && inProgressDiagnostic && (
-                    <span className="rounded-full bg-blue-maat/30 px-2 py-0.5 text-xs tabular-nums lining-nums text-white">
-                      {inProgressDiagnostic.answeredCount} / {inProgressDiagnostic.totalActiveQuestions}
-                    </span>
+                    <Tooltip content="Diagnostic en cours" side="right">
+                      <span className="rounded-full bg-blue-maat/30 px-2 py-0.5 text-xs tabular-nums lining-nums text-white">
+                        {inProgressDiagnostic.answeredCount} / {inProgressDiagnostic.totalActiveQuestions}
+                      </span>
+                    </Tooltip>
                   )}
                 </NavLink>
-              </li>
+              </motion.li>
             ))}
           </ul>
         </div>
@@ -99,7 +115,7 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
       {/* Desktop */}
       <nav
         aria-label="Navigation principale"
-        className="hidden w-60 shrink-0 flex-col gap-7 bg-sidebar px-3 py-5 text-white md:flex"
+        className="hidden w-60 shrink-0 flex-col gap-7 sidebar-gradient px-3 py-5 text-white md:flex"
       >
         <Wordmark />
         <SidebarNav />
@@ -114,7 +130,7 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
             role="dialog"
             aria-modal="true"
             aria-label="Navigation"
-            className="relative flex h-full w-60 flex-col gap-7 bg-sidebar px-3 py-5 text-white"
+            className="relative flex h-full w-60 flex-col gap-7 sidebar-gradient px-3 py-5 text-white"
           >
             <button
               type="button"

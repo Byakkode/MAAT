@@ -17,8 +17,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   const hasDesc = Boolean(error ?? hint)
 
   return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-medium text-text">
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className="text-[13px] font-medium text-text">
         {label}
       </label>
       <input
@@ -27,14 +27,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         aria-describedby={hasDesc ? descId : undefined}
         aria-invalid={Boolean(error) || undefined}
         className={[
-          'w-full rounded-button border px-3 py-2 text-sm text-text',
-          'transition-colors duration-150',
-          'placeholder:text-text-muted',
+          'w-full rounded-[10px] border bg-white px-3.5 py-2.5 text-sm text-text',
+          'shadow-[0_1px_2px_rgba(0,0,0,0.04)]',
+          'transition-all duration-150',
+          'placeholder:text-text-muted/60',
           error
-            ? 'border-red focus:border-red focus:ring-red/20'
-            : 'border-border focus:border-blue-maat focus:ring-blue-maat/20',
-          'focus:outline-none focus:ring-2',
-          'disabled:cursor-not-allowed disabled:opacity-60',
+            ? 'border-red/50 focus:border-red focus:ring-2 focus:ring-red/10 focus:outline-none'
+            : 'border-border focus:border-blue-maat/70 focus:ring-2 focus:ring-blue-maat/10 focus:outline-none',
+          'disabled:cursor-not-allowed disabled:bg-bg disabled:opacity-60',
           className,
         ]
           .filter(Boolean)

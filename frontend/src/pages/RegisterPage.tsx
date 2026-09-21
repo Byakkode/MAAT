@@ -2,6 +2,7 @@ import { type FormEvent, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import type { CompanySizeRange } from '../types/auth'
+import { AuthPanel } from '../components/auth/AuthPanel'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 
@@ -56,16 +57,24 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 py-10" style={AUTH_BG}>
-      <div className="w-full max-w-md rounded-2xl bg-white px-8 py-10 shadow-2xl">
-        {/* Logo */}
-        <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-blue-maat">
-          <span className="text-sm font-bold text-white">M</span>
+    <div className="flex min-h-screen" style={AUTH_BG}>
+      <AuthPanel />
+      <div className="flex flex-1 items-center justify-center p-6 py-10">
+      <div className="w-full max-w-md">
+        {/* Logo mobile (masqué quand AuthPanel visible) */}
+        <div className="mb-6 lg:hidden">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-maat shadow-[0_0_18px_rgba(21,101,255,0.5)] ring-1 ring-blue-maat/60">
+              <span className="text-sm font-bold text-white">M</span>
+            </div>
+            <p className="font-heading text-lg font-bold leading-tight text-white">MAAT</p>
+          </div>
         </div>
 
-        <h1 className="mb-1 text-center text-2xl font-semibold text-text">Inscription</h1>
-        <p className="mb-8 text-center text-sm text-text-muted">
-          Créez votre espace RSE en quelques minutes.
+        <div className="rounded-2xl bg-white px-8 py-9 shadow-2xl">
+        <h1 className="mb-1 text-[1.5rem] font-bold text-text">Créer un compte</h1>
+        <p className="mb-7 text-[13.5px] text-text-muted">
+          Votre espace RSE en quelques minutes.
         </p>
 
         <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
@@ -123,15 +132,15 @@ export function RegisterPage() {
               onChange={(e) => setSectorCode(e.target.value)}
             />
 
-            <div className="flex flex-col gap-1">
-              <label htmlFor="register-size-range" className="text-sm font-medium text-text">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="register-size-range" className="text-[13px] font-medium text-text">
                 Tranche d&apos;effectif
               </label>
               <select
                 id="register-size-range"
                 value={sizeRange}
                 onChange={(e) => setSizeRange(e.target.value as CompanySizeRange)}
-                className="w-full rounded-button border border-border px-3 py-2 text-sm text-text focus:border-blue-maat focus:outline-none focus:ring-2 focus:ring-blue-maat/20"
+                className="w-full rounded-[10px] border border-border bg-white px-3.5 py-2.5 text-sm text-text shadow-[0_1px_2px_rgba(0,0,0,0.04)] focus:border-blue-maat/70 focus:outline-none focus:ring-2 focus:ring-blue-maat/10 transition-all duration-150"
               >
                 {Object.entries(SIZE_RANGE_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>
@@ -171,12 +180,14 @@ export function RegisterPage() {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-text-muted">
+        <p className="mt-6 text-center text-[13px] text-text-muted">
           Déjà un compte ?{' '}
           <Link to="/login" className="font-medium text-blue-maat-text hover:underline">
             Se connecter
           </Link>
         </p>
+        </div>
+      </div>
       </div>
     </div>
   )

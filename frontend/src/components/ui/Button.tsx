@@ -7,7 +7,7 @@ import {
 import { Spinner } from './Spinner'
 
 type Variant = 'primary' | 'secondary' | 'success' | 'danger' | 'ghost'
-type Size = 'sm' | 'md'
+type Size = 'sm' | 'md' | 'lg'
 
 interface ButtonProps extends ComponentPropsWithoutRef<'button'> {
   variant?: Variant
@@ -31,7 +31,7 @@ export function Button({
       disabled={isDisabled}
       className={[
         BUTTON_BASE,
-        'disabled:cursor-not-allowed disabled:opacity-60',
+        'disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:active:scale-100',
         BUTTON_VARIANT_CLASSES[variant],
         BUTTON_SIZE_CLASSES[size],
         className,

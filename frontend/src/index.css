@@ -65,11 +65,15 @@
 
   --radius-button: 8px;
   --radius-card: 12px;
+  --radius-input: 10px;
 
-  --shadow-button: 0 2px 8px rgba(0, 0, 0, 0.07);
-  /* Deux couches : ombre courte (élévation de surface) + ombre longue diffuse (profondeur).
-     Nettement plus visible que #F8F9FC sans alourdir — correspond au niveau StackGest. */
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.05);
+  /* Ombre colorée bleu MAAT — signature hover des boutons primaires. */
+  --shadow-button-primary: 0 4px 14px rgba(21, 101, 255, 0.28);
+  /* Deux couches : ombre courte (élévation de surface) + ombre longue diffuse (profondeur). */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.09), 0 1px 4px rgba(0, 0, 0, 0.05);
+  --shadow-input: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 body {
@@ -77,6 +81,23 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-body);
+}
+
+/* Grille de points subtile — signature visuelle MAAT, inspirée Aceternity UI.
+   Appliquée uniquement dans la coquille authentifiée via .dot-grid sur AppShell. */
+.dot-grid {
+  background-image: radial-gradient(circle, rgba(21, 101, 255, 0.05) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* Sidebar gradient (fond plus profond vers le bas) */
+.sidebar-gradient {
+  background: linear-gradient(170deg, #0f172a 0%, #0c1428 100%);
+}
+
+/* Avatar gradient MAAT — utilisé dans Header et pages auth */
+.avatar-gradient {
+  background: linear-gradient(135deg, #1565ff 0%, #0d4fd6 100%);
 }
 
 h1,

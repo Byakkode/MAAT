@@ -135,8 +135,9 @@ export function DashboardPage() {
 
       <div className="flex items-start justify-between gap-4">
         <PageHeader
+          eyebrow={`Secteur ${latestDiagnostic.sectorCode}`}
           title="Tableau de bord"
-          subtitle={`Secteur ${latestDiagnostic.sectorCode}`}
+          subtitle={`Dernier diagnostic — ${new Date(latestDiagnostic.completedAt ?? '').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`}
         />
         {/* docs/specs/rapport-pdf.md, section 6 : bouton de téléchargement sur le tableau
             de bord, en plus de la page de résultat (RapportPage). */}
@@ -152,6 +153,7 @@ export function DashboardPage() {
           subtitle={scoreLabel}
           delta={scoreDelta}
           accent="blue"
+          delay={0}
         />
         {strongest && (
           <KpiCard
@@ -159,6 +161,7 @@ export function DashboardPage() {
             value={DOMAIN_SHORT[strongest.domain] ?? DOMAIN_LABELS[strongest.domain]}
             subtitle={`${Math.round(strongest.score)} / 100`}
             accent="green"
+            delay={0.1}
           />
         )}
         {weakest && weakest.domain !== strongest?.domain && (
@@ -167,6 +170,7 @@ export function DashboardPage() {
             value={DOMAIN_SHORT[weakest.domain] ?? DOMAIN_LABELS[weakest.domain]}
             subtitle={`${Math.round(weakest.score)} / 100`}
             accent="amber"
+            delay={0.2}
           />
         )}
         <KpiCard
@@ -174,6 +178,7 @@ export function DashboardPage() {
           value={`${actionPlan.completedCount} / ${actionPlan.totalCount}`}
           subtitle="actions terminées"
           accent="blue"
+          delay={0.3}
         />
       </div>
 
