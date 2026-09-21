@@ -33,6 +33,16 @@
   --color-orange: #ffa64d;
   --color-bg: #f8f9fc;
   --color-text: #1e1e2d;
+
+  /* Sidebar : ardoise foncée (#0f172a) — remplace blue-maat comme fond de la sidebar.
+     Le bleu MAAT reste l'accent : logo, item actif, boutons. */
+  --color-sidebar: #0f172a;
+
+  /* KPI accent backgrounds — teintes très subtiles pour les cartes de métriques.
+     Jamais utilisées pour du texte : contraste insuffisant. */
+  --color-kpi-blue: #eff6ff;
+  --color-kpi-green: #f0fdf4;
+  --color-kpi-amber: #fffbeb;
   /* Aligné sur la valeur charte (#6B7280) — était #5b6472 (écart de perception sans justification
      documentée). */
   --color-text-muted: #6b7280;
@@ -57,9 +67,9 @@
   --radius-card: 12px;
 
   --shadow-button: 0 2px 8px rgba(0, 0, 0, 0.07);
-  /* Légèrement plus visible que la charte (0 1px 3px vs 0 0 4px rgba(0,0,0,0.03)) pour
-     distinguer le blanc des cartes du fond #F8F9FC à faible luminosité d'écran. */
-  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.06);
+  /* Deux couches : ombre courte (élévation de surface) + ombre longue diffuse (profondeur).
+     Nettement plus visible que #F8F9FC sans alourdir — correspond au niveau StackGest. */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 body {

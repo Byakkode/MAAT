@@ -63,8 +63,8 @@ function QuestionItemComponent({ question }: QuestionItemProps) {
             className={[
               'flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-2.5 text-sm transition-colors',
               value === option.value
-                ? 'border-blue-maat bg-blue-maat/5 font-medium text-text'
-                : 'border-border text-text hover:border-blue-maat/30 hover:bg-bg',
+                ? 'border-blue-maat bg-blue-maat/10 font-medium text-text'
+                : 'border-border text-text hover:border-blue-maat/40 hover:bg-blue-maat/5',
               !isEditable ? 'cursor-not-allowed opacity-80' : '',
             ]
               .filter(Boolean)

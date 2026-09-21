@@ -1,3 +1,4 @@
+import { ClipboardList } from 'lucide-react'
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { EFFORT_LABELS } from '../constants/effortLabels'
@@ -8,6 +9,8 @@ import { DOMAIN_LABELS } from '../types/questionnaire'
 import type { EffortLevel } from '../types/dashboard'
 import { Badge, type BadgeVariant } from '../components/ui/Badge'
 import { Card } from '../components/ui/Card'
+import { PageHeader } from '../components/ui/PageHeader'
+import { buttonLinkClass } from '../components/ui/buttonStyles'
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -21,6 +24,15 @@ const EFFORT_BADGE_VARIANT: Record<EffortLevel, BadgeVariant> = {
   Low: 'green',
   Medium: 'amber',
   High: 'red',
+}
+
+// Couleurs par domaine RSE — identiques aux tokens chart-* de index.css pour cohérence visuelle.
+const DOMAIN_BORDER_COLORS: Record<string, string> = {
+  Environmental: '#29CC6A',
+  Social:        '#1E88E5',
+  Ethics:        '#7E57C2',
+  Procurement:   '#FFB74D',
+  Governance:    '#42A5F5',
 }
 
 // docs/specs/recommandations.md, section 4 : destination du lien "Voir tout le plan d'actions"
@@ -84,19 +96,20 @@ export function PlanActionsPage() {
   // en terminer un, jamais un écran vide silencieux.
   if (!hasCompletedDiagnostic || !latestDiagnosticId) {
     return (
-      <Card>
-        <h1 className="mb-2 text-2xl font-semibold text-text">Plan d&apos;actions</h1>
-        <p className="mb-4 text-sm text-text-muted">
-          Vous n&apos;avez pas encore de diagnostic complété. Terminez votre questionnaire RSE pour voir apparaître
-          votre plan d&apos;actions.
-        </p>
-        <Link
-          to="/questionnaire"
-          className="inline-block rounded-button bg-blue-maat px-4 py-2 font-medium text-white shadow-button"
-        >
-          Commencer le questionnaire
-        </Link>
-      </Card>
+      <div className="flex flex-col gap-4">
+        <PageHeader title="Plan d'actions" />
+        <Card as="section" className="flex flex-col items-center py-12 text-center">
+          <ClipboardList className="mb-4 h-12 w-12 text-border" aria-hidden />
+          <h2 className="mb-2 text-lg font-semibold text-text">Aucun plan disponible</h2>
+          <p className="mb-6 max-w-sm text-sm text-text-muted">
+            Vous n&apos;avez pas encore de diagnostic complété. Terminez votre questionnaire RSE pour voir apparaître
+            votre plan d&apos;actions.
+          </p>
+          <Link to="/questionnaire" className={buttonLinkClass()}>
+            Commencer le questionnaire
+          </Link>
+        </Card>
+      </div>
     )
   }
 
@@ -121,39 +134,37 @@ export function PlanActionsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* En-tête : titre, compteur et barre de progression */}
-      <Card>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-text">Plan d&apos;actions</h1>
-            <p className="mt-0.5 text-sm text-text-muted tabular-nums lining-nums">
+      <PageHeader title="Plan d'actions" />
+
+      {/* En-tête : compteur et barre de progression */}
+      {items.length > 0 && (
+        <Card>
+          <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center">
+            <p className="text-sm text-text-muted tabular-nums lining-nums">
               {completedCount}{' '}
               {pluralize(completedCount, 'action terminée', 'actions terminées')} sur {items.length}
             </p>
-          </div>
-          {items.length > 0 && (
-            <span className="shrink-0 text-2xl font-bold tabular-nums text-blue-maat" aria-hidden="true">
+            <strong className="px-4 text-2xl font-bold tabular-nums text-green-maat" aria-hidden="true">
               {progressPercent}&nbsp;%
-            </span>
-          )}
-        </div>
-
-        {items.length > 0 && (
-          <div className="mt-4">
-            <div className="h-2 w-full overflow-hidden rounded-full bg-border">
-              <div
-                className="h-full rounded-full bg-green-maat transition-all duration-500"
-                style={{ width: `${progressPercent}%` }}
-                role="progressbar"
-                aria-valuenow={progressPercent}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label={`${progressPercent} % des actions terminées`}
-              />
-            </div>
+            </strong>
+            <p className="text-right text-sm text-text-muted tabular-nums">
+              {items.length - completedCount}{' '}
+              {pluralize(items.length - completedCount, 'action restante', 'actions restantes')}
+            </p>
           </div>
-        )}
-      </Card>
+          <div className="h-2.5 w-full overflow-hidden rounded-full bg-border">
+            <div
+              className="h-full rounded-full bg-green-maat transition-all duration-500"
+              style={{ width: `${progressPercent}%` }}
+              role="progressbar"
+              aria-valuenow={progressPercent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`${progressPercent} % des actions terminées`}
+            />
+          </div>
+        </Card>
+      )}
 
       {/* Liste des actions */}
       {items.length === 0 ? (
@@ -171,9 +182,10 @@ export function PlanActionsPage() {
           {items.map((item) => (
             <li
               key={item.code}
-              className={`rounded-card border border-border bg-white p-4 shadow-card transition-opacity ${
+              className={`rounded-card border border-border border-l-4 bg-white p-4 shadow-card transition-opacity ${
                 item.isCompleted ? 'opacity-60' : ''
               }`}
+              style={{ borderLeftColor: DOMAIN_BORDER_COLORS[item.domain] ?? '#E5E7EB' }}
             >
               <div className="flex items-start gap-3">
                 <input

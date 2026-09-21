@@ -20,22 +20,23 @@ export function ProgressIndicator({
   return (
     <div className="mb-2">
       {/* Indicateurs visuels */}
-      <div className="mb-1.5 flex items-center justify-between text-xs text-text-muted tabular-nums">
+      <div className="mb-1.5 grid grid-cols-[1fr_auto_1fr] items-center text-xs text-text-muted tabular-nums">
         <span>
           Étape <strong className="font-semibold text-text">{currentStepIndex + 1}</strong> / {totalSteps}
         </span>
-        <span>
+        <strong className="px-3 text-sm font-semibold text-blue-maat">{progressPercent}%</strong>
+        <span className="text-right">
           <strong className="font-semibold text-text">{answeredCount}</strong> / {totalQuestions} questions
           {estimatedMinutesRemaining !== null && (
-            <> · ~{estimatedMinutesRemaining} min</>
+            <> · ~{estimatedMinutesRemaining}&nbsp;min</>
           )}
         </span>
       </div>
 
       {/* Barre de progression */}
-      <div className="h-2 w-full overflow-hidden rounded-full bg-border">
+      <div className="h-2.5 w-full overflow-hidden rounded-full bg-border">
         <div
-          className="h-full rounded-full bg-blue-maat transition-all duration-300"
+          className="h-full rounded-full bg-blue-maat transition-all duration-500"
           style={{ width: `${progressPercent}%` }}
           aria-hidden="true"
         />

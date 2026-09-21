@@ -18,7 +18,7 @@ export function Header({ onOpenMobileNav }: HeaderProps) {
   const initial = ((companyName ?? email ?? '?')[0] ?? '?').toUpperCase()
 
   return (
-    <header className="flex items-center justify-between gap-4 border-b border-border bg-white px-4 py-2.5">
+    <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-border bg-white/95 px-4 py-3 shadow-sm backdrop-blur-sm">
       {/* Gauche : hamburger mobile + nom entreprise */}
       <div className="flex items-center gap-3">
         <button
@@ -37,15 +37,15 @@ export function Header({ onOpenMobileNav }: HeaderProps) {
         {/* Avatar initiale entreprise */}
         <div
           aria-hidden
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-maat text-xs font-bold text-white"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-maat text-xs font-bold text-white ring-2 ring-blue-maat/20 ring-offset-1"
         >
           {initial}
         </div>
 
-        {/* Email + rôle empilés */}
-        <div className="hidden flex-col items-end leading-tight sm:flex">
-          {email && <span className="text-xs text-text-muted">{email}</span>}
+        {/* Rôle + email empilés */}
+        <div className="hidden flex-col leading-tight sm:flex">
           {roleLabel && <span className="text-xs font-medium text-text">{roleLabel}</span>}
+          {email && <span className="max-w-[160px] truncate text-xs text-text-muted">{email}</span>}
         </div>
 
         {/* Séparateur */}

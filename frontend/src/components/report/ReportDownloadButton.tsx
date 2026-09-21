@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { AlertTriangle, Download } from 'lucide-react'
 import { ApiError } from '../../api/authApi'
 import * as accountApi from '../../api/accountApi'
 import * as reportApi from '../../api/reportApi'
@@ -60,23 +61,25 @@ export function ReportDownloadButton({ diagnosticId }: ReportDownloadButtonProps
   const disabled = verification === 'unverified' || downloadStatus === 'downloading'
 
   return (
-    <div className="flex flex-col items-start gap-1">
+    <div className="flex flex-col items-start gap-3">
       <Button
         type="button"
-        variant="secondary"
-        size="sm"
         onClick={() => void handleDownload()}
         disabled={disabled}
         isLoading={downloadStatus === 'downloading'}
         aria-busy={downloadStatus === 'downloading'}
       >
+        {downloadStatus !== 'downloading' && <Download size={16} aria-hidden="true" />}
         {downloadStatus === 'downloading' ? 'Génération en cours…' : 'Télécharger le rapport PDF'}
       </Button>
       {verification === 'unverified' && (
-        <p className="text-xs text-text-muted">
-          Votre adresse e-mail doit être vérifiée avant de pouvoir télécharger le rapport : consultez le
-          message envoyé lors de votre inscription.
-        </p>
+        <div className="flex items-start gap-2 rounded-lg border border-amber/30 bg-amber/10 px-3 py-2.5">
+          <AlertTriangle size={15} className="mt-0.5 shrink-0 text-amber" aria-hidden="true" />
+          <p className="text-xs text-text">
+            Votre adresse e-mail doit être vérifiée avant de pouvoir télécharger le rapport : consultez le
+            message envoyé lors de votre inscription.
+          </p>
+        </div>
       )}
       {downloadStatus === 'error' && verification !== 'unverified' && (
         <p role="alert" className="text-xs text-red">

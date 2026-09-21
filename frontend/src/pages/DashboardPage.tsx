@@ -151,12 +151,14 @@ export function DashboardPage() {
           unit="/ 100"
           subtitle={scoreLabel}
           delta={scoreDelta}
+          accent="blue"
         />
         {strongest && (
           <KpiCard
             title="Point fort"
             value={DOMAIN_SHORT[strongest.domain] ?? DOMAIN_LABELS[strongest.domain]}
             subtitle={`${Math.round(strongest.score)} / 100`}
+            accent="green"
           />
         )}
         {weakest && weakest.domain !== strongest?.domain && (
@@ -164,12 +166,14 @@ export function DashboardPage() {
             title="À renforcer"
             value={DOMAIN_SHORT[weakest.domain] ?? DOMAIN_LABELS[weakest.domain]}
             subtitle={`${Math.round(weakest.score)} / 100`}
+            accent="amber"
           />
         )}
         <KpiCard
           title="Plan d'actions"
           value={`${actionPlan.completedCount} / ${actionPlan.totalCount}`}
           subtitle="actions terminées"
+          accent="blue"
         />
       </div>
 

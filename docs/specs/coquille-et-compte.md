@@ -76,8 +76,8 @@ désactivée avec un motif explicite enseigne le modèle de droits. C'est la mê
 logique que le bouton de rapport grisé pour un compte non vérifié.
 
 **L'entrée active est signalée par deux moyens**, jamais par la seule couleur :
-fond distinct et barre verticale à gauche. Exigence WCAG déjà posée par les
-autres specs.
+fond distinct (`bg-white/10`) et graisse typographique distincte (`font-semibold`).
+Exigence WCAG déjà posée par les autres specs.
 
 **État du diagnostic en cours.** Si un diagnostic est `InProgress`, l'entrée
 « Diagnostic » porte son avancement — « 23 / 45 ». C'est le rappel le plus utile

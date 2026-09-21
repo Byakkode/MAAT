@@ -14,7 +14,8 @@ est sur la donnée et l'action.
 
 | Rôle | Token | HEX | Usage |
 | --- | --- | --- | --- |
-| Primaire | `blue-maat` | `#1565FF` | Boutons, liens, sidebar |
+| Primaire | `blue-maat` | `#1565FF` | Boutons, liens, accent sidebar (logo, item actif) |
+| Sidebar | `sidebar` | `#0F172A` | Fond de la barre latérale |
 | Accent | `green-maat` | `#29CC6A` | Actions positives, performances |
 | Alerte | `orange` | `#FFA64D` | Priorité moyenne, à surveiller |
 | Erreur | `red` | `#E53935` | Alertes critiques, échecs |
@@ -58,8 +59,18 @@ Cartes et surfaces : fond blanc `#FFFFFF`.
 
 ## Mise en page
 
-Sidebar gauche fixe (bleu foncé, texte blanc) · header avec recherche et menu
-utilisateur à droite · contenu central en cartes modulaires.
+Sidebar gauche fixe (ardoise foncée `#0F172A`, token `sidebar`, texte blanc ; bleu MAAT
+en accent pour l'item actif et le logo) · header blanc avec bordure inférieure · contenu
+central en cartes modulaires.
+
+Navigation groupée par sections ("Analyse", "Pilotage", "Compte"). L'item actif se
+signale par **deux moyens distincts** : fond distinct (`bg-white/10`) et graisse
+typographique (`font-semibold`).
+
+**Cartes KPI** — bordure gauche colorée 4 px + fond teinté très subtil :
+- Bleu (`blue-maat` / `kpi-blue #EFF6FF`) : métriques globales
+- Vert (`green-maat` / `kpi-green #F0FDF4`) : indicateurs positifs / points forts
+- Ambre (`orange` / `kpi-amber #FFFBEB`) : indicateurs à surveiller
 
 ## Iconographie
 

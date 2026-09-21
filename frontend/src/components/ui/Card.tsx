@@ -16,7 +16,7 @@ export function Card<E extends ElementType = 'div'>({
   const Tag = (as ?? 'div') as ElementType
   return (
     <Tag
-      className={`rounded-card border border-border bg-white p-5 shadow-card ${className}`}
+      className={`rounded-card border border-border bg-white p-5 shadow-card transition-shadow duration-200 hover:shadow-md ${className}`}
       {...props}
     />
   )
