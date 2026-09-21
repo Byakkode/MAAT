@@ -41,7 +41,12 @@ export const useAuthStore = create<AuthState>((set) => {
     async restoreSession() {
       const tokens = await authApi.refresh()
       if (!tokens) {
-        set({ status: 'unauthenticated', user: null })
+        // Ne pas écraser 'authenticated' : en React 18 StrictMode, l'effet App.tsx
+        // se déclenche deux fois au montage — si le second appel résout APRÈS que
+        // login() ait posé 'authenticated', il renvoyait l'utilisateur sur /login.
+        set((state) =>
+          state.status === 'restoring' ? { status: 'unauthenticated', user: null } : state,
+        )
         return
       }
       set({ status: 'authenticated', user: userFromToken(tokens.accessToken), error: null })
