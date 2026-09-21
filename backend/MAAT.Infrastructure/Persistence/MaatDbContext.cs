@@ -19,6 +19,7 @@ public class MaatDbContext(DbContextOptions<MaatDbContext> options) : DbContext(
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
     public DbSet<RseIndicators> RseIndicators => Set<RseIndicators>();
+    public DbSet<ActionItemProgress> ActionItemProgresses => Set<ActionItemProgress>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

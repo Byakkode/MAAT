@@ -6,16 +6,16 @@ import { MemoryRouter } from 'react-router-dom'
 const dashboardApi = vi.hoisted(() => ({ getDashboard: vi.fn() }))
 vi.mock('../api/dashboardApi', () => dashboardApi)
 
-const recommendationsApi = vi.hoisted(() => ({
-  getRecommendations: vi.fn(),
-  updateRecommendationProgress: vi.fn(),
+const actionPlanApiMock = vi.hoisted(() => ({
+  getActionPlan: vi.fn(),
+  upsertActionItemProgress: vi.fn(),
 }))
-vi.mock('../api/recommendationsApi', () => recommendationsApi)
+vi.mock('../api/actionPlanApi', () => actionPlanApiMock)
 
 import { PlanActionsPage } from './PlanActionsPage'
 import { useAuthStore } from '../store/authStore'
 import { makeDashboardView, makeLatestDiagnostic, resetDashboardStore } from '../test/dashboardFixtures'
-import { makeRecommendationDetail, resetPlanActionsStore } from '../test/planActionsFixtures'
+import { makeActionItemWithProgress, resetPlanActionsStore } from '../test/planActionsFixtures'
 
 function renderPage() {
   return render(
@@ -31,8 +31,8 @@ describe('PlanActionsPage', () => {
     resetDashboardStore()
     resetPlanActionsStore()
     dashboardApi.getDashboard.mockReset()
-    recommendationsApi.getRecommendations.mockReset()
-    recommendationsApi.updateRecommendationProgress.mockReset()
+    actionPlanApiMock.getActionPlan.mockReset()
+    actionPlanApiMock.upsertActionItemProgress.mockReset()
     useAuthStore.setState({ status: 'authenticated', user: { userId: 'u-1', companyId: 'c-1', role: 'Admin' }, error: null })
   })
 
@@ -57,16 +57,16 @@ describe('PlanActionsPage', () => {
 
     renderPage()
 
-    await screen.findByText(/vous n'avez pas encore de diagnostic complété/i)
+    await screen.findByText(/vous n'avez pas encore de diagnostic compl/i)
     expect(screen.getByRole('link', { name: 'Commencer le questionnaire' })).toBeDefined()
-    expect(recommendationsApi.getRecommendations).not.toHaveBeenCalled()
+    expect(actionPlanApiMock.getActionPlan).not.toHaveBeenCalled()
   })
 
   it('aucune recommandation déclenchée → message de félicitation, pas une erreur', async () => {
     dashboardApi.getDashboard.mockResolvedValue(
       makeDashboardView({ hasCompletedDiagnostic: true, latestDiagnostic: makeLatestDiagnostic({ id: 'diag-1' }) }),
     )
-    recommendationsApi.getRecommendations.mockResolvedValue([])
+    actionPlanApiMock.getActionPlan.mockResolvedValue([])
 
     renderPage()
 
@@ -74,13 +74,13 @@ describe('PlanActionsPage', () => {
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
-  it('affiche la liste des recommandations triée par le serveur, avec domaine, effort et impact', async () => {
+  it('affiche la liste des actions triée par le serveur, avec domaine, effort et impact', async () => {
     dashboardApi.getDashboard.mockResolvedValue(
       makeDashboardView({ hasCompletedDiagnostic: true, latestDiagnostic: makeLatestDiagnostic({ id: 'diag-1' }) }),
     )
-    recommendationsApi.getRecommendations.mockResolvedValue([
-      makeRecommendationDetail({ code: 'REC-ENV-01', priorityRank: 1, actionText: 'Action prioritaire' }),
-      makeRecommendationDetail({
+    actionPlanApiMock.getActionPlan.mockResolvedValue([
+      makeActionItemWithProgress({ code: 'REC-ENV-01', priorityRank: 1, actionText: 'Action prioritaire' }),
+      makeActionItemWithProgress({
         code: 'REC-SOC-01',
         priorityRank: 2,
         actionText: 'Action secondaire',
@@ -89,13 +89,14 @@ describe('PlanActionsPage', () => {
         impactPoints: 3,
         isCompleted: true,
         completedAt: '2026-03-01T10:00:00Z',
+        status: 'Done',
       }),
     ])
 
     renderPage()
 
-    const items = await screen.findAllByRole('checkbox')
-    expect(items).toHaveLength(2)
+    const statusBtns = await screen.findAllByRole('button', { name: /Statut/i })
+    expect(statusBtns).toHaveLength(2)
     expect(screen.getByText('Action prioritaire')).toBeDefined()
     expect(screen.getByText('Action secondaire')).toBeDefined()
     expect(screen.getByText(/Environnement · Effort modéré · 5 points/)).toBeDefined()
@@ -104,34 +105,48 @@ describe('PlanActionsPage', () => {
     expect(screen.getByText((_, el) => el?.tagName === 'P' && /1\s*\/\s*2 actions/.test(el.textContent ?? ''))).toBeDefined()
   })
 
-  it('Admin/User peuvent cocher une action, qui recharge la liste', async () => {
+  it('Admin/User peuvent changer le statut d’une action', async () => {
     dashboardApi.getDashboard.mockResolvedValue(
       makeDashboardView({ hasCompletedDiagnostic: true, latestDiagnostic: makeLatestDiagnostic({ id: 'diag-1' }) }),
     )
-    recommendationsApi.getRecommendations
-      .mockResolvedValueOnce([makeRecommendationDetail({ code: 'REC-ENV-01', isCompleted: false })])
-      .mockResolvedValueOnce([makeRecommendationDetail({ code: 'REC-ENV-01', isCompleted: true, completedAt: '2026-03-01T10:00:00Z' })])
-    recommendationsApi.updateRecommendationProgress.mockResolvedValue({})
+    actionPlanApiMock.getActionPlan.mockResolvedValue([
+      makeActionItemWithProgress({ code: 'REC-ENV-01', status: 'Planned', assignedTo: null, dueDate: null, notes: null }),
+    ])
+    actionPlanApiMock.upsertActionItemProgress.mockResolvedValue({
+      diagnosticId: 'diag-1',
+      code: 'REC-ENV-01',
+      status: 'InProgress',
+      assignedTo: null,
+      dueDate: null,
+      notes: null,
+      progressUpdatedAt: '2026-09-21T10:00:00Z',
+    })
 
     renderPage()
 
-    const checkbox = await screen.findByRole('checkbox')
-    await userEvent.click(checkbox)
+    const statusBtn = await screen.findByRole('button', { name: /Statut : Planifié/i })
+    await userEvent.click(statusBtn)
 
-    await waitFor(() => expect(recommendationsApi.updateRecommendationProgress).toHaveBeenCalledWith('diag-1', 'REC-ENV-01', true))
-    await screen.findByText(/terminée le 1 mars 2026/i)
+    await waitFor(() =>
+      expect(actionPlanApiMock.upsertActionItemProgress).toHaveBeenCalledWith(
+        'diag-1',
+        'REC-ENV-01',
+        { status: 'InProgress', assignedTo: null, dueDate: null, notes: null },
+      )
+    )
+    await screen.findByRole('button', { name: /Statut : En cours/i })
   })
 
-  it('Viewer voit des cases désactivées, jamais actionnables', async () => {
+  it('Viewer voit des boutons de statut désactivés, jamais actionnables', async () => {
     useAuthStore.setState({ status: 'authenticated', user: { userId: 'u-1', companyId: 'c-1', role: 'Viewer' }, error: null })
     dashboardApi.getDashboard.mockResolvedValue(
       makeDashboardView({ hasCompletedDiagnostic: true, latestDiagnostic: makeLatestDiagnostic({ id: 'diag-1' }) }),
     )
-    recommendationsApi.getRecommendations.mockResolvedValue([makeRecommendationDetail()])
+    actionPlanApiMock.getActionPlan.mockResolvedValue([makeActionItemWithProgress()])
 
     renderPage()
 
-    const checkbox = await screen.findByRole('checkbox')
-    expect(checkbox.hasAttribute('disabled')).toBe(true)
+    const statusBtn = await screen.findByRole('button', { name: /Statut/i })
+    expect(statusBtn.hasAttribute('disabled')).toBe(true)
   })
 })
