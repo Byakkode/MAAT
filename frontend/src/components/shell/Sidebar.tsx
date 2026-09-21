@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { motion } from 'framer-motion'
-import { BarChart2, CheckCircle, ClipboardList, FileText, Settings, X } from 'lucide-react'
+import { BarChart2, CheckCircle, ClipboardList, FileText, LifeBuoy, Settings, X } from 'lucide-react'
 import { Link, NavLink } from 'react-router-dom'
 import { Tooltip } from '../ui/Tooltip'
 import { useDashboardStore } from '../../store/dashboardStore'
@@ -25,7 +25,10 @@ const NAV_SECTIONS: Array<{ label: string; items: NavItem[] }> = [
   },
   {
     label: 'Compte',
-    items: [{ to: '/compte', label: 'Mon compte', icon: Settings }],
+    items: [
+      { to: '/compte', label: 'Mon compte', icon: Settings },
+      { to: '/support', label: 'Support', icon: LifeBuoy },
+    ],
   },
 ]
 
