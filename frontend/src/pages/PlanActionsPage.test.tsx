@@ -101,7 +101,7 @@ describe('PlanActionsPage', () => {
     expect(screen.getByText(/Environnement · Effort modéré · 5 points/)).toBeDefined()
     expect(screen.getByText(/Social & droits humains · Effort faible · 3 points/)).toBeDefined()
     expect(screen.getByText(/Terminée le 1 mars 2026/)).toBeDefined()
-    expect(screen.getByText('1 action terminée sur 2')).toBeDefined()
+    expect(screen.getByText((_, el) => el?.tagName === 'P' && /1\s*\/\s*2 actions/.test(el.textContent ?? ''))).toBeDefined()
   })
 
   it('Admin/User peuvent cocher une action, qui recharge la liste', async () => {

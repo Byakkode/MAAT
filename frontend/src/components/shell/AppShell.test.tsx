@@ -86,11 +86,10 @@ describe('AppShell', () => {
     const active = screen.getByRole('link', { name: /tableau de bord/i })
     const inactive = screen.getByRole('link', { name: /rapports/i })
 
-    // docs/specs/coquille-et-compte.md : fond bg-white/10 + graisse font-semibold (non chromatique).
-    expect(active.className).toContain('bg-white/10')
-    expect(active.className).toContain('font-semibold')
-    expect(inactive.className).not.toContain('bg-white/10')
-    expect(inactive.className).not.toContain('font-semibold')
+    // docs/specs/coquille-et-compte.md : fond bg-white/[0.09] + graisse font-medium (non chromatique).
+    expect(active.className).toContain('bg-white/[0.09]')
+    expect(active.className).toContain('font-medium')
+    expect(inactive.className).not.toContain('bg-white/[0.09]')
   })
 
   it("cas 3 : un diagnostic InProgress affiche son avancement dans l’entrée Diagnostic", async () => {

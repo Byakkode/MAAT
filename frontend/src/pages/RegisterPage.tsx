@@ -6,12 +6,7 @@ import { AuthPanel } from '../components/auth/AuthPanel'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 
-const AUTH_BG: React.CSSProperties = {
-  background:
-    'radial-gradient(ellipse at 25% 30%, rgba(21,101,255,0.65) 0%, transparent 55%),' +
-    'radial-gradient(ellipse at 80% 75%, rgba(13,40,110,0.85) 0%, transparent 55%),' +
-    '#0d1b3e',
-}
+const AUTH_BG: React.CSSProperties = { background: '#0c1322' }
 
 const SIZE_RANGE_LABELS: Record<CompanySizeRange, string> = {
   Micro: 'Micro-entreprise (moins de 10 salariés)',
@@ -64,16 +59,16 @@ export function RegisterPage() {
         {/* Logo mobile (masqué quand AuthPanel visible) */}
         <div className="mb-6 lg:hidden">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-maat shadow-[0_0_18px_rgba(21,101,255,0.5)] ring-1 ring-blue-maat/60">
-              <span className="text-sm font-bold text-white">M</span>
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-maat">
+              <span className="text-[13px] font-bold text-white">M</span>
             </div>
-            <p className="font-heading text-lg font-bold leading-tight text-white">MAAT</p>
+            <p className="text-[15px] font-bold leading-tight tracking-tight text-white">MAAT</p>
           </div>
         </div>
 
-        <div className="rounded-2xl bg-white px-8 py-9 shadow-2xl">
-        <h1 className="mb-1 text-[1.5rem] font-bold text-text">Créer un compte</h1>
-        <p className="mb-7 text-[13.5px] text-text-muted">
+        <div className="rounded-2xl bg-white px-8 py-9 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+        <h1 className="mb-1 text-[1.375rem] font-semibold text-text">Créer un compte</h1>
+        <p className="mb-7 text-[13px] text-text-muted">
           Votre espace RSE en quelques minutes.
         </p>
 

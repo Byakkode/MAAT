@@ -31,8 +31,9 @@
   /* charte-maat skill, section Couleurs : "Alerte | orange | #FFA64D | Priorité moyenne, à
      surveiller" — pour les fonds de badges et les indicateurs de priorité moyenne. */
   --color-orange: #ffa64d;
-  --color-bg: #f8f9fc;
-  --color-text: #1e1e2d;
+  /* Fond général : ardoise froide — les cartes blanches ressortent nettement. */
+  --color-bg: #eef2f8;
+  --color-text: #111827;
 
   /* Sidebar : ardoise foncée (#0f172a) — remplace blue-maat comme fond de la sidebar.
      Le bleu MAAT reste l'accent : logo, item actif, boutons. */
@@ -67,13 +68,13 @@
   --radius-card: 12px;
   --radius-input: 10px;
 
-  --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.05);
-  /* Ombre colorée bleu MAAT — signature hover des boutons primaires. */
-  --shadow-button-primary: 0 4px 14px rgba(21, 101, 255, 0.28);
-  /* Deux couches : ombre courte (élévation de surface) + ombre longue diffuse (profondeur). */
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.04);
-  --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.09), 0 1px 4px rgba(0, 0, 0, 0.05);
-  --shadow-input: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-button: none;
+  --shadow-button-primary: 0 2px 8px rgba(21, 101, 255, 0.22);
+  /* Ombre précise, une seule couche — propre sur fond ardoise. */
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --shadow-card-hover: 0 6px 20px rgba(15, 23, 42, 0.11), 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-input: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-popover: 0 8px 28px rgba(15, 23, 42, 0.14), 0 2px 6px rgba(15, 23, 42, 0.06);
 }
 
 body {
@@ -83,16 +84,9 @@ body {
   font-family: var(--font-body);
 }
 
-/* Grille de points subtile — signature visuelle MAAT, inspirée Aceternity UI.
-   Appliquée uniquement dans la coquille authentifiée via .dot-grid sur AppShell. */
-.dot-grid {
-  background-image: radial-gradient(circle, rgba(21, 101, 255, 0.05) 1px, transparent 1px);
-  background-size: 22px 22px;
-}
-
-/* Sidebar gradient (fond plus profond vers le bas) */
+/* Sidebar : fond plat profond — les items actifs ressortent sans décor superflu. */
 .sidebar-gradient {
-  background: linear-gradient(170deg, #0f172a 0%, #0c1428 100%);
+  background: #0c1322;
 }
 
 /* Avatar gradient MAAT — utilisé dans Header et pages auth */

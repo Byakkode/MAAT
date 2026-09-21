@@ -34,13 +34,13 @@ const ALL_NAV_ITEMS = NAV_SECTIONS.flatMap((s) => s.items)
 
 function Wordmark() {
   return (
-    <Link to="/" className="flex items-center gap-3 px-1">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-maat shadow-[0_0_18px_rgba(21,101,255,0.45)] ring-1 ring-blue-maat/60">
+    <Link to="/" className="flex items-center gap-3 px-2">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-maat">
         <span className="text-sm font-bold text-white">M</span>
       </div>
       <div>
-        <span className="block font-heading text-lg font-bold leading-tight text-white">MAAT</span>
-        <span className="block text-xs text-white/50">diagnostic RSE</span>
+        <span className="block text-[15px] font-bold leading-tight tracking-tight text-white">MAAT</span>
+        <span className="block text-[11px] text-white/40">Diagnostic RSE</span>
       </div>
     </Link>
   )
@@ -50,22 +50,22 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const inProgressDiagnostic = useDashboardStore((s) => s.inProgressDiagnostic)
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       {NAV_SECTIONS.map(({ label, items }) => (
         <div key={label}>
-          <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/40">
+          <p className="mb-1 px-2 text-[10px] font-medium uppercase tracking-[0.12em] text-white/30">
             {label}
           </p>
           <ul className="flex flex-col gap-0.5">
             {items.map(({ to, label: itemLabel, icon: Icon, end }) => (
               <motion.li
                 key={to}
-                initial={{ opacity: 0, x: -8 }}
+                initial={{ opacity: 0, x: -6 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{
-                  duration: 0.22,
+                  duration: 0.2,
                   ease: 'easeOut',
-                  delay: 0.08 + ALL_NAV_ITEMS.findIndex((item) => item.to === to) * 0.05,
+                  delay: 0.06 + ALL_NAV_ITEMS.findIndex((item) => item.to === to) * 0.04,
                 }}
               >
                 <NavLink
@@ -73,20 +73,20 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                   end={end}
                   onClick={onNavigate}
                   // docs/specs/coquille-et-compte.md, section 3 : active signalé par deux moyens
-                  // distincts — fond bg-white/10 + graisse font-semibold (non chromatique).
+                  // distincts — fond bg-white/9 + texte blanc pleine opacité.
                   className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors duration-150 ${
+                    `flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] transition-all duration-150 ${
                       isActive
-                        ? 'bg-white/10 font-semibold text-white'
-                        : 'font-medium text-white/65 hover:bg-white/5 hover:text-white/90'
+                        ? 'bg-white/[0.09] font-medium text-white'
+                        : 'font-normal text-white/50 hover:bg-white/[0.05] hover:text-white/80'
                     }`
                   }
                 >
-                  <Icon size={18} strokeWidth={1.5} aria-hidden="true" />
+                  <Icon size={16} strokeWidth={1.75} aria-hidden="true" />
                   <span className="flex-1">{itemLabel}</span>
                   {to === '/questionnaire' && inProgressDiagnostic && (
                     <Tooltip content="Diagnostic en cours" side="right">
-                      <span className="rounded-full bg-blue-maat/30 px-2 py-0.5 text-xs tabular-nums lining-nums text-white">
+                      <span className="rounded-full bg-blue-maat/25 px-2 py-0.5 text-[11px] tabular-nums lining-nums text-blue-maat/90">
                         {inProgressDiagnostic.answeredCount} / {inProgressDiagnostic.totalActiveQuestions}
                       </span>
                     </Tooltip>

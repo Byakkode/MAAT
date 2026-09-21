@@ -41,18 +41,18 @@ function QuestionItemComponent({ question }: QuestionItemProps) {
   return (
     <fieldset
       data-render-count={renderCount.current}
-      className="mb-4 rounded-card border border-border bg-white p-5 shadow-card"
+      className="mb-3 rounded-xl border border-border bg-white p-5 shadow-card"
     >
-      <legend id={legendId} className="mb-3 px-1 text-base font-medium text-text">
+      <legend id={legendId} className="mb-4 px-0 text-[14.5px] font-medium leading-snug text-text">
         {question.text}
       </legend>
 
       {question.helpText && (
-        <details className="mb-3 text-sm">
-          <summary className="cursor-pointer font-medium text-blue-maat-text hover:underline">
+        <details className="mb-4 text-[13px]">
+          <summary className="cursor-pointer select-none font-medium text-blue-maat-text hover:underline">
             Aide
           </summary>
-          <p className="mt-2 text-text-muted">{question.helpText}</p>
+          <p className="mt-2 rounded-lg bg-bg px-3 py-2.5 text-text-muted">{question.helpText}</p>
         </details>
       )}
 
@@ -61,11 +61,11 @@ function QuestionItemComponent({ question }: QuestionItemProps) {
           <label
             key={option.value}
             className={[
-              'flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-2.5 text-sm transition-colors',
+              'flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-[13.5px] transition-colors',
               value === option.value
-                ? 'border-blue-maat bg-blue-maat/10 font-medium text-text'
-                : 'border-border text-text hover:border-blue-maat/40 hover:bg-blue-maat/5',
-              !isEditable ? 'cursor-not-allowed opacity-80' : '',
+                ? 'border-blue-maat bg-blue-maat/[0.07] font-medium text-text'
+                : 'border-border text-text hover:border-blue-maat/30 hover:bg-blue-maat/[0.03]',
+              !isEditable ? 'cursor-not-allowed opacity-75' : '',
             ]
               .filter(Boolean)
               .join(' ')}
@@ -84,12 +84,12 @@ function QuestionItemComponent({ question }: QuestionItemProps) {
             <span
               aria-hidden="true"
               className={[
-                'flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
+                'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-[2px] transition-colors',
                 value === option.value ? 'border-blue-maat bg-blue-maat' : 'border-border bg-white',
               ].join(' ')}
             >
               {value === option.value && (
-                <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                <span className="h-2 w-2 rounded-full bg-white" />
               )}
             </span>
             {option.label}

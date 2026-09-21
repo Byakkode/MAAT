@@ -1,83 +1,66 @@
-import { TrendingDown, TrendingUp, Minus } from 'lucide-react'
+import { memo } from 'react'
 import { motion } from 'framer-motion'
+import { TrendingDown, TrendingUp } from 'lucide-react'
 
-type KpiAccent = 'blue' | 'green' | 'amber' | 'neutral'
-
-const ACCENT: Record<KpiAccent, { dot: string; trend: string }> = {
-  blue:    { dot: 'bg-blue-maat',   trend: 'text-blue-maat' },
-  green:   { dot: 'bg-green-maat',  trend: 'text-green-maat-text' },
-  amber:   { dot: 'bg-orange',      trend: 'text-amber' },
-  neutral: { dot: 'bg-border-strong', trend: 'text-text-muted' },
-}
+export type KpiAccent = 'blue' | 'green' | 'amber' | 'neutral'
 
 interface KpiCardProps {
   title: string
-  value: string | number
-  /** Affiché dans un span séparé après la valeur — permet aux tests de cibler la valeur seule. */
+  value: string
   unit?: string
   subtitle?: string
-  /** Variation vs diagnostic précédent — positif = vert, négatif = rouge, 0 = muted */
   delta?: number | null
-  /** Accent coloré (point + icône tendance) — charte-maat skill, section Mise en page. */
   accent?: KpiAccent
-  /** Délai d'entrée en secondes — pour staggers manuels dans un grid parent. */
   delay?: number
 }
 
-export function KpiCard({ title, value, unit, subtitle, delta, accent = 'neutral', delay = 0 }: KpiCardProps) {
-  const deltaClass =
-    delta == null || delta === 0
-      ? 'text-text-muted'
-      : delta > 0
-        ? 'text-green-maat-text'
-        : 'text-red'
+function DeltaPill({ delta }: { delta: number }) {
+  if (delta === 0) return <span className="text-[11px] text-text-muted tabular-nums">—</span>
+  const isUp = delta > 0
+  const abs = Math.abs(Math.round(delta))
+  const Icon = isUp ? TrendingUp : TrendingDown
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums lining-nums ${
+        isUp ? 'bg-green-maat/10 text-green-maat-text' : 'bg-red/10 text-red'
+      }`}
+    >
+      <Icon size={10} strokeWidth={2.5} aria-hidden />
+      {isUp ? '+' : '-'}{abs}
+    </span>
+  )
+}
 
-  const deltaLabel =
-    delta != null && delta !== 0
-      ? `${delta > 0 ? '+' : ''}${Math.round(delta)} pts vs diagnostic précédent`
-      : delta === 0
-        ? 'Stable vs diagnostic précédent'
-        : null
-
-  const TrendIcon =
-    delta != null && delta > 0
-      ? TrendingUp
-      : delta != null && delta < 0
-        ? TrendingDown
-        : Minus
-
-  const { dot } = ACCENT[accent]
-
+function KpiCardComponent({ title, value, unit, subtitle, delta, delay = 0 }: KpiCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      className="rounded-xl border border-border bg-white p-5 shadow-card transition-shadow duration-200 hover:shadow-card-hover"
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut', delay }}
-      whileHover={{ y: -2, transition: { duration: 0.15, ease: 'easeOut' } }}
-      className="group rounded-card border border-border bg-white p-5 shadow-card transition-all duration-200 hover:shadow-[0_4px_16px_rgba(0,0,0,0.09)] hover:border-border-strong"
+      transition={{ duration: 0.22, ease: 'easeOut', delay }}
     >
-      {/* En-tête : label + point accent */}
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">{title}</p>
-        <span className={`mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} aria-hidden />
+        <p className="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-text-muted">
+          {title}
+        </p>
+        {delta !== null && delta !== undefined && <DeltaPill delta={delta} />}
       </div>
 
-      {/* Valeur principale */}
-      <p className="mt-3 font-heading tabular-nums lining-nums leading-none">
-        <span className="text-[2rem] font-bold tracking-tight text-text">{value}</span>
-        {unit && <span className="ml-1.5 text-base font-normal text-text-muted">{unit}</span>}
-      </p>
-
-      {/* Sous-titre */}
-      {subtitle && <p className="mt-1.5 text-[13px] text-text-muted">{subtitle}</p>}
-
-      {/* Tendance */}
-      {deltaLabel && (
-        <div className={`mt-3 flex items-center gap-1 text-[11.5px] font-medium ${deltaClass}`}>
-          <TrendIcon size={13} strokeWidth={2} aria-hidden />
-          <span>{deltaLabel}</span>
+      <div className="mt-3.5">
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-[2.25rem] font-bold leading-none tracking-tight text-text tabular-nums lining-nums">
+            {value}
+          </span>
+          {unit && (
+            <span className="text-sm font-medium text-text-muted">{unit}</span>
+          )}
         </div>
-      )}
+        {subtitle && (
+          <p className="mt-1.5 text-[13px] text-text-muted">{subtitle}</p>
+        )}
+      </div>
     </motion.div>
   )
 }
+
+export const KpiCard = memo(KpiCardComponent)

@@ -81,7 +81,7 @@ describe('DashboardPage', () => {
 
     renderPage()
 
-    await waitFor(() => expect(screen.getByText('62')).toBeDefined())
+    await waitFor(() => expect(screen.getByRole('heading', { name: /62/ })).toBeDefined())
     expect(screen.getByText('Démarche structurée')).toBeDefined()
     expect(screen.getByRole('img')).toBeDefined()
     expect(screen.getByRole('table')).toBeDefined()

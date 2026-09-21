@@ -1,11 +1,12 @@
-import { ClipboardList } from 'lucide-react'
-import { useEffect } from 'react'
+import { ClipboardList, SlidersHorizontal, X } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { EFFORT_LABELS } from '../constants/effortLabels'
 import { useAuthStore } from '../store/authStore'
 import { useDashboardStore } from '../store/dashboardStore'
 import { usePlanActionsStore } from '../store/planActionsStore'
 import { DOMAIN_LABELS } from '../types/questionnaire'
+import type { RseDomain } from '../types/questionnaire'
 import type { EffortLevel } from '../types/dashboard'
 import { Badge, type BadgeVariant } from '../components/ui/Badge'
 import { Card } from '../components/ui/Card'
@@ -26,13 +27,28 @@ const EFFORT_BADGE_VARIANT: Record<EffortLevel, BadgeVariant> = {
   High: 'red',
 }
 
-// Couleurs par domaine RSE — identiques aux tokens chart-* de index.css pour cohérence visuelle.
-const DOMAIN_BORDER_COLORS: Record<string, string> = {
-  Environmental: '#29CC6A',
-  Social:        '#1E88E5',
-  Ethics:        '#7E57C2',
-  Procurement:   '#FFB74D',
-  Governance:    '#42A5F5',
+const ALL_EFFORTS: EffortLevel[] = ['Low', 'Medium', 'High']
+const ALL_DOMAINS: RseDomain[] = ['Environmental', 'Social', 'Ethics', 'Procurement', 'Governance']
+
+const EFFORT_CHIP_ACTIVE: Record<EffortLevel, string> = {
+  Low:    'border-chart-environnement/50 bg-chart-environnement/10 text-chart-environnement',
+  Medium: 'border-orange/50 bg-orange/10 text-orange',
+  High:   'border-red/50 bg-red/10 text-red',
+}
+
+const DOMAIN_CHIP_ACTIVE: Record<RseDomain, string> = {
+  Environmental: 'border-chart-environnement/50 bg-chart-environnement/10 text-chart-environnement',
+  Social:        'border-chart-social/50 bg-chart-social/10 text-chart-social',
+  Ethics:        'border-chart-ethique/50 bg-chart-ethique/10 text-chart-ethique',
+  Procurement:   'border-chart-achats/50 bg-chart-achats/10 text-chart-achats',
+  Governance:    'border-chart-gouvernance/50 bg-chart-gouvernance/10 text-chart-gouvernance',
+}
+
+const CHIP_BASE = 'rounded-full border px-2.5 py-1 text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-maat/40'
+const CHIP_OFF  = 'border-border bg-white text-text-muted hover:border-border-strong hover:text-text'
+
+function chipCls(active: boolean, activeClass: string): string {
+  return `${CHIP_BASE} ${active ? activeClass : CHIP_OFF}`
 }
 
 // docs/specs/recommandations.md, section 4 : destination du lien "Voir tout le plan d'actions"
@@ -53,9 +69,55 @@ export function PlanActionsPage() {
   const load = usePlanActionsStore((s) => s.load)
   const toggle = usePlanActionsStore((s) => s.toggle)
 
-  // section 5, cas 21 : cases actionnables pour Admin et User, lecture seule pour Viewer.
   const role = useAuthStore((s) => s.user?.role)
   const canEdit = role !== 'Viewer'
+
+  // Filtres — appelés ici (avant les early returns) pour respecter les règles des hooks React.
+  const [effortFilter, setEffortFilter] = useState<Set<EffortLevel>>(() => new Set())
+  const [domainFilter, setDomainFilter] = useState<Set<RseDomain>>(() => new Set())
+  const [minImpact, setMinImpact] = useState(0)
+
+  // Seuils d'impact calculés depuis les données réelles (percentiles 50 et 75).
+  const impactThresholds = useMemo<number[]>(() => {
+    if (items.length < 2) return []
+    const sorted = [...items].map((i) => i.impactPoints).sort((a, b) => a - b)
+    const p50 = sorted[Math.floor(sorted.length * 0.5)]
+    const p75 = sorted[Math.floor(sorted.length * 0.75)]
+    return [...new Set([p50, p75])].filter((v) => v > 0)
+  }, [items])
+
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      if (effortFilter.size > 0 && !effortFilter.has(item.effortLevel)) return false
+      if (domainFilter.size > 0 && !domainFilter.has(item.domain)) return false
+      if (item.impactPoints < minImpact) return false
+      return true
+    })
+  }, [items, effortFilter, domainFilter, minImpact])
+
+  const hasActiveFilters = effortFilter.size > 0 || domainFilter.size > 0 || minImpact > 0
+
+  function toggleEffort(level: EffortLevel) {
+    setEffortFilter((prev) => {
+      const next = new Set(prev)
+      if (next.has(level)) { next.delete(level) } else { next.add(level) }
+      return next
+    })
+  }
+
+  function toggleDomain(domain: RseDomain) {
+    setDomainFilter((prev) => {
+      const next = new Set(prev)
+      if (next.has(domain)) { next.delete(domain) } else { next.add(domain) }
+      return next
+    })
+  }
+
+  function resetFilters() {
+    setEffortFilter(new Set())
+    setDomainFilter(new Set())
+    setMinImpact(0)
+  }
 
   // AppShell ne charge useDashboardStore qu'une fois par session (idle-guardé, pour le badge
   // d'avancement de la barre latérale) : un diagnostic complété entre-temps depuis un autre
@@ -74,8 +136,6 @@ export function PlanActionsPage() {
     }
   }, [latestDiagnosticId, load])
 
-  // AppShell déclenche déjà useDashboardStore.load() une fois par session (badge d'avancement
-  // de la barre latérale) : cet écran attend ce chargement plutôt que d'en lancer un second.
   if (dashboardLoadStatus === 'idle' || dashboardLoadStatus === 'loading') {
     return (
       <p role="status" className="text-text-muted">
@@ -92,8 +152,6 @@ export function PlanActionsPage() {
     )
   }
 
-  // Un compte sans diagnostic complété n'a pas de plan d'actions à afficher — une invitation à
-  // en terminer un, jamais un écran vide silencieux.
   if (!hasCompletedDiagnostic || !latestDiagnosticId) {
     return (
       <div className="flex flex-col gap-4">
@@ -129,6 +187,7 @@ export function PlanActionsPage() {
     )
   }
 
+  // La barre de progression porte sur la totalité du plan, indépendamment des filtres actifs.
   const completedCount = items.filter((item) => item.isCompleted).length
   const progressPercent = items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0
 
@@ -136,23 +195,25 @@ export function PlanActionsPage() {
     <div className="flex flex-col gap-5">
       <PageHeader title="Plan d'actions" />
 
-      {/* En-tête : compteur et barre de progression */}
+      {/* Barre de progression globale */}
       {items.length > 0 && (
         <Card>
-          <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center">
-            <p className="text-sm text-text-muted tabular-nums lining-nums">
-              {completedCount}{' '}
-              {pluralize(completedCount, 'action terminée', 'actions terminées')} sur {items.length}
-            </p>
-            <strong className="px-4 text-2xl font-bold tabular-nums text-green-maat" aria-hidden="true">
+          <div className="mb-3 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-[13px] font-semibold text-text tabular-nums lining-nums">
+                <span className="text-green-maat-text">{completedCount}</span>
+                <span className="text-text-muted"> / {items.length} actions</span>
+              </p>
+              <p className="text-[12px] text-text-muted">
+                {items.length - completedCount}{' '}
+                {pluralize(items.length - completedCount, 'action restante', 'actions restantes')}
+              </p>
+            </div>
+            <strong className="text-[2rem] font-bold tabular-nums text-text" aria-hidden="true">
               {progressPercent}&nbsp;%
             </strong>
-            <p className="text-right text-sm text-text-muted tabular-nums">
-              {items.length - completedCount}{' '}
-              {pluralize(items.length - completedCount, 'action restante', 'actions restantes')}
-            </p>
           </div>
-          <div className="h-2.5 w-full overflow-hidden rounded-full bg-border">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-border">
             <div
               className="h-full rounded-full bg-green-maat transition-all duration-500"
               style={{ width: `${progressPercent}%` }}
@@ -162,6 +223,105 @@ export function PlanActionsPage() {
               aria-valuemax={100}
               aria-label={`${progressPercent} % des actions terminées`}
             />
+          </div>
+        </Card>
+      )}
+
+      {/* Panneau de filtres */}
+      {items.length > 0 && (
+        <Card>
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal size={14} className="text-text-muted" aria-hidden="true" />
+              <span className="text-[13px] font-semibold text-text">Filtres</span>
+              {hasActiveFilters && (
+                <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-blue-maat px-1 text-[10px] font-bold text-white tabular-nums">
+                  {effortFilter.size + domainFilter.size + (minImpact > 0 ? 1 : 0)}
+                </span>
+              )}
+            </div>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[12px] font-medium text-text-muted transition-colors hover:border-border-strong hover:text-text"
+              >
+                <X size={11} aria-hidden="true" />
+                Réinitialiser
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {/* Effort */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <span className="w-16 shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">
+                Effort
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {ALL_EFFORTS.map((level) => (
+                  <button
+                    key={level}
+                    type="button"
+                    aria-pressed={effortFilter.has(level)}
+                    onClick={() => toggleEffort(level)}
+                    className={chipCls(effortFilter.has(level), EFFORT_CHIP_ACTIVE[level])}
+                  >
+                    {EFFORT_LABELS[level].replace('Effort ', '')}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Domaine */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <span className="w-16 shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">
+                Thème
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {ALL_DOMAINS.map((domain) => (
+                  <button
+                    key={domain}
+                    type="button"
+                    aria-pressed={domainFilter.has(domain)}
+                    onClick={() => toggleDomain(domain)}
+                    className={chipCls(domainFilter.has(domain), DOMAIN_CHIP_ACTIVE[domain])}
+                  >
+                    {DOMAIN_LABELS[domain]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Impact minimum — affiché seulement si les données produisent des seuils distincts */}
+            {impactThresholds.length > 0 && (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <span className="w-16 shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">
+                  Impact
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    aria-pressed={minImpact === 0}
+                    onClick={() => setMinImpact(0)}
+                    className={chipCls(minImpact === 0, 'border-blue-maat/50 bg-blue-maat/10 text-blue-maat')}
+                  >
+                    Tous
+                  </button>
+                  {impactThresholds.map((threshold) => (
+                    <button
+                      key={threshold}
+                      type="button"
+                      aria-pressed={minImpact === threshold}
+                      onClick={() => setMinImpact(minImpact === threshold ? 0 : threshold)}
+                      className={chipCls(minImpact === threshold, 'border-blue-maat/50 bg-blue-maat/10 text-blue-maat')}
+                    >
+                      ≥&nbsp;{threshold}&nbsp;pts
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </Card>
       )}
@@ -177,61 +337,79 @@ export function PlanActionsPage() {
             l&apos;ensemble des points évalués.
           </p>
         </Card>
+      ) : filteredItems.length === 0 ? (
+        <Card className="flex flex-col items-center py-10 text-center">
+          <p className="mb-3 text-[13px] font-medium text-text">Aucune action ne correspond à ces filtres.</p>
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="rounded-xl border border-border bg-white px-4 py-2 text-[13px] font-medium text-text shadow-card transition-colors hover:border-border-strong hover:bg-bg"
+          >
+            Réinitialiser les filtres
+          </button>
+        </Card>
       ) : (
-        <ul className="flex flex-col gap-3">
-          {items.map((item) => (
-            <li
-              key={item.code}
-              className={`rounded-card border border-border border-l-4 bg-white p-4 shadow-card transition-opacity ${
-                item.isCompleted ? 'opacity-60' : ''
-              }`}
-              style={{ borderLeftColor: DOMAIN_BORDER_COLORS[item.domain] ?? '#E5E7EB' }}
-            >
-              <div className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  id={`plan-actions-${item.code}`}
-                  checked={item.isCompleted}
-                  disabled={!canEdit || togglingCode === item.code}
-                  onChange={(event) => void toggle(item.code, event.target.checked)}
-                  className="mt-1 h-4 w-4 shrink-0 accent-blue-maat"
-                />
-                <label htmlFor={`plan-actions-${item.code}`} className="flex-1 cursor-pointer space-y-1">
-                  <span
-                    className={`block text-sm font-medium ${
-                      item.isCompleted ? 'text-text-muted line-through' : 'text-text'
-                    }`}
-                  >
-                    {item.actionText}
-                  </span>
-
-                  <span className="block text-xs text-text-muted">{item.detailText}</span>
-
-                  {/* Badges visuels — aria-hidden pour ne pas interférer avec les tests */}
-                  <span className="flex flex-wrap gap-1.5 pt-0.5" aria-hidden="true">
-                    <Badge domain={item.domain}>{DOMAIN_LABELS[item.domain]}</Badge>
-                    <Badge variant={EFFORT_BADGE_VARIANT[item.effortLevel]}>
-                      {EFFORT_LABELS[item.effortLevel]}
-                    </Badge>
-                    <Badge variant="default">{item.impactPoints} pts d&apos;impact</Badge>
-                  </span>
-
-                  {/* Texte structuré pour les tests (getByText) et les lecteurs d'écran */}
-                  <span className="sr-only">
-                    {DOMAIN_LABELS[item.domain]} · {EFFORT_LABELS[item.effortLevel]} ·{' '}
-                    {item.impactPoints} points d&apos;impact
-                  </span>
-
-                  {item.isCompleted && item.completedAt && (
-                    <span className="block text-xs font-medium text-green-maat-text tabular-nums lining-nums">
-                      Terminée le {formatDate(item.completedAt)}
+        <>
+          {hasActiveFilters && (
+            <p className="text-[12px] text-text-muted" aria-live="polite">
+              {filteredItems.length}{' '}
+              {pluralize(filteredItems.length, 'action affichée', 'actions affichées')} sur {items.length}
+            </p>
+          )}
+          <ul className="flex flex-col gap-2.5">
+            {filteredItems.map((item) => (
+              <li
+                key={item.code}
+                className={`rounded-xl border border-border bg-white p-4 shadow-card transition-all duration-150 hover:border-border-strong hover:shadow-card-hover ${
+                  item.isCompleted ? 'opacity-60' : ''
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    id={`plan-actions-${item.code}`}
+                    checked={item.isCompleted}
+                    disabled={!canEdit || togglingCode === item.code}
+                    onChange={(event) => void toggle(item.code, event.target.checked)}
+                    className="mt-1 h-4 w-4 shrink-0 accent-blue-maat"
+                  />
+                  <label htmlFor={`plan-actions-${item.code}`} className="flex-1 cursor-pointer space-y-1.5">
+                    <span
+                      className={`block text-[13.5px] font-medium leading-snug ${
+                        item.isCompleted ? 'text-text-muted line-through' : 'text-text'
+                      }`}
+                    >
+                      {item.actionText}
                     </span>
-                  )}
-                </label>
-              </div>
-            </li>
-          ))}
-        </ul>
+
+                    <span className="block text-[12.5px] leading-relaxed text-text-muted">{item.detailText}</span>
+
+                    {/* Badges visuels — aria-hidden pour ne pas interférer avec les tests */}
+                    <span className="flex flex-wrap gap-1.5 pt-0.5" aria-hidden="true">
+                      <Badge domain={item.domain}>{DOMAIN_LABELS[item.domain]}</Badge>
+                      <Badge variant={EFFORT_BADGE_VARIANT[item.effortLevel]}>
+                        {EFFORT_LABELS[item.effortLevel]}
+                      </Badge>
+                      <Badge variant="default">{item.impactPoints} pts d&apos;impact</Badge>
+                    </span>
+
+                    {/* Texte structuré pour les tests (getByText) et les lecteurs d'écran */}
+                    <span className="sr-only">
+                      {DOMAIN_LABELS[item.domain]} · {EFFORT_LABELS[item.effortLevel]} ·{' '}
+                      {item.impactPoints} points d&apos;impact
+                    </span>
+
+                    {item.isCompleted && item.completedAt && (
+                      <span className="block text-[11.5px] font-medium text-green-maat-text tabular-nums lining-nums">
+                        Terminée le {formatDate(item.completedAt)}
+                      </span>
+                    )}
+                  </label>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
 
       {toggleError && (

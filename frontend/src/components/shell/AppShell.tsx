@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useCurrentUserStore } from '../../store/currentUserStore'
 import { useDashboardStore } from '../../store/dashboardStore'
 import { Header } from './Header'
@@ -12,6 +13,10 @@ import { VerificationBanner } from './VerificationBanner'
 // il ne remonte jamais entre deux navigations, contrairement aux écrans qu'il affiche.
 export function AppShell() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const location = useLocation()
+  // prefers-reduced-motion : supprime toute translation et raccourcit le fondu si l'utilisateur
+  // a demandé moins de mouvement (WCAG 2.3.3 AA).
+  const prefersReduced = useReducedMotion() ?? false
 
   const currentUserStatus = useCurrentUserStore((s) => s.status)
   const loadCurrentUser = useCurrentUserStore((s) => s.load)
@@ -33,16 +38,38 @@ export function AppShell() {
     }
   }, [dashboardLoadStatus, loadDashboard])
 
+  const pageVariants = {
+    initial: { opacity: 0, y: prefersReduced ? 0 : 6 },
+    animate: { opacity: 1, y: 0 },
+    exit:    { opacity: 0, y: prefersReduced ? 0 : -6 },
+  }
+
+  const pageDuration = prefersReduced ? 0.08 : 0.18
+
   return (
-    <div className="dot-grid min-h-screen bg-bg">
+    <div className="min-h-screen bg-bg">
       <SkipLink />
       <div className="flex min-h-screen">
         <Sidebar mobileOpen={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />
         <div className="flex flex-1 flex-col">
           <Header onOpenMobileNav={() => setMobileNavOpen(true)} />
           <VerificationBanner />
-          <main id="contenu-principal" tabIndex={-1} className="flex flex-1 flex-col gap-4 p-6">
-            <Outlet />
+          <main id="contenu-principal" tabIndex={-1} className="flex flex-1 flex-col p-6">
+            {/* mode="wait" : la page sortante termine son exit avant que la suivante entre,
+                évitant tout chevauchement de mise en page dans le conteneur flex. */}
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={location.pathname}
+                variants={pageVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={{ duration: pageDuration, ease: 'easeInOut' }}
+                className="flex flex-1 flex-col gap-4"
+              >
+                <Outlet />
+              </motion.div>
+            </AnimatePresence>
           </main>
         </div>
       </div>

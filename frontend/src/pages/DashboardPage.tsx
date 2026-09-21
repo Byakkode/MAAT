@@ -7,6 +7,7 @@ import { DomainScoreTable } from '../components/dashboard/DomainScoreTable'
 import { EvolutionChart } from '../components/dashboard/EvolutionChart'
 import { InProgressBanner } from '../components/dashboard/InProgressBanner'
 import { KpiCard } from '../components/dashboard/KpiCard'
+import { ScoreSummaryCard } from '../components/dashboard/ScoreSummaryCard'
 import { ReportDownloadButton } from '../components/report/ReportDownloadButton'
 import { Card } from '../components/ui/Card'
 import { PageHeader } from '../components/ui/PageHeader'
@@ -144,24 +145,24 @@ export function DashboardPage() {
         <ReportDownloadButton diagnosticId={latestDiagnostic.id} />
       </div>
 
-      {/* Ligne 1 — KPI */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard
-          title="Score RSE global"
-          value={String(rounded)}
-          unit="/ 100"
-          subtitle={scoreLabel}
-          delta={scoreDelta}
-          accent="blue"
-          delay={0}
-        />
+      {/* Carte hero — score global */}
+      <ScoreSummaryCard
+        score={rounded}
+        scoreLabel={scoreLabel}
+        sectorCode={latestDiagnostic.sectorCode}
+        completedAt={latestDiagnostic.completedAt}
+        delta={scoreDelta}
+      />
+
+      {/* Ligne 1 — KPI secondaires */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {strongest && (
           <KpiCard
             title="Point fort"
             value={DOMAIN_SHORT[strongest.domain] ?? DOMAIN_LABELS[strongest.domain]}
             subtitle={`${Math.round(strongest.score)} / 100`}
             accent="green"
-            delay={0.1}
+            delay={0}
           />
         )}
         {weakest && weakest.domain !== strongest?.domain && (
@@ -170,7 +171,7 @@ export function DashboardPage() {
             value={DOMAIN_SHORT[weakest.domain] ?? DOMAIN_LABELS[weakest.domain]}
             subtitle={`${Math.round(weakest.score)} / 100`}
             accent="amber"
-            delay={0.2}
+            delay={0.08}
           />
         )}
         <KpiCard
@@ -178,7 +179,7 @@ export function DashboardPage() {
           value={`${actionPlan.completedCount} / ${actionPlan.totalCount}`}
           subtitle="actions terminées"
           accent="blue"
-          delay={0.3}
+          delay={0.16}
         />
       </div>
 

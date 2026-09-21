@@ -7,6 +7,9 @@ import { useCurrentUserStore } from '../../store/currentUserStore'
 
 type Status = 'idle' | 'submitting' | 'error'
 
+const inputClass =
+  'w-full max-w-sm rounded-xl border border-border bg-white px-3 py-2.5 text-[13.5px] text-text transition-colors focus:border-red focus:outline-none focus:ring-2 focus:ring-red/20'
+
 // docs/specs/coquille-et-compte.md, section 6. Vérifié contre AccountService.DeleteAccountAsync
 // (docs/specs/auth-securite-rgpd.md, section 6) : la portée dépend du rôle de l'appelant et du
 // nombre d'administrateurs restants — seul le dernier Admin d'une entreprise emporte
@@ -45,31 +48,34 @@ export function DeleteAccountCard() {
   }
 
   return (
-    <section aria-labelledby="delete-heading" className="rounded-card border border-red bg-white p-5 shadow-card">
+    <section
+      aria-labelledby="delete-heading"
+      className="rounded-xl border border-red/40 bg-red/[0.02] p-5 shadow-card"
+    >
       <h2 id="delete-heading" className="mb-1 flex items-center gap-2 text-base font-semibold text-text">
-        <TriangleAlert size={16} className="shrink-0 text-red" aria-hidden="true" />
+        <TriangleAlert size={15} className="shrink-0 text-red" aria-hidden="true" />
         Suppression du compte
       </h2>
       {isLastAdmin ? (
         <>
-          <p className="mb-1 text-sm text-text">
+          <p className="mb-1 text-[13px] text-text">
             Vous êtes la seule personne administratrice de cette entreprise. Cette action est irréversible : elle
             supprime immédiatement l&apos;intégralité de votre entreprise — tous ses comptes utilisateurs, pas
             seulement le vôtre, et tous ses diagnostics, réponses, scores et rapports. Rien de tout cela
             n&apos;est conservé.
           </p>
-          <p className="mb-3 text-sm text-text-muted">
+          <p className="mb-4 text-[13px] text-text-muted">
             Désignez une autre personne administratrice avant de supprimer votre compte si vous souhaitez que
             l&apos;entreprise et ses diagnostics survivent.
           </p>
         </>
       ) : (
         <>
-          <p className="mb-1 text-sm text-text">
+          <p className="mb-1 text-[13px] text-text">
             Cette action est irréversible, mais elle ne supprime que votre propre compte. Votre entreprise, les
             autres comptes et l&apos;ensemble des diagnostics restent intacts.
           </p>
-          <p className="mb-3 text-sm text-text-muted">
+          <p className="mb-4 text-[13px] text-text-muted">
             Seuls les rapports que vous avez vous-même générés sont supprimés avec votre compte ; ceux générés
             par d&apos;autres comptes restent accessibles.
           </p>
@@ -77,7 +83,7 @@ export function DeleteAccountCard() {
       )}
       <form onSubmit={(e) => void handleSubmit(e)} noValidate className="flex flex-col gap-3">
         <div>
-          <label htmlFor="delete-confirmation-email" className="mb-1 block text-sm text-text">
+          <label htmlFor="delete-confirmation-email" className="mb-1.5 block text-[13px] font-medium text-text">
             Pour confirmer, saisissez votre adresse e-mail ({email})
           </label>
           <input
@@ -86,11 +92,11 @@ export function DeleteAccountCard() {
             required
             value={confirmationEmail}
             onChange={(e) => setConfirmationEmail(e.target.value)}
-            className="w-full max-w-sm rounded-button border border-border px-3 py-2 text-sm text-text transition-colors focus:border-blue-maat focus:outline-none focus:ring-2 focus:ring-blue-maat/20"
+            className={inputClass}
           />
         </div>
         <div>
-          <label htmlFor="delete-password" className="mb-1 block text-sm text-text">
+          <label htmlFor="delete-password" className="mb-1.5 block text-[13px] font-medium text-text">
             Mot de passe
           </label>
           <input
@@ -100,18 +106,18 @@ export function DeleteAccountCard() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full max-w-sm rounded-button border border-border px-3 py-2 text-sm text-text transition-colors focus:border-blue-maat focus:outline-none focus:ring-2 focus:ring-blue-maat/20"
+            className={inputClass}
           />
         </div>
         {status === 'error' && error && (
-          <p role="alert" className="text-sm text-red">
+          <p role="alert" className="text-[13px] text-red">
             {error}
           </p>
         )}
         <button
           type="submit"
           disabled={!emailMatches || status === 'submitting'}
-          className="w-fit rounded-button bg-red px-4 py-2 font-medium text-white shadow-button disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-fit rounded-xl bg-red px-5 py-2.5 text-[13.5px] font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
         >
           {status === 'submitting'
             ? 'Suppression…'

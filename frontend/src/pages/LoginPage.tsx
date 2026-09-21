@@ -48,12 +48,7 @@ function emailInitial(email: string): string {
   return (email.split('@')[0]?.[0] ?? '?').toUpperCase()
 }
 
-const AUTH_BG = {
-  background:
-    'radial-gradient(ellipse at 25% 30%, rgba(21,101,255,0.65) 0%, transparent 55%),' +
-    'radial-gradient(ellipse at 80% 75%, rgba(13,40,110,0.85) 0%, transparent 55%),' +
-    '#0d1b3e',
-} as const
+const AUTH_BG = { background: '#0c1322' } as const
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
@@ -110,17 +105,17 @@ export function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4" style={AUTH_BG}>
-      <div className="flex w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="flex w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
 
         {/* ── Panneau gauche : connexions récentes ──────────────────────── */}
-        <aside className="hidden w-60 shrink-0 flex-col bg-bg p-8 md:flex">
+        <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-bg p-8 md:flex">
           {/* Logo */}
-          <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-full bg-blue-maat">
-            <span className="text-sm font-bold text-white">M</span>
+          <div className="mb-8 flex h-8 w-8 items-center justify-center rounded-lg bg-blue-maat">
+            <span className="text-[13px] font-bold text-white">M</span>
           </div>
 
-          <h2 className="mb-0.5 text-sm font-semibold text-text">Connexions récentes</h2>
-          <p className="mb-6 text-xs text-text-muted">
+          <h2 className="mb-0.5 text-[13px] font-semibold text-text">Connexions récentes</h2>
+          <p className="mb-6 text-[12px] text-text-muted">
             Cliquez sur votre compte ou ajoutez-en un autre.
           </p>
 
@@ -132,15 +127,15 @@ export function LoginPage() {
                   onClick={() => handleSelectAccount(recent)}
                   className={[
                     'flex w-full flex-col items-center gap-2 rounded-xl border px-2 py-3 text-center',
-                    'transition-colors hover:bg-blue-maat/5',
+                    'transition-colors hover:bg-blue-maat/[0.04]',
                     'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-maat',
-                    email === recent ? 'border-blue-maat bg-blue-maat/5' : 'border-border bg-white',
+                    email === recent ? 'border-blue-maat/40 bg-blue-maat/[0.04]' : 'border-border bg-white',
                   ].join(' ')}
                 >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-maat text-sm font-bold text-white">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-maat text-[13px] font-bold text-white">
                     {emailInitial(recent)}
                   </span>
-                  <span className="w-full truncate text-xs text-text-muted" title={recent}>
+                  <span className="w-full truncate text-[11px] text-text-muted" title={recent}>
                     {recent.split('@')[0]}
                   </span>
                 </button>
@@ -163,15 +158,15 @@ export function LoginPage() {
               onClick={handleAddAccount}
               className={[
                 'flex flex-col items-center gap-2 rounded-xl border border-dashed px-2 py-3 text-center',
-                'transition-colors hover:bg-blue-maat/5',
+                'transition-colors hover:bg-blue-maat/[0.04]',
                 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-maat',
-                recentEmails.length === 0 ? 'border-blue-maat/40' : 'border-border',
+                recentEmails.length === 0 ? 'border-blue-maat/30' : 'border-border',
               ].join(' ')}
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-dashed border-border text-text-muted">
-                <Plus size={16} aria-hidden />
+              <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-dashed border-border text-text-muted">
+                <Plus size={15} aria-hidden />
               </span>
-              <span className="text-xs text-text-muted">
+              <span className="text-[11px] text-text-muted">
                 {recentEmails.length === 0 ? 'Connexion' : 'Autre compte'}
               </span>
             </button>
@@ -181,12 +176,12 @@ export function LoginPage() {
         {/* ── Panneau droit : formulaire ────────────────────────────────── */}
         <div className="flex flex-1 flex-col justify-center px-8 py-10">
           {/* Logo mobile uniquement */}
-          <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-blue-maat md:hidden">
-            <span className="text-sm font-bold text-white">M</span>
+          <div className="mb-6 flex h-8 w-8 items-center justify-center rounded-lg bg-blue-maat md:hidden">
+            <span className="text-[13px] font-bold text-white">M</span>
           </div>
 
-          <h1 className="mb-1 text-2xl font-semibold text-text">Connexion</h1>
-          <p className="mb-8 text-sm text-text-muted">Accédez à votre tableau de bord RSE.</p>
+          <h1 className="mb-1 text-[1.375rem] font-semibold text-text">Connexion</h1>
+          <p className="mb-7 text-[13px] text-text-muted">Accédez à votre tableau de bord RSE.</p>
 
           <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
             <Input
