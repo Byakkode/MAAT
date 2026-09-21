@@ -1,3 +1,4 @@
+using System.Globalization;
 using MAAT.Domain.Entities;
 using MAAT.Domain.Enums;
 using MAAT.Domain.Services;
@@ -184,7 +185,7 @@ public static class ReferenceDataValidator
             var sum = sector.Sum(r => r.Weight);
             if (sum != 1m)
             {
-                errors.Add($"sector-weights.csv, secteur {label} : somme des poids = {sum}, attendu 1.");
+                errors.Add($"sector-weights.csv, secteur {label} : somme des poids = {sum.ToString(CultureInfo.InvariantCulture)}, attendu 1.");
             }
         }
     }

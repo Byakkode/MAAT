@@ -6,6 +6,7 @@ using MAAT.Application.Interfaces;
 using MAAT.Application.UseCases;
 using MAAT.Domain.Services;
 using MAAT.Infrastructure.Email;
+using MAAT.Infrastructure.GitHub;
 using MAAT.Infrastructure.Jobs;
 using MAAT.Infrastructure.Pdf;
 using MAAT.Infrastructure.Persistence;
@@ -64,6 +65,9 @@ builder.Services.AddScoped<ISectorBenchmarkRepository, SectorBenchmarkRepository
 builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
 builder.Services.AddScoped<ISectorWeightRepository, SectorWeightRepository>();
 builder.Services.AddScoped<IRecommendationRepository, RecommendationRepository>();
+builder.Services.AddScoped<IActionItemProgressRepository, ActionItemProgressRepository>();
+builder.Services.AddScoped<IRseIndicatorsRepository, RseIndicatorsRepository>();
+builder.Services.AddScoped<ISupportTicketRepository, SupportTicketRepository>();
 
 // Charge Question, Recommendation et SectorWeight depuis MAAT.Infrastructure/Seed/*.csv
 // (docs/specs/modele-donnees.md) — jamais depuis les migrations, qui ne portent que le
@@ -126,6 +130,17 @@ else
 
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddHostedService<RefreshTokenPurgeService>();
+
+// Système de ticketing : POST /api/support/tickets → GitHub Issues (Byakkode/MAAT).
+// Token lu depuis GitHub:Token (appsettings.Development.json local, jamais commité)
+// ou la variable d'environnement GitHub__Token en production.
+builder.Services.Configure<GitHubOptions>(builder.Configuration.GetSection(GitHubOptions.Section));
+builder.Services.AddHttpClient<IGitHubIssueService, GitHubIssueService>(client =>
+{
+    client.BaseAddress = new Uri("https://api.github.com/");
+    // GitHub API impose un User-Agent identifiable (RFC 2616) — l'absence bloque la requête.
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("MAAT-Support/1.0 (https://github.com/Byakkode/MAAT)");
+});
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -285,6 +300,23 @@ builder.Services.AddRateLimiter(options =>
             {
                 PermitLimit = 10,
                 Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0,
+            });
+    });
+
+    // Création de ticket support (POST /api/support/tickets) : même partition que
+    // "password-confirmation" (par utilisateur authentifié), fenêtre horaire plus large —
+    // l'opération est légère mais appelle un service tiers, ce qui justifie une limitation.
+    options.AddPolicy("ticket-creation", context =>
+    {
+        var userId = context.Items.TryGetValue("RateLimitUserId", out var value) ? value as string : null;
+
+        return System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            userId ?? "anonymous",
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromHours(1),
                 QueueLimit = 0,
             });
     });

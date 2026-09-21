@@ -44,13 +44,12 @@ function RadarTooltipContent({ active, payload }: RadarTooltipContentProps) {
   const point = payload[0]!.payload
 
   return (
-    <div className="rounded-card border border-border bg-white p-3 text-sm shadow-card tabular-nums lining-nums">
-      <p className="font-medium text-text">{point.label}</p>
-      <p className="text-text-muted">Score : {Math.round(point.score)} / 100</p>
-      <p className="text-text-muted">Pondération sectorielle : {formatPercent(point.sectorWeight)}</p>
+    <div className="rounded-xl border border-border bg-white px-3.5 py-3 text-sm shadow-popover tabular-nums lining-nums">
+      <p className="font-semibold text-text">{point.label}</p>
+      <p className="mt-1 text-text-muted">Score : <span className="font-medium text-text">{Math.round(point.score)}</span> / 100</p>
+      <p className="text-text-muted">Pondération : {formatPercent(point.sectorWeight)}</p>
       <p className="text-text-muted">
-        {point.triggeredRecommendationCount} recommandation{point.triggeredRecommendationCount > 1 ? 's' : ''} déclenchée
-        {point.triggeredRecommendationCount > 1 ? 's' : ''}
+        {point.triggeredRecommendationCount} reco.{point.triggeredRecommendationCount > 1 ? 's' : ''} déclenchée{point.triggeredRecommendationCount > 1 ? 's' : ''}
       </p>
     </div>
   )
@@ -87,7 +86,7 @@ function DomainRadarChartComponent({ domainScores }: DomainRadarChartProps) {
 
   return (
     <div>
-      <h3 className="mb-2 text-base font-semibold text-text">Radar des cinq domaines</h3>
+      <h2 className="mb-3 text-base font-semibold text-text">Radar des cinq domaines</h2>
       <div role="img" aria-label={description} className="h-72 w-full">
         {/* aria-hidden : la structure SVG de Recharts n'est jamais exposée séparément à
             l'AT, qui reçoit déjà la description complète ci-dessus (voir DomainScoreTable
@@ -99,14 +98,14 @@ function DomainRadarChartComponent({ domainScores }: DomainRadarChartProps) {
                 tableau alternatif ci-dessus — un seul mécanisme d'accessibilité par graphique. */}
             <RadarChart data={data} accessibilityLayer={false}>
               <PolarGrid stroke="var(--color-border)" />
-              <PolarAngleAxis dataKey="label" tick={{ fill: 'var(--color-text)', fontSize: 12 }} />
+              <PolarAngleAxis dataKey="label" tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} />
               {/* Échelle fixe 0-100, jamais adaptée aux données (section 3). */}
               <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
               <Radar
                 dataKey="score"
                 stroke="var(--color-blue-maat)"
                 fill="var(--color-blue-maat)"
-                fillOpacity={0.25}
+                fillOpacity={0.15}
                 dot={(dotProps: DotItemDotProps) => {
                   const point = dotProps.payload as RadarPoint
                   return (
@@ -116,8 +115,8 @@ function DomainRadarChartComponent({ domainScores }: DomainRadarChartProps) {
                       cy={dotProps.cy ?? 0}
                       r={5}
                       fill={DOMAIN_COLORS[point.domain]}
-                      stroke="var(--color-bg)"
-                      strokeWidth={1}
+                      stroke="white"
+                      strokeWidth={1.5}
                     />
                   )
                 }}
@@ -127,6 +126,22 @@ function DomainRadarChartComponent({ domainScores }: DomainRadarChartProps) {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* Légende de couleur — absente de la version précédente, nécessaire pour lire les
+          points du radar sans survoler (accessibilité statique). */}
+      <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5" aria-label="Légende des domaines">
+        {data.map((point) => (
+          <li key={point.domain} className="flex items-center gap-1.5 text-xs">
+            <span
+              aria-hidden
+              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ backgroundColor: DOMAIN_COLORS[point.domain] }}
+            />
+            <span className="text-text-muted">{point.label}</span>
+            <span className="font-medium tabular-nums lining-nums text-text">{Math.round(point.score)}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

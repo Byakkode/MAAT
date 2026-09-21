@@ -23,7 +23,7 @@ export function ScoreSummary({ score, sectorCode }: ScoreSummaryProps) {
       </p>
       <p className="text-lg font-medium text-text">{label}</p>
       <p className="mt-2 text-sm text-text-muted">
-        Secteur d&apos;activité : {sectorCode} — pondération appliquée à ce score.
+        Secteur d&apos;activité : {sectorCode} · pondération appliquée à ce score.
       </p>
     </section>
   )
