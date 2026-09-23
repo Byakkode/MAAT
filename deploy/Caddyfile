@@ -35,3 +35,7 @@
 	# dupliqué avec des valeurs différentes donne un résultat qui dépend du navigateur.
 	reverse_proxy api:8080
 }
+
+maatrse.fr, www.maatrse.fr {
+        redir https://app.maatrse.fr{uri} permanent
+}
