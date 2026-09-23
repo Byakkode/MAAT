@@ -1,3 +1,8 @@
 # docs/specs/referentiel.md, cas de test 12 : fins de ligne stables sur les CSV de seed,
 # pour que les diffs ne portent que sur le contenu que l'équipe relit régulièrement.
 *.csv text eol=lf
+
+# Exception : ce fichier de test contient volontairement des fins de ligne CRLF —
+# c'est son objet même (CsvFile accepte CRLF, LF et CR). La normalisation en LF le
+# viderait de son sens et le fait apparaître modifié à chaque clone.
+backend/MAAT.IntegrationTests/SeedSamples/crlf.csv -text
