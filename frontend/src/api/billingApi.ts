@@ -14,6 +14,24 @@ export interface Subscription {
   // null : l'entreprise n'a pas encore choisi d'offre (docs/specs/abonnement.md, section 2).
   status: SubscriptionStatus | null
   hasBillingAccount: boolean
+  // docs/specs/abonnement.md, section 8 : offre dont les droits s'appliquent (Starter tant
+  // que le paiement est en attente) et droits calculés par l'API. L'écran les reflète, il ne
+  // recopie aucune règle.
+  effectivePlan: ApiPlan
+  entitlements: Entitlements
+}
+
+export interface Entitlements {
+  canStartDiagnostic: boolean
+  canViewDomainScores: boolean
+  // null : toutes les recommandations déclenchées (Professional).
+  visibleRecommendations: number | null
+  canTrackActions: boolean
+  canEditActionPlan: boolean
+  canEditIndicators: boolean
+  canViewBenchmark: boolean
+  canOpenSupportTickets: boolean
+  fullReport: boolean
 }
 
 const API_PLANS: Record<PlanId, ApiPlan> = {

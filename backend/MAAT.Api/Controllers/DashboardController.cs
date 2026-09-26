@@ -64,6 +64,7 @@ public class DashboardController(DashboardService dashboardService) : Controller
                 }),
                 totalCount = dashboard.ActionPlan.TotalCount,
                 completedCount = dashboard.ActionPlan.CompletedCount,
+                triggeredCount = dashboard.ActionPlan.TriggeredCount,
             },
             inProgressDiagnostic = dashboard.InProgressDiagnostic is null
                 ? null

@@ -1,4 +1,6 @@
 using MAAT.Application.Interfaces;
+using MAAT.Application.UseCases;
+using MAAT.Domain.Enums;
 using MAAT.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -33,7 +35,9 @@ public sealed class RseIndicatorsDto
 [ApiController]
 [Route("api/indicators")]
 [Authorize]
-public class IndicatorsController(IRseIndicatorsRepository indicatorsRepository) : ControllerBase
+public class IndicatorsController(
+    IRseIndicatorsRepository indicatorsRepository,
+    CurrentPlanService currentPlan) : ControllerBase
 {
     [HttpGet("{year:int}")]
     public async Task<IActionResult> Get(int year, CancellationToken ct)
@@ -55,6 +59,9 @@ public class IndicatorsController(IRseIndicatorsRepository indicatorsRepository)
     {
         if (year < 2000 || year > 2100)
             return BadRequest(new { message = "Année invalide." });
+
+        // docs/specs/abonnement.md, section 8 : saisie réservée à Professional, lecture ouverte.
+        await currentPlan.EnsureAsync(e => e.CanEditIndicators, SubscriptionPlan.Professional, ct);
 
         var companyIdClaim = User.FindFirst("company_id")?.Value;
         if (!Guid.TryParse(companyIdClaim, out var companyId))

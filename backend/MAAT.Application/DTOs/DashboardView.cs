@@ -34,9 +34,11 @@ public sealed record DiagnosticHistoryPoint(DateTimeOffset CompletedAt, decimal 
 // Percentile est renseigné, Reason est null (docs/specs/dashboard.md, section 5, cas 8/9).
 public sealed record SectorBenchmarkView(bool Available, int SampleSize, int? Percentile, string? Reason);
 
-// TotalCount et CompletedCount portent sur l'intégralité du plan, pas seulement sur Items (au
-// plus cinq, section 6) : « 3 actions terminées sur 24 » doit rester vrai même si les trois
-// terminées ne sont pas parmi les cinq affichées.
-public sealed record ActionPlanView(IReadOnlyList<DiagnosticRecommendationView> Items, int TotalCount, int CompletedCount);
+// TotalCount et CompletedCount portent sur l'intégralité des recommandations visibles, pas
+// seulement sur Items (au plus cinq, section 6) : « 3 actions terminées sur 12 » doit rester
+// vrai même si les trois terminées ne sont pas parmi les cinq affichées. TriggeredCount : toutes
+// les recommandations déclenchées, y compris celles que l'offre ne montre pas
+// (abonnement.md, section 8) — l'écran annonce la différence.
+public sealed record ActionPlanView(IReadOnlyList<DiagnosticRecommendationView> Items, int TotalCount, int CompletedCount, int TriggeredCount);
 
 public sealed record InProgressDiagnosticView(Guid Id, int AnsweredCount, int TotalActiveQuestions);

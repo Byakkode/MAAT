@@ -15,6 +15,7 @@ public class BillingService(
     IUserRepository userRepository,
     IPaymentGateway paymentGateway,
     SubscriptionSynchronizer synchronizer,
+    CurrentPlanService currentPlan,
     ICurrentUserContext currentUser,
     IUnitOfWork unitOfWork)
 {
@@ -24,7 +25,7 @@ public class BillingService(
     public const string PortalReturnPath = "/compte";
 
     public async Task<SubscriptionView> GetCurrentAsync(CancellationToken ct) =>
-        ToView(await subscriptionRepository.FindByCompanyIdAsync(currentUser.CompanyId, ct));
+        await ToViewAsync(await subscriptionRepository.FindByCompanyIdAsync(currentUser.CompanyId, ct), ct);
 
     public async Task<SubscriptionView> ChooseStarterAsync(CancellationToken ct)
     {
@@ -40,7 +41,7 @@ public class BillingService(
         }
 
         await unitOfWork.SaveChangesAsync(ct);
-        return ToView(subscription);
+        return await ToViewAsync(subscription, ct);
     }
 
     public async Task<RedirectUrlResult> StartCheckoutAsync(StartCheckoutRequest request, CancellationToken ct)
@@ -121,8 +122,26 @@ public class BillingService(
         return new RedirectUrlResult(url);
     }
 
-    private static SubscriptionView ToView(Subscription? subscription) =>
-        subscription is null
-            ? new SubscriptionView(null, null, null, false)
-            : new SubscriptionView(subscription.Plan, subscription.BillingPeriod, subscription.Status, subscription.StripeCustomerId is not null);
+    private async Task<SubscriptionView> ToViewAsync(Subscription? subscription, CancellationToken ct)
+    {
+        var entitlements = PlanEntitlements.For(subscription?.Plan, subscription?.Status);
+        var rights = new EntitlementsView(
+            await currentPlan.CanStartDiagnosticAsync(entitlements, ct),
+            entitlements.CanViewDomainScores,
+            entitlements.VisibleRecommendations,
+            entitlements.CanTrackActions,
+            entitlements.CanEditActionPlan,
+            entitlements.CanEditIndicators,
+            entitlements.CanViewBenchmark,
+            entitlements.CanOpenSupportTickets,
+            entitlements.FullReport);
+
+        return new SubscriptionView(
+            subscription?.Plan,
+            subscription?.BillingPeriod,
+            subscription?.Status,
+            subscription?.StripeCustomerId is not null,
+            entitlements.EffectivePlan,
+            rights);
+    }
 }

@@ -1,6 +1,8 @@
 import { CheckCircle, FileText } from 'lucide-react'
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useEntitlements } from '../billing/entitlements'
+import { UpgradeNotice } from '../components/billing/UpgradeNotice'
 import { ReportDownloadButton } from '../components/report/ReportDownloadButton'
 import { Card } from '../components/ui/Card'
 import { PageHeader } from '../components/ui/PageHeader'
@@ -8,12 +10,20 @@ import { buttonLinkClass } from '../components/ui/buttonStyles'
 import { roundScoreForDisplay } from '../constants/scoreLabels'
 import { useDashboardStore } from '../store/dashboardStore'
 
+// Sections réelles du document (docs/specs/rapport-pdf.md, section 4).
 const REPORT_SECTIONS = [
-  'Score RSE global et positionnement sectoriel',
-  'Détail par domaine : Environnement, Social, Éthique, Achats, Gouvernance',
-  'Recommandations prioritaires par domaine',
-  "Plan d'actions personnalisé",
-  'Conformité au standard VSME',
+  'Synthèse : score global, profil des cinq domaines, points forts et axes de progrès',
+  'Évolution de votre score depuis vos diagnostics précédents',
+  "Plan d'actions priorisé et son avancement",
+  'Indicateurs RSE chiffrés et leur tendance',
+  'Méthode de calcul détaillée, pour que votre lecteur puisse refaire le calcul',
+]
+
+// docs/specs/abonnement.md, section 8 : rapport de l'offre Starter.
+const STARTER_REPORT_SECTIONS = [
+  'Identité de votre entreprise et date du diagnostic',
+  'Score RSE global et son niveau',
+  "Mentions : auto-évaluation déclarative, ni certification ni audit",
 ]
 
 function formatDate(iso: string): string {
@@ -29,6 +39,7 @@ export function RapportPage() {
   const loadStatus = useDashboardStore((s) => s.loadStatus)
   const loadError = useDashboardStore((s) => s.loadError)
   const latestDiagnostic = useDashboardStore((s) => s.latestDiagnostic)
+  const { fullReport } = useEntitlements()
 
   useEffect(() => {
     void load()
@@ -95,13 +106,21 @@ export function RapportPage() {
         <div>
           <h2 className="mb-3 text-base font-semibold text-text">Ce rapport contient</h2>
           <ul className="flex flex-col gap-2">
-            {REPORT_SECTIONS.map((section) => (
+            {(fullReport ? REPORT_SECTIONS : STARTER_REPORT_SECTIONS).map((section) => (
               <li key={section} className="flex items-start gap-2.5 text-sm text-text-muted">
                 <CheckCircle size={15} className="mt-0.5 shrink-0 text-green-maat" aria-hidden />
                 {section}
               </li>
             ))}
           </ul>
+          {!fullReport && (
+            <div className="mt-4">
+              <UpgradeNotice compact requiredPlan="Essential" title="Le rapport complet">
+                Scores par domaine, évolution, plan d&apos;actions et méthode de calcul : le document
+                à transmettre à vos clients et partenaires.
+              </UpgradeNotice>
+            </div>
+          )}
         </div>
 
         {/* Téléchargement */}

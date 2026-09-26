@@ -127,8 +127,9 @@ l'entreprise (`RseIndicators`). Les régénérer après une mise à jour doit
 refléter cette mise à jour — c'est précisément ce qui permet de montrer qu'on a
 agi. Le bloc Mentions le dit explicitement : ces deux blocs sont présentés tels
 qu'ils étaient enregistrés à la date de génération. La règle devient : **à
-données d'entrée identiques** (diagnostic, suivi, indicateurs), octets
-identiques.
+données d'entrée identiques** (diagnostic, suivi, indicateurs, offre effective),
+octets identiques. L'offre compte parmi les entrées : en Starter, le document se
+réduit à une page de garde et aux Mentions (`abonnement.md`, section 8).
 
 L'historique, lui, reste borné au diagnostic du rapport : seuls les diagnostics
 complétés **jusqu'à** celui-ci y figurent. Un diagnostic complété plus tard ne
@@ -186,7 +187,8 @@ actions affichées. Puis « Par où commencer » : les trois premières actions 
 terminées, avec leur détail (arrêté à la fin d'une phrase, jamais au milieu
 d'un mot), leur effort et leur gain estimé sur le score du
 domaine (`impact_points`, `recommandations.md` section 3). Puis le plan
-détaillé, trié par `priority_rank` : libellé, domaine, effort, statut, et le
+détaillé, trié par `priority_rank` et limité aux recommandations visibles selon
+l'offre (`abonnement.md`, section 8) : libellé, domaine, effort, statut, et le
 responsable et l'échéance quand ils sont renseignés. Les notes du suivi restent
 internes et n'apparaissent jamais dans le document. Limité aux vingt premières
 actions avec l'indication du total — un PDF de quarante pages n'est pas lu.

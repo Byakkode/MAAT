@@ -18,8 +18,9 @@ import { SubscriptionPage } from './SubscriptionPage'
 import { useAuthStore } from '../store/authStore'
 import { useSubscriptionStore } from '../store/subscriptionStore'
 import type { Subscription } from '../api/billingApi'
+import { makeSubscription, STARTER_ENTITLEMENTS } from '../test/subscriptionFixtures'
 
-const NO_PLAN: Subscription = { plan: null, billingPeriod: null, status: null, hasBillingAccount: false }
+const NO_PLAN: Subscription = makeSubscription({ plan: null, billingPeriod: null, status: null, hasBillingAccount: false, effectivePlan: 'Starter', entitlements: STARTER_ENTITLEMENTS })
 
 function renderPage(url = '/abonnement') {
   return render(

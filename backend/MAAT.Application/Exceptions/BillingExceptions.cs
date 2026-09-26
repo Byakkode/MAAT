@@ -19,3 +19,12 @@ public sealed class NoBillingAccountException()
 // confirmer son existence.
 public sealed class CheckoutSessionNotFoundException()
     : Exception("Session de paiement introuvable.");
+
+// docs/specs/abonnement.md, section 8 : action hors de l'offre effective de l'entreprise.
+// Traduite en 403 { code: "plan_required", requiredPlan } par PlanRequiredExceptionFilter,
+// pour que l'écran propose l'offre supérieure au lieu d'annoncer un manque de rôle.
+public sealed class PlanRequiredException(MAAT.Domain.Enums.SubscriptionPlan requiredPlan)
+    : Exception($"Cette fonctionnalité est incluse à partir de l'offre {requiredPlan}.")
+{
+    public MAAT.Domain.Enums.SubscriptionPlan RequiredPlan { get; } = requiredPlan;
+}

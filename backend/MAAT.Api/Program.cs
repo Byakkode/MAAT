@@ -24,7 +24,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers()
+builder.Services.AddControllers(o => o.Filters.Add<MAAT.Api.Filters.PlanRequiredExceptionFilter>())
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 builder.Services.AddDbContext<MaatDbContext>(options =>
@@ -98,6 +98,7 @@ builder.Services.AddSingleton<IReportGenerator, QuestPdfReportGenerator>();
 // ci-dessus.
 builder.Services.AddScoped<DemoDataSeeder>();
 
+builder.Services.AddScoped<CurrentPlanService>();
 builder.Services.AddScoped<DiagnosticService>();
 builder.Services.AddScoped<DashboardService>();
 builder.Services.AddScoped<UserService>();
@@ -207,7 +208,7 @@ builder.Services.AddOptions<Microsoft.AspNetCore.Cors.Infrastructure.CorsOptions
             // response.headers.get("Content-Disposition") renvoie toujours null côté navigateur
             // et le nom de fichier déterministe du rapport ne serait jamais lisible par le
             // frontend qui déclenche le téléchargement (section 6).
-            .WithExposedHeaders("Content-Disposition"));
+            .WithExposedHeaders("Content-Disposition", "X-Total-Count"));
 });
 
 // includeSubDomains explicite : la valeur par défaut de HstsOptions est false.

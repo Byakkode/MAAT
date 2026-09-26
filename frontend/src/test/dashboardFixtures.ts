@@ -52,7 +52,7 @@ export function makeRecommendation(overrides: Partial<DashboardRecommendation> =
 }
 
 export function makeActionPlan(overrides: Partial<ActionPlan> = {}): ActionPlan {
-  return { items: [], totalCount: 0, completedCount: 0, ...overrides }
+  return { items: [], totalCount: 0, completedCount: 0, triggeredCount: overrides.totalCount ?? 0, ...overrides }
 }
 
 export function makeBenchmark(overrides: Partial<SectorBenchmark> = {}): SectorBenchmark {

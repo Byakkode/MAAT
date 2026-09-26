@@ -110,6 +110,11 @@ retourne 404.
 désactivée après coup doit rester visible dans les plans d'actions déjà émis,
 sinon l'historique se réécrit tout seul.
 
+**Limite par offre.** Seules les 3 (Starter) ou 12 (Essential) premières par
+`priority_rank` sont renvoyées, toutes en Professional, avec le nombre total déclenché (`abonnement.md`,
+section 8), le total passant par l'en-tête `X-Total-Count`. Toutes restent persistées : la limite porte sur la consultation, jamais
+sur le calcul, et un changement d'offre les rend visibles sans rien recalculer.
+
 **Aucune recommandation déclenchée** est un résultat valide, pas une erreur.
 Retourner une liste vide et laisser le frontend afficher un message de félicitation
 — c'est le cas d'une entreprise mature, et il doit être traité comme un succès.
@@ -123,7 +128,8 @@ Retourner une liste vide et laisser le frontend afficher un message de félicita
 Corps : l'état d'achèvement. Bascule `is_completed` et renseigne ou efface
 `completed_at`.
 
-Rôles `Admin` et `User`. `Viewer` obtient 403.
+Rôles `Admin` et `User`. `Viewer` obtient 403. En Starter, refusé pour tous
+(`abonnement.md`, section 8).
 
 Autorisé y compris sur un diagnostic `Completed` — c'est même le cas normal : le
 plan d'actions se suit dans les mois qui suivent le diagnostic. C'est la seule

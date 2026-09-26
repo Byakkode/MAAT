@@ -6,6 +6,8 @@ import type { RseIndicators } from '../api/indicatorsApi'
 import { EMPTY_INDICATORS } from '../api/indicatorsApi'
 import { Card } from '../components/ui/Card'
 import { PageHeader } from '../components/ui/PageHeader'
+import { useEntitlements } from '../billing/entitlements'
+import { UpgradeNotice } from '../components/billing/UpgradeNotice'
 
 // ─── Configuration des métriques ─────────────────────────────────────────────
 
@@ -102,11 +104,13 @@ function MetricRow({
   value,
   prevValue,
   onChange,
+  readOnly,
 }: {
   metric: MetricConfig
   value: number | null
   prevValue: number | null
   onChange: (key: keyof RseIndicators, val: number | null) => void
+  readOnly: boolean
 }) {
   const delta = formatDelta(value, prevValue)
 
@@ -142,6 +146,7 @@ function MetricRow({
             step={metric.step ?? 'any'}
             value={value ?? ''}
             onChange={handleChange}
+            readOnly={readOnly}
             placeholder=""
             className="w-28 rounded-lg border border-border bg-white px-2.5 py-1.5 text-right text-[13px] tabular-nums text-text placeholder:text-text-muted/40 transition-colors focus:border-blue-maat focus:outline-none focus:ring-1 focus:ring-blue-maat/20"
           />
@@ -158,6 +163,9 @@ type SaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error'
 
 export function IndicatorsPage() {
   const [year, setYear] = useState(CURRENT_YEAR)
+  // docs/specs/abonnement.md, section 8 : saisie réservée à Professional. Les valeurs déjà
+  // saisies (offre précédente) restent consultables.
+  const { canEditIndicators } = useEntitlements()
   const [indicators, setIndicators] = useState<RseIndicators>(EMPTY_INDICATORS)
   const [prevIndicators, setPrevIndicators] = useState<RseIndicators | null>(null)
   const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -231,7 +239,7 @@ export function IndicatorsPage() {
             ))}
           </select>
 
-          <button
+          {canEditIndicators && <button
             type="button"
             onClick={() => void handleSave()}
             disabled={saveStatus !== 'dirty'}
@@ -242,9 +250,16 @@ export function IndicatorsPage() {
               : saveStatus === 'saved'
                 ? 'Enregistré ✓'
                 : 'Enregistrer'}
-          </button>
+          </button>}
         </div>
       </div>
+
+      {!canEditIndicators && (
+        <UpgradeNotice requiredPlan="Professional" title="Suivez vos indicateurs RSE chiffrés">
+          Émissions, consommations, effectifs, achats responsables : saisissez vos données chaque
+          année pour mesurer leur évolution et les retrouver dans votre rapport.
+        </UpgradeNotice>
+      )}
 
       {saveStatus === 'error' && saveError && (
         <p role="alert" className="text-[13px] text-red">{saveError}</p>
@@ -314,6 +329,7 @@ export function IndicatorsPage() {
                       value={indicators[metric.key] as number | null}
                       prevValue={prevIndicators ? (prevIndicators[metric.key] as number | null) : null}
                       onChange={handleChange}
+                      readOnly={!canEditIndicators}
                     />
                   ))}
                 </div>

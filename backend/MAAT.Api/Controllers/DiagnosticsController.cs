@@ -218,7 +218,12 @@ public class DiagnosticsController(DiagnosticService diagnosticService) : Contro
             return NotFound();
         }
 
-        return Ok(recommendations.Select(r => new
+        // docs/specs/abonnement.md, section 8 : le corps ne porte que les recommandations
+        // visibles selon l'offre ; le total déclenché passe par un en-tête (exposé par la
+        // politique CORS) pour ne pas changer la forme de la réponse.
+        Response.Headers["X-Total-Count"] = recommendations.TotalCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        return Ok(recommendations.Items.Select(r => new
         {
             code = r.Code,
             actionText = r.ActionText,

@@ -1,14 +1,12 @@
 # Spécification — Abonnements et paiement
 
 Périmètre : les offres commerciales, leur choix par l'entreprise cliente, le paiement
-en ligne via Stripe et le suivi de l'abonnement. **Aucune fonctionnalité n'est encore
-limitée selon l'offre** : toutes restent ouvertes quel que soit l'abonnement. Les
-limites (nombre de diagnostics, de recommandations, d'utilisateurs…) feront l'objet
-d'une étape ultérieure.
+en ligne via Stripe, le suivi de l'abonnement et les **droits que chaque offre ouvre**
+(section 8), contrôlés côté serveur.
 
 Dépendances : `auth-securite-rgpd.md` (rôles, droit à l'effacement, sous-traitants),
 `modele-donnees.md` (table `Subscription`), `coquille-et-compte.md` (espace du compte),
-ADR 0011 (choix de Stripe).
+ADR 0011 (choix de Stripe), ADR 0012 (limites contrôlées côté serveur).
 
 ---
 
@@ -56,7 +54,8 @@ passe, `auth-securite-rgpd.md` section 1).
 Hors de la coquille de l'application. `SubscriptionGate`, placé entre `ProtectedRoute`
 et `AppShell`, y renvoie toute entreprise dont l'abonnement est absent ou en attente de
 paiement, quel que soit l'écran demandé. En cas d'erreur de chargement de l'abonnement,
-l'application reste accessible : aucune fonctionnalité ne dépend encore de l'offre.
+l'application reste accessible : ce sont les droits vérifiés par l'API qui font foi
+(section 8), l'écran ne fait que les refléter.
 
 Même tableau que la page d'accueil, avec un sélecteur mensuel / annuel. Actions :
 
@@ -252,7 +251,112 @@ production :
    Le secret `whsec_…` qu'elle affiche est stable d'un lancement à l'autre sur un même
    poste : il ne s'enregistre qu'une fois dans les user-secrets.
 
-## 8. Cas de test
+## 8. Limites par offre
+
+### Offre effective
+
+Les droits dépendent de l'**offre effective**, déduite de la ligne `Subscription` :
+
+| Abonnement | Offre effective |
+| --- | --- |
+| absent, ou `PendingPayment` | Starter |
+| `Active` | l'offre souscrite |
+| `PastDue` | l'offre souscrite, avec un bandeau d'alerte dans la coquille |
+
+`PastDue` garde les droits payants pendant les relances de Stripe : une carte expirée ne
+doit pas couper l'accès du jour au lendemain. Si Stripe abandonne, le webhook de fin
+d'abonnement ramène l'entreprise sur Starter (section 5), et les droits suivent sans
+autre mécanisme. Enterprise, pas encore commercialisée, a les droits de Professional.
+
+### Tableau des droits
+
+| Droit | Starter | Essential | Professional |
+| --- | --- | --- | --- |
+| Diagnostics complétés | 1 au total | illimité | illimité |
+| Score global et son historique | ✅ | ✅ | ✅ |
+| Scores par domaine (radar, barres, détail) | ❌ | ✅ | ✅ |
+| Recommandations visibles | 3 premières | 12 premières | toutes |
+| Cocher une action (`is_completed`) | ❌ | ✅ | ✅ |
+| Plan d'actions enrichi : modifier statut, responsable, échéance, notes | ❌ | ❌ | ✅ |
+| Indicateurs RSE : saisie | ❌ | ❌ | ✅ |
+| Benchmark sectoriel | ❌ | ❌ | ✅ |
+| Support : ouvrir un ticket | ❌ | ✅ | ✅ |
+| Rapport PDF | page de garde réduite | complet | complet |
+
+Ces droits s'ajoutent aux rôles, ils ne les remplacent pas : un `Viewer` reste en
+lecture seule quelle que soit l'offre (`auth-securite-rgpd.md`).
+
+**Diagnostics.** Seuls les diagnostics `Completed` comptent : un diagnostic abandonné
+ne consomme pas l'unique évaluation du Starter. Le contrôle a lieu à la **création**
+(`POST /api/diagnostics`) : dès qu'un diagnostic complété existe, quelle que soit
+l'offre sous laquelle il l'a été, la création est refusée. Un diagnostic déjà en cours
+au moment d'un retour à Starter peut être terminé.
+
+**Recommandations.** Le contenu d'une recommandation est le même pour tous les
+secteurs ; c'est son **rang** qui dépend du secteur (`recommandations.md`, section 2).
+La limite retient donc les N premières par `priority_rank` (3, 12, puis toutes : un palier
+par offre), et le comparatif parle de
+recommandations « priorisées selon votre secteur », jamais « personnalisées ».
+`GET /api/diagnostics/{id}/recommendations`, `GET .../action-plan` et le tableau de
+bord ne renvoient que les recommandations visibles, avec le **nombre total** déclenché,
+pour que l'écran annonce ce que l'offre supérieure débloquerait : en-tête
+`X-Total-Count` sur les deux premiers (la réponse reste une liste, l'en-tête est exposé
+par la politique CORS), champ `actionPlan.triggeredCount` sur le tableau de bord.
+L'avancement (« 3 actions terminées sur 12 ») se calcule sur les recommandations
+visibles, dans l'écran comme dans le rapport. Une écriture sur une recommandation
+au-delà de la limite répond `404`, comme un code inconnu : ce que l'offre ne montre pas
+n'existe pas pour l'appelant.
+
+**Scores par domaine.** En Starter, le tableau de bord renvoie une liste
+`domainScores` vide et `GET .../domain-scores/{domain}` est refusé ; le benchmark
+(Professional) est `null` hors de son offre. Le score global reste visible partout, historique compris.
+
+**Rapport PDF Starter.** Une page de garde réduite : identité de l'entreprise (raison
+sociale, code NAF, effectif, région, date de complétion), score global sur sa jauge
+avec son libellé qualitatif, puis le bloc Mentions, **obligatoire** quelle que soit
+l'offre (`rapport-pdf.md`, section 4). Ni profil des domaines, ni cartes de synthèse,
+qui en dérivent. L'offre effective fait partie des données d'entrée du document
+(`rapport-pdf.md`, section 3).
+
+**Retour à Starter.** Rien n'est effacé : diagnostics, suivi des actions et indicateurs
+restent en base et s'affichent selon les droits du Starter. Tout réapparaît en cas de
+nouvel abonnement.
+
+### Mise en œuvre
+
+**Une seule table de droits**, `PlanEntitlements` (Domain, service pur, sans I/O) :
+à partir de l'offre et du statut, elle rend l'offre effective et ses droits. C'est le
+seul endroit du code qui compare des offres ; les services Application la consultent,
+aucun contrôleur ne teste une offre lui-même.
+
+**Refus.** Une action hors de l'offre répond `403` avec un corps identifiable, pour
+que l'écran distingue un manque de droit d'offre d'un manque de rôle :
+
+```json
+{ "code": "plan_required", "requiredPlan": "Essential" }
+```
+
+**Exposition au frontend.** `GET /api/billing/subscription` renvoie, en plus de
+l'offre, l'offre effective et ses droits (`canViewDomainScores`,
+`visibleRecommendations` (`null` : toutes), `canTrackActions`, `canEditActionPlan`,
+`canEditIndicators`, `canViewBenchmark`, `canOpenSupportTickets`, `fullReport`, et
+`canStartDiagnostic`, calculé avec le nombre de diagnostics complétés). L'écran s'en
+sert pour masquer, désactiver et proposer l'offre supérieure ; il ne décide jamais seul.
+Les règles ne sont pas recopiées dans le frontend.
+
+### Comparatif
+
+Les fonctionnalités annoncées mais pas encore construites restent dans le comparatif
+(`frontend/src/billing/plans.ts`) avec la mention « Bientôt » : générateur VSME,
+préparation EcoVadis et B Corp, base documentaire, module CSRD, reporting
+multi-référentiels, CDP et SFDR, alertes de conformité, historique du suivi des
+actions, collecte collaborative, API d'intégration, logo de l'entreprise dans le PDF,
+et toutes les options propres à Enterprise. Une fonctionnalité perd cette mention dans
+le commit qui la livre.
+
+---
+
+## 9. Cas de test
 
 Domain (`SubscriptionTests`) : les règles de la section 3.
 
@@ -284,6 +388,41 @@ Adaptateur Stripe sans réseau (`StripePaymentGatewayTests`) : signature d'un au
 secret, corps modifié et signature trop ancienne refusés ; identifiant de session mal
 formé écarté sans appel à Stripe ; identifiant d'abonnement lu
 selon le type d'événement ; aller-retour des clés de recherche ; traduction des statuts.
+
+Domain (`PlanEntitlementsTests`) : offre effective pour chaque statut (absent,
+`PendingPayment`, `Active`, `PastDue`) ; droits de chaque offre, ligne par ligne du
+tableau de la section 8 ; Enterprise aligné sur Professional.
+
+Intégration (`PlanLimitsTests`, section 8) :
+
+19. Starter avec un diagnostic complété → création refusée (`403`, `plan_required`) ;
+    avec seulement un diagnostic abandonné → création acceptée.
+20. Essential avec un diagnostic complété → création acceptée.
+21. Starter : recommandations limitées aux 3 premières par `priority_rank`, nombre total
+    renvoyé ; Essential : 12 premières ; Professional : toutes.
+22. Essential : écriture sur une recommandation hors des 12 visibles → `404` ;
+    Professional : acceptée.
+23. Starter : cocher une action → `403` ; Essential → accepté.
+24. Essential : modifier le plan d'actions enrichi ou saisir des indicateurs → `403` ;
+    Professional → accepté.
+25. Starter : scores par domaine absents du tableau de bord, `domain-scores` → `403`.
+26. Benchmark absent en Starter et Essential, présent en Professional.
+27. Starter : ouvrir un ticket de support → `403` ; lecture des tickets existants
+    autorisée.
+28. `PastDue` : droits de l'offre souscrite conservés.
+29. Retour à Starter après résiliation : données conservées, affichées selon les droits
+    du Starter ; nouvel abonnement → tout redevient visible.
+30. `GET /api/billing/subscription` expose l'offre effective et ses droits, dont
+    `canStartDiagnostic`.
+31. Rapport Starter : page de garde réduite et Mentions présentes, aucun score de
+    domaine ; même diagnostic, même offre → même document.
+
+Frontend (Vitest) : éléments masqués ou désactivés selon les droits reçus, invitation à
+l'offre supérieure, bandeau `PastDue`, mention « Bientôt » dans le comparatif.
+
+E2E : un compte Starter qui a complété son diagnostic voit le lancement d'un nouveau
+diagnostic bloqué avec l'invitation à passer à Essential, et seulement trois
+recommandations.
 
 Frontend (Vitest) : écran de sélection (Starter, paiement, Enterprise inerte, reprise
 automatique du paiement, paiement annulé, portail, non-`Admin`), `SubscriptionGate`,

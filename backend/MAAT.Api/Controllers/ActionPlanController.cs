@@ -20,7 +20,8 @@ public sealed record UpsertProgressRequest(
 [Authorize]
 public class ActionPlanController(
     IActionItemProgressRepository progressRepository,
-    DiagnosticService diagnosticService) : ControllerBase
+    DiagnosticService diagnosticService,
+    CurrentPlanService currentPlan) : ControllerBase
 {
     // docs/specs/recommandations.md, section 4 : retourne les recommandations du diagnostic
     // enrichies du suivi ActionItemProgress. Null → 404 si diagnostic inconnu ou hors entreprise.
@@ -30,9 +31,12 @@ public class ActionPlanController(
         var recommendations = await diagnosticService.GetRecommendationsAsync(diagnosticId, ct);
         if (recommendations is null) return NotFound();
 
+        // Même principe que DiagnosticsController.GetRecommendations (abonnement.md, section 8).
+        Response.Headers["X-Total-Count"] = recommendations.TotalCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
         var progressMap = await progressRepository.GetMapByDiagnosticAsync(diagnosticId, ct);
 
-        return Ok(recommendations.Select(r =>
+        return Ok(recommendations.Items.Select(r =>
         {
             progressMap.TryGetValue(r.Code, out var p);
             return new
@@ -62,6 +66,10 @@ public class ActionPlanController(
     public async Task<IActionResult> UpsertProgress(
         Guid diagnosticId, string code, UpsertProgressRequest request, CancellationToken ct)
     {
+        // docs/specs/abonnement.md, section 8 : le suivi enrichi est réservé à Professional ;
+        // la lecture reste ouverte, y compris d'un suivi saisi sous une offre précédente.
+        await currentPlan.EnsureAsync(e => e.CanEditActionPlan, SubscriptionPlan.Professional, ct);
+
         // UpdateRecommendationProgressAsync valide l'appartenance du diagnostic à l'entreprise
         // et l'existence du code dans ce diagnostic — null dans les deux cas (404).
         var isCompleted = request.Status == ActionItemStatus.Done;

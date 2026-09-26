@@ -1,6 +1,9 @@
 import { useEffect, useMemo } from 'react'
 import { ClipboardList } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
+import { useEntitlements } from '../billing/entitlements'
+import { useSubscriptionStore } from '../store/subscriptionStore'
+import { UpgradeNotice } from '../components/billing/UpgradeNotice'
 import { DomainStepper } from '../components/questionnaire/DomainStepper'
 import { ProgressIndicator } from '../components/questionnaire/ProgressIndicator'
 import { QuestionStep } from '../components/questionnaire/QuestionStep'
@@ -28,6 +31,7 @@ function formatCompletionDate(iso: string | null): string {
 
 export function QuestionnairePage() {
   const { diagnosticId } = useParams<{ diagnosticId?: string }>()
+  const { canStartDiagnostic } = useEntitlements()
 
   const load = useQuestionnaireStore((s) => s.load)
   const loadStatus = useQuestionnaireStore((s) => s.loadStatus)
@@ -55,9 +59,14 @@ export function QuestionnairePage() {
   const startDiagnostic = useQuestionnaireStore((s) => s.startDiagnostic)
   const abandonAndRestart = useQuestionnaireStore((s) => s.abandonAndRestart)
 
+  // Droits relus à chaque ouverture : un diagnostic complété depuis l'ouverture de session
+  // change canStartDiagnostic (docs/specs/abonnement.md, section 8).
+  const loadSubscription = useSubscriptionStore((s) => s.load)
+
   useEffect(() => {
     void load(diagnosticId)
-  }, [load, diagnosticId])
+    void loadSubscription()
+  }, [load, loadSubscription, diagnosticId])
 
   const estimatedMinutesRemaining = useMemo(
     () =>
@@ -86,6 +95,19 @@ export function QuestionnairePage() {
   // docs/specs/questionnaire.md, section 5 : état normal d'un nouvel utilisateur (404 attendu
   // de GET /current), jamais un message d'erreur — invite à démarrer un diagnostic.
   if (loadStatus === 'no-diagnostic') {
+    // docs/specs/abonnement.md, section 8 : l'unique évaluation du Starter a été utilisée.
+    if (!canStartDiagnostic) {
+      return (
+        <div className="mx-auto max-w-lg">
+          <h1 className="mb-4 text-xl font-semibold text-text">Questionnaire RSE</h1>
+          <UpgradeNotice requiredPlan="Essential" title="Vous avez réalisé votre diagnostic">
+            L&apos;offre Starter comprend une évaluation. Pour mesurer votre progression, relancez
+            un diagnostic chaque trimestre avec l&apos;offre Essential.
+          </UpgradeNotice>
+        </div>
+      )
+    }
+
     return (
       <div className="mx-auto max-w-lg">
         <Card>
