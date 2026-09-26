@@ -43,6 +43,11 @@ services:
       # fournisseur transactionnel n'est provisionné. Vérification d'adresse et rapport PDF
       # inopérants dans cet état — basculer EMAIL_PROVIDER dès qu'un fournisseur réel existe.
       Email__Provider: ${EMAIL_PROVIDER:-none}
+      # docs/specs/abonnement.md, section 7 : Stripe renvoie vers l'application web après le
+      # paiement, d'où ReturnBaseUrl = FRONTEND_ORIGIN.
+      Stripe__SecretKey: ${STRIPE_SECRET_KEY:-}
+      Stripe__WebhookSecret: ${STRIPE_WEBHOOK_SECRET:-}
+      Stripe__ReturnBaseUrl: ${FRONTEND_ORIGIN}
     depends_on:
       - db
     networks:

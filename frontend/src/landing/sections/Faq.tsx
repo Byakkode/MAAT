@@ -31,7 +31,7 @@ export function Faq() {
     <section id="faq" aria-labelledby="faq-title" className="bg-white py-24 sm:py-32">
       <Container className="grid gap-12 lg:grid-cols-12">
         <Reveal className="lg:col-span-4">
-          <SectionLabel index="05">Questions</SectionLabel>
+          <SectionLabel index="06">Questions</SectionLabel>
           <h2 id="faq-title" className="display mt-6 text-[clamp(2.25rem,4.4vw,3.5rem)] text-text">
             Avant de commencer.
           </h2>

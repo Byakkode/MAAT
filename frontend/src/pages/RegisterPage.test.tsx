@@ -17,9 +17,9 @@ vi.mock('../api/authApi', () => authApi)
 import { RegisterPage } from './RegisterPage'
 import { useAuthStore } from '../store/authStore'
 
-function renderRegisterPage() {
+function renderRegisterPage(url = '/register') {
   return render(
-    <MemoryRouter initialEntries={['/register']}>
+    <MemoryRouter initialEntries={[url]}>
       <Routes>
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<p>Page de connexion</p>} />
@@ -48,6 +48,32 @@ describe('RegisterPage', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+  })
+
+  // docs/specs/abonnement.md, section 2 : l'offre choisie sur la page d'accueil est
+  // enregistrée avec le compte.
+  it('transmet l’offre choisie sur la page d’accueil avec l’inscription', async () => {
+    authApi.register.mockResolvedValue({ message: 'Vérifiez votre boîte mail pour confirmer votre inscription.' })
+
+    renderRegisterPage('/register?offre=essential&periode=annuelle')
+    expect(screen.getByText(/offre choisie/i).textContent).toContain('Essential (annuelle)')
+    fillMandatoryFields()
+    fireEvent.click(screen.getByRole('button', { name: "S'inscrire" }))
+
+    await waitFor(() => expect(authApi.register).toHaveBeenCalled())
+    expect(authApi.register).toHaveBeenCalledWith(expect.objectContaining({ plan: 'Essential', billingPeriod: 'Yearly' }))
+  })
+
+  it('ignore une offre qui ne se souscrit pas encore (Enterprise)', async () => {
+    authApi.register.mockResolvedValue({ message: 'Vérifiez votre boîte mail pour confirmer votre inscription.' })
+
+    renderRegisterPage('/register?offre=enterprise')
+    expect(screen.queryByText(/offre choisie/i)).toBeNull()
+    fillMandatoryFields()
+    fireEvent.click(screen.getByRole('button', { name: "S'inscrire" }))
+
+    await waitFor(() => expect(authApi.register).toHaveBeenCalled())
+    expect(authApi.register.mock.calls[0][0]).not.toHaveProperty('plan')
   })
 
   it('soumet les champs saisis, y compris la tranche d’effectif par défaut', async () => {

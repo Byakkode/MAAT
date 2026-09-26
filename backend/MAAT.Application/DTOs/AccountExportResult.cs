@@ -13,7 +13,8 @@ public sealed record AccountExportResult(
     IReadOnlyList<ResponseExport> Responses,
     IReadOnlyList<DomainScoreExport> DomainScores,
     IReadOnlyList<DiagnosticRecommendationExport> DiagnosticRecommendations,
-    IReadOnlyList<ReportExport> Reports);
+    IReadOnlyList<ReportExport> Reports,
+    SubscriptionExport? Subscription);
 
 public sealed record UserExport(
     Guid Id,
@@ -68,3 +69,12 @@ public sealed record ReportExport(
     ReportFormat Format,
     DateTimeOffset GeneratedAt,
     Guid GeneratedByUserId);
+
+// Identifiants du prestataire de paiement exclus : ce sont des références techniques, pas
+// des données de l'entreprise. Les factures se téléchargent depuis le portail client.
+public sealed record SubscriptionExport(
+    SubscriptionPlan Plan,
+    BillingPeriod? BillingPeriod,
+    SubscriptionStatus Status,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);

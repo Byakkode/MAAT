@@ -7,7 +7,7 @@ par secteur NAF → recommandations → tableau de bord → rapport PDF conforme
 
 Les fichiers sous `docs/specs/` font autorité sur le comportement attendu :
 `modele-donnees.md`, `scoring.md`, `auth-securite-rgpd.md`, `questionnaire.md`,
-`recommandations.md`, `dashboard.md`.
+`recommandations.md`, `dashboard.md`, `abonnement.md`.
 
 Le rapport de projet sous `docs/source/` est un livrable académique, pas un
 contexte de travail. Il est rédigé au passé, comme si le produit existait déjà,

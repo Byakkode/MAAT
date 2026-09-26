@@ -235,8 +235,9 @@ l'existence de dispositifs, jamais sur des situations individuelles.
 
 `POST /api/me/export` — droit d'accès et portabilité (art. 15 et 20). Export JSON
 structuré de l'intégralité des données du compte et de son entreprise : `User`,
-`Company`, `Diagnostic`, `Response`, `DomainScore`, `DiagnosticRecommendation`
-et `Report`. `DiagnosticRecommendation` doit y figurer avec ses champs
+`Company`, `Diagnostic`, `Response`, `DomainScore`, `DiagnosticRecommendation`,
+`Report` et `Subscription` (sans les identifiants Stripe, voir `abonnement.md`
+section 6). `DiagnosticRecommendation` doit y figurer avec ses champs
 `is_completed` et `completed_at` : ce sont des données saisies par l'utilisateur
 (cases à cocher du tableau de bord), pas des valeurs dérivées recalculables — les
 omettre rendrait l'export incomplet au regard des art. 15 et 20, contrairement
@@ -266,7 +267,9 @@ Le comportement actuel :
 - si l'appelant est le **dernier `Admin`** de son entreprise (le seul, en le
   comptant) : purge en cascade de `User`, `RefreshToken`,
   `EmailVerificationToken`, `Company`, `Diagnostic`, `Response`, `DomainScore`,
-  `DiagnosticRecommendation` et `Report` — l'entreprise entière disparaît ;
+  `DiagnosticRecommendation`, `Report` et `Subscription` — l'entreprise entière
+  disparaît. Un abonnement Stripe payant en cours est résilié **avant** la purge ;
+  si Stripe refuse, rien n'est supprimé (`502`, `abonnement.md` section 6) ;
 - sinon (`Viewer`, `User`, ou `Admin` alors qu'un autre `Admin` existe) :
   seuls le `User` appelant, ses `RefreshToken`, ses `EmailVerificationToken` et
   les `Report` qu'il a lui-même générés sont supprimés. `Company`,

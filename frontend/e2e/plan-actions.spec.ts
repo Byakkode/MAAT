@@ -10,7 +10,9 @@ test('compte sans diagnostic complété → Plan d’actions affiche une invitat
   const email = `e2e-plan-actions-vide-${suffix}@maat-test.local`
   const password = 'MotDePasseValide2026!'
 
-  await page.goto('/register')
+  // Offre Starter choisie d'avance, comme depuis la page d'accueil : ce parcours porte sur
+  // l'application, pas sur l'écran de sélection d'abonnement (voir abonnement.spec.ts).
+  await page.goto('/register?offre=starter')
   await page.getByLabel('Adresse e-mail').fill(email)
   await page.getByLabel('Mot de passe').fill(password)
   await page.getByLabel("Nom de l'entreprise").fill(`Entreprise E2E ${suffix}`)
@@ -68,7 +70,9 @@ test('diagnostic complété avec des réponses faibles → recommandations visib
   const email = `e2e-plan-actions-${suffix}@maat-test.local`
   const password = 'MotDePasseValide2026!'
 
-  await page.goto('/register')
+  // Offre Starter choisie d'avance, comme depuis la page d'accueil : ce parcours porte sur
+  // l'application, pas sur l'écran de sélection d'abonnement (voir abonnement.spec.ts).
+  await page.goto('/register?offre=starter')
   await page.getByLabel('Adresse e-mail').fill(email)
   await page.getByLabel('Mot de passe').fill(password)
   await page.getByLabel("Nom de l'entreprise").fill(`Entreprise E2E ${suffix}`)

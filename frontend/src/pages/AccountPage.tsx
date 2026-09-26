@@ -3,11 +3,13 @@ import { DataExportCard } from '../components/account/DataExportCard'
 import { DeleteAccountCard } from '../components/account/DeleteAccountCard'
 import { IdentityCard } from '../components/account/IdentityCard'
 import { PasswordChangeCard } from '../components/account/PasswordChangeCard'
+import { SubscriptionCard } from '../components/account/SubscriptionCard'
 import { PageHeader } from '../components/ui/PageHeader'
 import { useCurrentUserStore } from '../store/currentUserStore'
 
-// docs/specs/coquille-et-compte.md, sections 5 et 6 : quatre blocs, dans l'ordre de risque
-// croissant — identité (lecture seule), mot de passe, export, suppression.
+// docs/specs/coquille-et-compte.md, sections 5 et 6 : blocs dans l'ordre de risque croissant —
+// identité (lecture seule), abonnement (docs/specs/abonnement.md), mot de passe, export,
+// suppression.
 export function AccountPage() {
   const status = useCurrentUserStore((s) => s.status)
   const load = useCurrentUserStore((s) => s.load)
@@ -45,6 +47,7 @@ export function AccountPage() {
       <div className="grid gap-4 xl:grid-cols-[260px_1fr] xl:items-start">
         <IdentityCard />
         <div className="flex flex-col gap-4">
+          <SubscriptionCard />
           <PasswordChangeCard />
           <DataExportCard />
           <DeleteAccountCard />

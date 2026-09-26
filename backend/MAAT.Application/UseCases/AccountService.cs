@@ -20,6 +20,8 @@ public class AccountService(
     IDiagnosticRecommendationRepository diagnosticRecommendationRepository,
     IReportRepository reportRepository,
     IRefreshTokenRepository refreshTokenRepository,
+    ISubscriptionRepository subscriptionRepository,
+    IPaymentGateway paymentGateway,
     IPasswordHasher passwordHasher,
     ICompromisedPasswordChecker compromisedPasswordChecker,
     ICurrentUserContext currentUser,
@@ -36,6 +38,7 @@ public class AccountService(
         var domainScores = await domainScoreRepository.FindAllForCurrentCompanyAsync(ct);
         var diagnosticRecommendations = await diagnosticRecommendationRepository.FindAllForCurrentCompanyAsync(ct);
         var reports = await reportRepository.FindAllForCurrentCompanyAsync(ct);
+        var subscription = await subscriptionRepository.FindByCompanyIdAsync(currentUser.CompanyId, ct);
 
         return new AccountExportResult(
             new UserExport(user.Id, user.Email, user.Role, user.EmailVerified, user.EmailVerifiedAt, user.LastLogin, user.CreatedAt),
@@ -44,7 +47,10 @@ public class AccountService(
             [.. responses.Select(r => new ResponseExport(r.Id, r.DiagnosticId, r.QuestionId, r.Value, r.AnsweredAt))],
             [.. domainScores.Select(ds => new DomainScoreExport(ds.DiagnosticId, ds.Domain, ds.Score, ds.SectorWeight))],
             [.. diagnosticRecommendations.Select(dr => new DiagnosticRecommendationExport(dr.DiagnosticId, dr.RecommendationId, dr.IsCompleted, dr.CompletedAt, dr.PriorityRank))],
-            [.. reports.Select(r => new ReportExport(r.Id, r.DiagnosticId, r.Format, r.GeneratedAt, r.GeneratedByUserId))]);
+            [.. reports.Select(r => new ReportExport(r.Id, r.DiagnosticId, r.Format, r.GeneratedAt, r.GeneratedByUserId))],
+            subscription is null
+                ? null
+                : new SubscriptionExport(subscription.Plan, subscription.BillingPeriod, subscription.Status, subscription.CreatedAt, subscription.UpdatedAt));
     }
 
     // docs/specs/coquille-et-compte.md, section 6 : DELETE /api/me ne supprime l'entreprise que
@@ -58,6 +64,19 @@ public class AccountService(
         var companyId = currentUser.CompanyId;
 
         var isLastAdmin = user.Role == UserRole.Admin && await userRepository.CountAdminsForCompanyAsync(companyId, ct) == 1;
+
+        // docs/specs/abonnement.md, section 6 : l'entreprise disparaît, son abonnement payant
+        // doit cesser d'être facturé. Résilié AVANT la purge, hors transaction : si le
+        // prestataire refuse, la suppression échoue entière plutôt que de laisser un
+        // prélèvement courir pour une entreprise qui n'existe plus.
+        if (isLastAdmin)
+        {
+            var subscription = await subscriptionRepository.FindByCompanyIdAsync(companyId, ct);
+            if (subscription?.StripeSubscriptionId is { } providerSubscriptionId)
+            {
+                await paymentGateway.CancelSubscriptionAsync(providerSubscriptionId, ct);
+            }
+        }
 
         await unitOfWork.ExecuteInTransactionAsync(async innerCt =>
         {

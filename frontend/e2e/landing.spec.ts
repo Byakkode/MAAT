@@ -29,3 +29,22 @@ test('les liens de navigation font défiler jusqu’à leur section', async ({ p
   await expect(page).toHaveURL(/#securite$/)
   await expect(page.getByRole('heading', { name: /vos données restent en france/i })).toBeInViewport()
 })
+
+test('la section Tarifs compare quatre offres et mène à l’inscription', async ({ page }) => {
+  await page.goto('/')
+
+  await page.getByRole('navigation', { name: 'Sections de la page' }).getByRole('link', { name: 'Tarifs' }).click()
+
+  await expect(page).toHaveURL(/#tarifs$/)
+  const table = page.getByRole('table', { name: /fonctionnalités incluses/i })
+  await expect(table).toBeInViewport()
+  await expect(table.getByRole('columnheader')).toHaveCount(4)
+  await expect(table.getByRole('columnheader', { name: /enterprise/i })).toContainText('Bientôt disponible')
+
+  await table.getByRole('link', { name: 'Choisir Essential' }).click()
+
+  // L'offre choisie suit le visiteur jusqu'à l'inscription (docs/specs/abonnement.md, section 2).
+  await expect(page).toHaveURL(/\/register\?offre=essential&periode=mensuelle$/)
+  await expect(page.getByRole('heading', { name: 'Créer un compte' })).toBeVisible()
+  await expect(page.getByText(/offre choisie/i)).toContainText('Essential (mensuelle)')
+})

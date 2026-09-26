@@ -2,6 +2,7 @@ using MAAT.Application.DTOs;
 using MAAT.Application.Exceptions;
 using MAAT.Application.Interfaces;
 using MAAT.Application.UseCases;
+using MAAT.Domain.Entities;
 using MAAT.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -32,6 +33,10 @@ public class AuthController(
             return BadRequest(new { message = ex.Message });
         }
         catch (CompromisedPasswordException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (PlanNotAvailableException ex)
         {
             return BadRequest(new { message = ex.Message });
         }

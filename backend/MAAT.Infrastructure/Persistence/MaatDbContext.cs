@@ -20,6 +20,7 @@ public class MaatDbContext(DbContextOptions<MaatDbContext> options) : DbContext(
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
     public DbSet<RseIndicators> RseIndicators => Set<RseIndicators>();
     public DbSet<ActionItemProgress> ActionItemProgresses => Set<ActionItemProgress>();
+    public DbSet<Subscription> Subscriptions => Set<Subscription>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

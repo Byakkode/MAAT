@@ -9,4 +9,8 @@ public sealed record RegisterRequest(
     string SectorCode,
     CompanySizeRange SizeRange,
     string Region,
-    string? Siret);
+    string? Siret,
+    // docs/specs/abonnement.md, section 2 : offre choisie sur la page d'accueil avant
+    // l'inscription. Absente = l'utilisateur choisira sur l'écran de sélection.
+    SubscriptionPlan? Plan = null,
+    BillingPeriod? BillingPeriod = null);
