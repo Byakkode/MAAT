@@ -120,27 +120,107 @@ Ce qui l'impose, concrètement :
 Les deux derniers points sont les cas 9 et 11 de `recommandations.md` : ils
 existaient déjà pour cette raison, c'est ici qu'ils sont encaissés.
 
+**Ce qui peut légitimement changer.** Deux blocs du document décrivent un état
+vivant, pas le diagnostic figé : l'avancement du plan d'actions (statut,
+responsable, échéance — `ActionItemProgress`) et les indicateurs RSE saisis par
+l'entreprise (`RseIndicators`). Les régénérer après une mise à jour doit
+refléter cette mise à jour — c'est précisément ce qui permet de montrer qu'on a
+agi. Le bloc Mentions le dit explicitement : ces deux blocs sont présentés tels
+qu'ils étaient enregistrés à la date de génération. La règle devient : **à
+données d'entrée identiques** (diagnostic, suivi, indicateurs), octets
+identiques.
+
+L'historique, lui, reste borné au diagnostic du rapport : seuls les diagnostics
+complétés **jusqu'à** celui-ci y figurent. Un diagnostic complété plus tard ne
+modifie jamais un rapport déjà émis (cas 30).
+
 ---
 
 ## 4. Structure du document
 
-Sept blocs, dans cet ordre. Format A4, portrait.
+Format A4, portrait. Une page de garde qui dit l'essentiel en un coup d'œil —
+c'est la page projetée en réunion — puis cinq sections numérotées qui
+s'enchaînent sans saut de page forcé, et les mentions. Une section ne commence
+jamais par un titre isolé en bas de page, et une ligne du plan d'actions n'est
+jamais coupée entre deux pages. Chaque page de contenu porte en en-tête la
+raison sociale et la date du diagnostic, et en pied de page la réserve
+d'auto-évaluation et la pagination.
 
-**Page de garde.** Logo MAAT, raison sociale, code NAF, effectif, région, date
-de complétion. Score global en grand, accompagné de son libellé qualitatif.
+**Page de garde.** Logo MAAT, raison sociale, code NAF et son libellé,
+effectif, région, date de complétion. Score global en grand, sur une jauge,
+accompagné de son libellé qualitatif et, s'il existe un diagnostic précédent,
+de l'écart depuis celui-ci. Profil des cinq domaines en barres. Trois cartes de
+synthèse : point fort, priorité de progrès, avancement du plan d'actions. Un
+sommaire cliquable, avec le numéro de page de chaque section.
 
-Le libellé humain d'un code NAF (« 6202A — Conseil en systèmes et logiciels
-informatiques ») n'a **aucune source dans ce projet** : `sector-weights.csv`
-(`modele-donnees.md`) ne porte que `sector_code`, `domain` et `weight`, jamais
-de nom, et 2 secteurs seulement sur les 38 visés y sont seedés à ce jour.
-L'inventer serait afficher une donnée non vérifiée sur le document qui
-circule hors de la plateforme — justement ce que la section 1 interdit pour
-la licence QuestPDF, appliqué ici au contenu. À la place, la page de garde
-indique si la pondération **effectivement appliquée** est spécifique au
-secteur ou retombée sur la pondération par défaut, auquel cas ce repli est
-annoncé explicitement plutôt que laissé silencieux. Un vrai référentiel de
-libellés NAF est un travail de contenu à part entière, comme les 38 secteurs
-pondérés eux-mêmes (`modele-donnees.md`) — à inscrire à la feuille de route.
+Le libellé humain du code NAF (« 6201Z · Programmation informatique ») vient de
+la nomenclature INSEE (NAF rév. 2) déjà utilisée par le formulaire
+d'inscription (`frontend/src/constants/nafCodes.ts`), dont
+`MAAT.Infrastructure/Pdf/naf-labels.tsv` est la copie lue par le générateur.
+Un test compare les deux fichiers (cas 31). Un code absent de cette liste
+s'affiche seul, sans libellé inventé : afficher une donnée non vérifiée sur le
+document qui circule hors de la plateforme est exactement ce que la section 1
+interdit, appliqué ici au contenu.
+
+**01 — Synthèse.** Un paragraphe rédigé à partir des chiffres (niveau global,
+domaine le plus avancé, marge de progression la plus nette, écart depuis le
+diagnostic précédent, nombre d'actions) : ce qu'on lit à voix haute en ouverture
+de réunion. Le radar des cinq domaines, échelle fixe 0–100, aux couleurs de la
+charte — même règle que le tableau de bord et pour la même raison : une échelle
+adaptée aux données rendrait toutes les entreprises graphiquement semblables.
+Les points forts et axes de progrès : les deux domaines les mieux notés, les
+deux les moins bien, formulés comme une trajectoire, jamais comme un jugement —
+même vocabulaire que le tableau de bord. Puis les scores par domaine : barre,
+score, libellé qualitatif, poids sectoriel et écart avec le diagnostic
+précédent.
+
+**02 — Évolution.** La courbe du score global sur les six derniers diagnostics
+complétés au plus (échelle fixe 0–100), et l'écart domaine par domaine avec le
+diagnostic précédent. Pour un premier diagnostic, un encart explique qu'il
+constitue le point de référence.
+
+**03 — Plan d'actions.** L'avancement global (terminées sur le total, et la
+répartition des quatre statuts de l'écran Plan d'actions : planifié, en cours,
+bloqué, terminé), calculé sur **l'intégralité** du plan, pas sur les seules
+actions affichées. Puis « Par où commencer » : les trois premières actions non
+terminées, avec leur détail (arrêté à la fin d'une phrase, jamais au milieu
+d'un mot), leur effort et leur gain estimé sur le score du
+domaine (`impact_points`, `recommandations.md` section 3). Puis le plan
+détaillé, trié par `priority_rank` : libellé, domaine, effort, statut, et le
+responsable et l'échéance quand ils sont renseignés. Les notes du suivi restent
+internes et n'apparaissent jamais dans le document. Limité aux vingt premières
+actions avec l'indication du total — un PDF de quarante pages n'est pas lu.
+
+Le statut vient de `ActionItemProgress`, sauf quand la case a été cochée depuis
+le tableau de bord (`DiagnosticRecommendation.is_completed`) : l'action est
+alors terminée, même sans ligne de suivi. Sans suivi ni case cochée : planifié.
+
+**04 — Indicateurs RSE.** Les indicateurs quantitatifs saisis par l'entreprise
+(environnement, social, achats responsables, économique), mêmes libellés et
+mêmes unités que l'écran Indicateurs. Année de référence : la plus récente qui
+ne dépasse pas l'année de complétion du diagnostic ; l'année précédente, si
+elle est renseignée, donne la tendance — en points pour les taux, en
+pourcentage sinon, en vert quand l'évolution est favorable. Sans aucun
+indicateur, un encart invite à les saisir. Les valeurs sont annoncées comme
+déclaratives et non vérifiées par un tiers.
+
+**05 — Comprendre votre score.** La méthode en trois étapes (réponses notées de
+0 à 5 et pondérées, score de domaine, pondération sectorielle) et les trois
+référentiels (VSME, ISO 26000, GRI) : c'est ce qui distingue le document d'un
+questionnaire rempli — un donneur d'ordres doit pouvoir comprendre d'où sort le
+chiffre. Puis le tableau de détail : domaine, score sur 100, numérateur et
+dénominateur exposés par `ScoringService` (`scoring.md`, section Traçabilité),
+pondération sectorielle appliquée, contribution au score global, et une ligne
+de total. C'est la valeur « Transparence » rendue vérifiable : le lecteur peut
+refaire l'opération.
+
+Au-dessus du tableau, la pondération effectivement appliquée : sectorielle, ou
+retombée sur la pondération par défaut, auquel cas ce repli est annoncé
+explicitement plutôt que laissé silencieux. Le libellé « sectoriel » reste
+générique (coefficients déterminés à partir du code NAF) : le repli de
+`SectorWeightRepository` peut venir du code exact ou de sa section NAF, et le
+diagnostic n'enregistre pas lequel des deux a servi — le document n'affirme pas
+ce qu'il ne sait pas.
 
 Cet indicateur vient de `Diagnostic.default_sector_weighting_applied`, décidé
 une fois à la complétion (`questionnaire.md`, section 6, cas 13) — jamais
@@ -152,32 +232,6 @@ de `scoring.md` (cas 7) ramène le coefficient effectif à 1.00 quand un seul
 domaine est actif, que la pondération d'origine ait été spécifique ou par
 défaut — un diagnostic à un seul domaine actif rendait alors les deux
 situations indiscernables tant que l'indicateur se basait sur `SectorWeight`.
-
-**Méthodologie.** Une demi-page, pas davantage : les trois référentiels (VSME,
-ISO 26000, GRI), la formule du score de domaine, et le principe de la
-pondération sectorielle. C'est ce qui distingue le document d'un questionnaire
-rempli — un donneur d'ordres doit pouvoir comprendre d'où sort le chiffre.
-
-**Score global et radar.** Le radar des cinq domaines, échelle fixe 0–100, aux
-couleurs de la charte. Même règle que le tableau de bord et pour la même raison :
-une échelle adaptée aux données rendrait toutes les entreprises graphiquement
-semblables.
-
-**Détail par domaine.** Un tableau : domaine, score sur 100, pondération
-sectorielle appliquée, contribution au score global. Y faire figurer le
-numérateur et le dénominateur du calcul, exposés par `ScoringService`
-(`scoring.md`, section Traçabilité). C'est la valeur « Transparence » rendue
-vérifiable : le lecteur peut refaire l'opération.
-
-**Points forts et axes d'amélioration.** Les deux domaines les mieux notés, les
-deux les moins bien. Formulés comme une trajectoire, jamais comme un jugement —
-même vocabulaire que le tableau de bord.
-
-**Plan d'actions.** Les recommandations triées par `priority_rank`, avec
-libellé, domaine, niveau d'effort et état d'avancement. Les actions déjà
-cochées apparaissent comme telles : c'est ce qui permet à l'entreprise de
-montrer qu'elle a agi entre deux diagnostics. Limiter aux vingt premières et
-indiquer le total — un PDF de quarante pages n'est pas lu.
 
 **Mentions.** Bloc final obligatoire, et le plus important juridiquement :
 
@@ -192,8 +246,9 @@ c'est la limite 3 que votre propre rapport identifie, et c'est le premier point
 qu'un jury attaquera si elle n'apparaît pas dans le livrable lui-même.
 
 Y ajouter la date de génération, le numéro de version du référentiel de
-questions, et la mention que le score reflète les réponses au jour de la
-complétion.
+questions, la mention que le score reflète les réponses au jour de la
+complétion, et celle que l'avancement du plan d'actions et les indicateurs sont
+présentés tels qu'enregistrés à la date de génération (section 3).
 
 ---
 
@@ -203,6 +258,14 @@ Le radar est produit par SkiaSharp et embarqué en PNG. Pas d'export depuis le
 navigateur : le rendu doit être identique quel que soit le client, et c'est déjà
 le problème que votre rapport documente.
 
+Les autres graphiques — jauge du score global, courbe d'évolution — sont
+produits en SVG par le générateur et dessinés en vectoriel par QuestPDF : nets à
+toutes les échelles, sans question de résolution. Barres de score, répartition
+des statuts et mini-jauges des indicateurs sont de simples éléments de mise en
+page QuestPDF. Aucun de ces graphiques ne porte de texte : graduations, dates et
+valeurs sont posées par QuestPDF avec les polices embarquées, comme les
+libellés du radar (cas 21).
+
 **Résolution.** Dessiner à environ trois fois la taille d'affichage cible. Un
 PNG rendu à la dimension d'écran est visiblement pixellisé à l'impression, et ce
 document a vocation à être imprimé.
@@ -211,6 +274,12 @@ document a vocation à être imprimé.
 même ordre des axes. Deux représentations divergentes du même diagnostic
 suffisent à faire douter de l'ensemble. Les couleurs viennent du skill
 `charte-maat`, jamais d'une valeur écrite en dur dans le générateur.
+
+**Nombres et dates à la française.** Virgule décimale, espace fine insécable
+entre les milliers, vrai signe moins, mois en toutes lettres. Mis en forme à la
+main (`FrenchFormat`), pas avec la culture `fr-FR` : un conteneur Linux minimal
+peut ne pas embarquer les données ICU françaises, et le rapport sortirait alors
+au format anglais — même piège silencieux que les polices ci-dessous.
 
 **Polices.** Poppins et Inter doivent être **embarquées dans le dépôt** et
 enregistrées explicitement auprès de QuestPDF. C'est le piège de déploiement de
@@ -303,3 +372,33 @@ qui ne redonnent pas le score affiché sont pires que leur absence, puisqu'ils
 prétendent à une preuve qui ne tient pas. Le cas 23 est celui qui a failli passer
 inaperçu : plausible sur tout diagnostic multi-domaines, faux uniquement sur le
 cas limite d'un seul domaine actif.
+
+**Mise en page et contenu enrichi**
+
+24. Un rapport complet (historique, indicateurs, suivi du plan d'actions) se
+    génère sans exception de mise en page.
+25. Premier diagnostic, sans indicateur ni suivi : chaque section remplace son
+    contenu par un message explicite, le document reste valide.
+26. Cas limites : un seul domaine actif, plan d'actions vide, toutes les actions
+    terminées, historique de six points, raison sociale et libellés d'action
+    très longs, code NAF absent de la liste INSEE — aucun ne lève.
+27. Deux générations du même `ReportData` produisent des octets identiques,
+    graphiques SVG et libellés NAF compris (le cas 10 le vérifie de bout en
+    bout, celui-ci isole le générateur).
+28. Le statut, le responsable et l'échéance saisis à l'écran Plan d'actions
+    figurent dans le rapport ; une case cochée depuis le tableau de bord donne
+    le statut terminé ; la répartition des statuts porte sur tout le plan.
+29. Indicateurs : l'année de référence est la plus récente qui ne dépasse pas
+    l'année de complétion, l'année précédente sert à la tendance, une année
+    postérieure est ignorée.
+30. L'historique d'un rapport s'arrête à son diagnostic : régénérer le rapport
+    du premier diagnostic après la complétion d'un second ne change pas son
+    historique.
+31. Les libellés NAF du rapport sont exactement ceux du formulaire
+    d'inscription.
+
+Le cas 26 est celui qui protège la réunion client : QuestPDF refuse de produire
+un document quand un élément ne tient pas dans la page, et c'est un libellé
+d'action un peu long, pas une donnée exotique, qui l'a déclenché la première
+fois — sur la carte « Par où commencer », avant que l'effort et le gain ne
+passent sur deux lignes.

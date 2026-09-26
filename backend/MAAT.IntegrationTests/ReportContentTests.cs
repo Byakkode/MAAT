@@ -299,4 +299,114 @@ public class ReportContentTests(ReportContentApiFixture fixture)
         var actualOrder = fixture.ReportGenerator.LastData!.Recommendations.Select(r => r.ActionText).ToList();
         Assert.Equal(expectedActionTextOrder, actualOrder);
     }
+
+    private async Task<ReportData> GenerateReportAsync(HttpClient client, string token, Guid diagnosticId)
+    {
+        var response = await client.SendAsync(AuthorizedRequest(HttpMethod.Get, $"/api/diagnostics/{diagnosticId}/report", token));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        return fixture.ReportGenerator.LastData!;
+    }
+
+    private static async Task<List<string>> GetRecommendationCodesAsync(HttpClient client, string token, Guid diagnosticId)
+    {
+        var response = await client.SendAsync(AuthorizedRequest(HttpMethod.Get, $"/api/diagnostics/{diagnosticId}/recommendations", token));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        return (await response.Content.ReadFromJsonAsync<JsonElement>()).EnumerateArray()
+            .Select(r => r.GetProperty("code").GetString()!)
+            .ToList();
+    }
+
+    // Cas 28 : le plan d'actions du rapport reflète le suivi saisi à l'écran Plan d'actions
+    // (statut, responsable, échéance) et la case cochée depuis le tableau de bord — les deux
+    // chemins qui marquent une action comme terminée aboutissent au même statut.
+    [Fact]
+    public async Task Cas28_Le_suivi_du_plan_d_actions_figure_dans_le_rapport()
+    {
+        var client = fixture.CreateClient();
+        var (diagnosticId, token) = await CompleteVerifiedDiagnosticAsync(client, StandardAnswers);
+        var codes = await GetRecommendationCodesAsync(client, token, diagnosticId);
+        Assert.True(codes.Count >= 3, "Le scénario standard doit déclencher au moins trois recommandations.");
+
+        var dueDate = new DateTimeOffset(2026, 12, 31, 0, 0, 0, TimeSpan.Zero);
+        var tracked = await client.SendAsync(AuthorizedRequest(HttpMethod.Patch, $"/api/diagnostics/{diagnosticId}/action-plan/{codes[0]}", token,
+            new { status = "InProgress", assignedTo = "Claire Martin", dueDate, notes = "Note interne, jamais imprimée." }));
+        Assert.Equal(HttpStatusCode.OK, tracked.StatusCode);
+
+        var checkedFromDashboard = await client.SendAsync(AuthorizedRequest(HttpMethod.Patch, $"/api/diagnostics/{diagnosticId}/recommendations/{codes[1]}", token,
+            new { isCompleted = true }));
+        Assert.Equal(HttpStatusCode.OK, checkedFromDashboard.StatusCode);
+
+        var blocked = await client.SendAsync(AuthorizedRequest(HttpMethod.Patch, $"/api/diagnostics/{diagnosticId}/action-plan/{codes[2]}", token,
+            new { status = "Blocked" }));
+        Assert.Equal(HttpStatusCode.OK, blocked.StatusCode);
+
+        var data = await GenerateReportAsync(client, token, diagnosticId);
+
+        // Même ordre que GET /recommendations : priority_rank persisté (cas 12).
+        Assert.Equal(ActionItemStatus.InProgress, data.Recommendations[0].Status);
+        Assert.Equal("Claire Martin", data.Recommendations[0].AssignedTo);
+        Assert.Equal(dueDate, data.Recommendations[0].DueDate);
+        Assert.Equal(ActionItemStatus.Done, data.Recommendations[1].Status);
+        Assert.Equal(ActionItemStatus.Blocked, data.Recommendations[2].Status);
+        Assert.All(data.Recommendations.Skip(3), r => Assert.Equal(ActionItemStatus.Planned, r.Status));
+
+        Assert.Equal(new ReportActionStatusSummary(codes.Count - 3, 1, 1, 1), data.ActionStatusSummary);
+        Assert.Equal(data.TotalRecommendationCount, data.ActionStatusSummary.Total);
+    }
+
+    // Cas 29 : année de référence des indicateurs = la plus récente qui ne dépasse pas l'année
+    // de complétion ; l'année précédente sert à la tendance ; une année postérieure est ignorée.
+    [Fact]
+    public async Task Cas29_Indicateurs_de_l_annee_de_reference_et_de_l_annee_precedente()
+    {
+        var client = fixture.CreateClient();
+        var (diagnosticId, token) = await CompleteVerifiedDiagnosticAsync(client, StandardAnswers);
+
+        var withoutIndicators = await GenerateReportAsync(client, token, diagnosticId);
+        Assert.Null(withoutIndicators.Indicators);
+
+        var completionYear = withoutIndicators.CompletedAt.Year;
+        foreach (var (year, co2) in new[] { (completionYear - 2, 120.0), (completionYear - 1, 100.0), (completionYear + 1, 999.0) })
+        {
+            var put = await client.SendAsync(AuthorizedRequest(HttpMethod.Put, $"/api/indicators/{year}", token, new { co2EmissionsTons = co2 }));
+            Assert.True(put.IsSuccessStatusCode, $"PUT /api/indicators/{year} : {put.StatusCode}");
+        }
+
+        var data = await GenerateReportAsync(client, token, diagnosticId);
+
+        Assert.NotNull(data.Indicators);
+        Assert.Equal(completionYear - 1, data.Indicators!.Year);
+        Assert.Equal(completionYear - 2, data.Indicators.PreviousYear);
+        var co2Item = data.Indicators.Items.Single(i => i.Label == "Émissions CO₂");
+        Assert.Equal(100.0, co2Item.Value);
+        Assert.Equal(120.0, co2Item.PreviousValue);
+        Assert.All(data.Indicators.Items.Where(i => i != co2Item), i => Assert.Null(i.Value));
+    }
+
+    // Cas 30 : l'historique s'arrête au diagnostic du rapport — un diagnostic complété plus
+    // tard ne modifie pas un rapport déjà émis (section 3) — et le rapport du second
+    // diagnostic porte les scores par domaine du premier pour l'écart.
+    [Fact]
+    public async Task Cas30_Historique_borne_au_diagnostic_du_rapport()
+    {
+        var client = fixture.CreateClient();
+        var (firstId, token) = await CompleteVerifiedDiagnosticAsync(client, StandardAnswers);
+
+        var first = await GenerateReportAsync(client, token, firstId);
+        Assert.Single(first.History);
+        Assert.Null(first.PreviousDomainScores);
+
+        var secondId = await CompleteDiagnosticAsync(client, token, NoTriggerAnswers);
+        var second = await GenerateReportAsync(client, token, secondId);
+
+        Assert.Equal(2, second.History.Count);
+        Assert.Equal(first.GlobalScore, second.History[0].GlobalScore);
+        Assert.Equal(second.GlobalScore, second.History[1].GlobalScore);
+        Assert.NotNull(second.PreviousDomainScores);
+        Assert.Equal(first.DomainScores.ToDictionary(d => d.Domain, d => d.Score), second.PreviousDomainScores);
+
+        var firstAgain = await GenerateReportAsync(client, token, firstId);
+        Assert.Single(firstAgain.History);
+        Assert.Null(firstAgain.PreviousDomainScores);
+    }
 }

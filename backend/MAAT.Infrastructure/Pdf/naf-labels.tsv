@@ -1,0 +1,393 @@
+# Libellés des sous-classes NAF rév. 2 (INSEE, https://www.insee.fr/fr/information/2406147).
+# Copie de frontend/src/constants/nafCodes.ts, lue par le rapport PDF (NafLabels.cs).
+# NafLabelsConsistencyTests vérifie que les deux listes restent identiques.
+# code<TAB>libellé
+0111Z	Culture de céréales, légumineuses et graines oléagineuses
+0112Z	Culture du riz
+0113Z	Culture de légumes, melons, racines et tubercules
+0121Z	Culture de la vigne
+0130Z	Culture de plantes à épices, aromatiques, médicinales et pharmaceutiques
+0141Z	Élevage de vaches laitières
+0142Z	Élevage d'autres bovins et de buffles
+0150Z	Culture et élevage associés
+0161Z	Activités de soutien aux cultures
+0162Z	Activités de soutien à la production animale
+0210Z	Sylviculture et autres activités forestières
+0311Z	Pêche en mer
+0321Z	Aquaculture en mer
+0610Z	Extraction de pétrole brut
+0710Z	Extraction de minerais de fer
+0891Z	Extraction des minéraux chimiques et engrais minéraux
+1011Z	Transformation et conservation de la viande de boucherie
+1013A	Préparation industrielle de produits à base de viande
+1041A	Fabrication d'huiles et graisses brutes
+1051A	Fabrication de lait liquide et de produits frais
+1061A	Meunerie
+1071A	Fabrication industrielle de pain et de pâtisserie fraîche
+1071B	Cuisson de produits de boulangerie-pâtisserie
+1071C	Boulangerie et boulangerie-pâtisserie
+1071D	Pâtisserie
+1086Z	Fabrication d'aliments homogénéisés et diététiques
+1101Z	Production de boissons alcooliques distillées
+1102A	Fabrication de vins effervescents
+1102B	Vinification
+1107A	Industrie des eaux de table
+1200Z	Fabrication de produits à base de tabac
+1310Z	Préparation de fibres textiles et filature
+1393Z	Fabrication de tapis et moquettes
+1411Z	Fabrication de vêtements en cuir
+1412Z	Fabrication de vêtements de travail
+1413Z	Fabrication de vêtements de dessus
+1419Z	Fabrication d'autres vêtements et accessoires
+1420Z	Fabrication d'articles en fourrure
+1511Z	Apprêt et tannage des cuirs
+1520Z	Fabrication de chaussures
+1610A	Sciage et rabotage du bois
+1623Z	Fabrication de charpentes et d'autres menuiseries
+1624Z	Fabrication d'emballages en bois
+1629Z	Fabrication d'objets divers en bois; en liège, vannerie et sparterie
+1711Z	Fabrication de pâte à papier
+1712Z	Fabrication de papier et de carton
+1721A	Fabrication de carton ondulé
+1811Z	Imprimerie de journaux
+1812Z	Autre imprimerie
+1813Z	Activités de pré-presse
+1814Z	Reliure et activités connexes
+2011Z	Fabrication de gaz industriels
+2016Z	Fabrication de matières plastiques de base
+2059Z	Fabrication d'autres produits chimiques n.c.a.
+2110Z	Fabrication de produits pharmaceutiques de base
+2120Z	Fabrication de médicaments
+2211Z	Fabrication et rechapage de pneumatiques
+2219Z	Fabrication d'autres articles en caoutchouc
+2221Z	Fabrication de plaques, feuilles, tubes et profilés en matières plastiques
+2229A	Fabrication de pièces techniques à base de matières plastiques
+2311Z	Fabrication de verre plat
+2351Z	Fabrication de ciment
+2399Z	Fabrication d'autres produits minéraux non métalliques n.c.a.
+2410Z	Sidérurgie
+2511Z	Fabrication de structures métalliques et de parties de structures
+2512Z	Fabrication de portes et fenêtres en métal
+2561Z	Traitement et revêtement des métaux
+2562B	Mécanique industrielle
+2571Z	Fabrication de coutellerie
+2572Z	Fabrication de serrures et de ferrures
+2573A	Fabrication de moules et modèles
+2591Z	Fabrication de fûts et emballages métalliques similaires
+2611Z	Fabrication de composants électroniques
+2620Z	Fabrication d'ordinateurs et d'équipements périphériques
+2630Z	Fabrication d'équipements de communication
+2640Z	Fabrication de produits électroniques grand public
+2660Z	Fabrication d'équipements d'irradiation médicale, électromédicaux et électrothérapeutiques
+2711Z	Fabrication de moteurs, génératrices et transformateurs électriques
+2712Z	Fabrication de matériel de distribution et de commande électrique
+2731Z	Fabrication de câbles de fibres optiques
+2740Z	Fabrication d'appareils d'éclairage électrique
+2751Z	Fabrication d'appareils électroménagers
+2811Z	Fabrication de moteurs et turbines, à l'exception des moteurs d'avions et de véhicules
+2841Z	Fabrication de machines-outils pour le travail des métaux
+2910Z	Construction de véhicules automobiles
+2920Z	Fabrication de carrosseries et remorques
+2932Z	Fabrication d'autres équipements automobiles
+3011Z	Construction de navires et de structures flottantes
+3030Z	Construction aéronautique et spatiale
+3101Z	Fabrication de meubles de bureau et de magasin
+3102Z	Fabrication de meubles de cuisine
+3109A	Fabrication de sièges d'ameublement d'intérieur
+3109B	Fabrication d'autres meubles et industries connexes de l'ameublement
+3511Z	Production d'électricité
+3512Z	Transport d'électricité
+3521Z	Production de gaz
+3600Z	Captage, traitement et distribution d'eau
+3700Z	Collecte et traitement des eaux usées
+3811Z	Collecte des déchets non dangereux
+3812Z	Collecte des déchets dangereux
+3821Z	Traitement et élimination des déchets non dangereux
+3900Z	Dépollution et autres services de gestion des déchets
+4110A	Promotion immobilière de logements
+4110B	Promotion immobilière de bureaux
+4110C	Promotion immobilière d'autres bâtiments
+4110D	Supports juridiques de programmes
+4120A	Construction de maisons individuelles
+4120B	Construction d'autres bâtiments résidentiels
+4211Z	Construction de routes et autoroutes
+4213A	Construction d'ouvrages d'art
+4221Z	Construction de réseaux pour fluides
+4299Z	Construction d'autres ouvrages de génie civil n.c.a.
+4311Z	Travaux de démolition
+4312A	Travaux de terrassement courants et travaux préparatoires
+4321A	Travaux d'installation électrique dans tous locaux
+4321B	Travaux d'installation électrique sur la voie publique
+4322A	Travaux d'installation d'eau et de gaz en tous locaux
+4322B	Travaux d'installation d'équipements thermiques et de climatisation
+4329A	Travaux d'isolation
+4331Z	Travaux de plâtrerie
+4332A	Travaux de menuiserie bois et PVC
+4332B	Travaux de menuiserie métallique et serrurerie
+4333Z	Travaux de revêtement des sols et des murs
+4334Z	Travaux de peinture et vitrerie
+4339Z	Autres travaux de finition
+4391A	Travaux de charpente
+4391B	Travaux de couverture par éléments
+4399A	Travaux d'étanchéification
+4399C	Travaux de maçonnerie générale et gros œuvre de bâtiment
+4511Z	Commerce de voitures et de véhicules automobiles légers
+4520A	Entretien et réparation de véhicules automobiles légers
+4520B	Entretien et réparation d'autres véhicules automobiles
+4531Z	Commerce de gros d'équipements automobiles
+4540Z	Commerce et réparation de motocycles
+4611Z	Intermédiaires du commerce en matières premières agricoles, animaux vivants, matières premières textiles et produits semi-finis
+4619A	Centrale d'achat alimentaire
+4621Z	Commerce de gros de céréales, de tabac non manufacturé, de semences et d'aliments pour le bétail
+4631Z	Commerce de gros de fruits et légumes
+4632A	Commerce de gros de viandes de boucherie
+4634Z	Commerce de gros de boissons
+4641Z	Commerce de gros de textiles
+4645Z	Commerce de gros de parfumerie et de produits de beauté
+4647Z	Commerce de gros de meubles, de tapis et d'appareils d'éclairage
+4649Z	Commerce de gros d'autres biens domestiques
+4651Z	Commerce de gros d'ordinateurs, d'équipements informatiques périphériques et de logiciels
+4652Z	Commerce de gros de composants et d'équipements électroniques et de télécommunication
+4661Z	Commerce de gros de matériel agricole
+4662Z	Commerce de gros de machines-outils
+4669B	Commerce de gros de fournitures et équipements industriels divers
+4671Z	Commerce de gros de combustibles et de produits annexes
+4690Z	Commerce de gros non spécialisé
+4711B	Commerce d'alimentation générale
+4711C	Supérettes
+4711D	Supermarchés
+4711E	Hypermarchés
+4711F	Commerces de détail de surgelés
+4719A	Grands magasins
+4719B	Autres commerces de détail en magasin non spécialisé
+4721Z	Commerce de détail de fruits et légumes en magasin spécialisé
+4722Z	Commerce de détail de viandes et de produits à base de viande en magasin spécialisé
+4724Z	Commerce de détail de pain, pâtisserie et confiserie en magasin spécialisé
+4725Z	Commerce de détail de boissons en magasin spécialisé
+4726Z	Commerce de détail de produits à base de tabac en magasin spécialisé
+4729Z	Autres commerces de détail alimentaires en magasin spécialisé
+4730Z	Commerce de détail de carburants en magasin spécialisé
+4741Z	Commerce de détail d'ordinateurs, d'unités périphériques et de logiciels en magasin spécialisé
+4742Z	Commerce de détail de matériels de télécommunication en magasin spécialisé
+4751Z	Commerce de détail de textiles en magasin spécialisé
+4752A	Commerce de détail de quincaillerie, peintures et verres en petites surfaces
+4752B	Commerce de détail de quincaillerie, peintures et verres en grandes surfaces
+4753Z	Commerce de détail de tapis, moquettes et revêtements de murs et de sols en magasin spécialisé
+4754Z	Commerce de détail d'appareils électroménagers en magasin spécialisé
+4759A	Commerce de détail de meubles
+4761Z	Commerce de détail de livres en magasin spécialisé
+4762Z	Commerce de détail de journaux et papeterie en magasin spécialisé
+4763Z	Commerce de détail d'enregistrements musicaux et vidéo en magasin spécialisé
+4764Z	Commerce de détail d'articles de sport en magasin spécialisé
+4765Z	Commerce de détail de jeux et jouets en magasin spécialisé
+4771Z	Commerce de détail d'habillement en magasin spécialisé
+4772A	Commerce de détail de la chaussure
+4773Z	Commerce de détail de produits pharmaceutiques en magasin spécialisé
+4774Z	Commerce de détail d'articles médicaux et orthopédiques en magasin spécialisé
+4775Z	Commerce de détail de parfumerie et de produits de beauté en magasin spécialisé
+4776Z	Commerce de détail de fleurs, plantes, graines, engrais, animaux de compagnie et aliments pour ces animaux en magasin spécialisé
+4777Z	Commerce de détail d'articles d'horlogerie et de bijouterie en magasin spécialisé
+4781Z	Commerce de détail alimentaire sur éventaires et marchés
+4782Z	Commerce de détail de textiles, d'habillement et de chaussures sur éventaires et marchés
+4791A	Vente à distance sur catalogue général
+4791B	Vente à distance sur catalogue spécialisé
+4799A	Vente à domicile
+4910Z	Transport ferroviaire interurbain de voyageurs
+4920Z	Transport de fret ferroviaire
+4931Z	Transports urbains et suburbains de voyageurs
+4932Z	Transports de voyageurs par taxis
+4939A	Transports routiers réguliers de voyageurs
+4939B	Autres transports routiers de voyageurs
+4941A	Transports routiers de fret interurbains
+4941B	Transports routiers de fret de proximité
+4941C	Location de camions avec chauffeur
+4942Z	Services de déménagement
+4950Z	Transports par conduites
+5010Z	Transports maritimes et côtiers de passagers
+5020Z	Transports maritimes et côtiers de fret
+5110Z	Transports aériens de passagers
+5210A	Entreposage et stockage frigorifique
+5210B	Entreposage et stockage non frigorifique
+5221Z	Services auxiliaires des transports terrestres
+5222Z	Services auxiliaires des transports par eau
+5229A	Messagerie, fret express
+5229B	Affrètement et organisation des transports
+5310Z	Activités de poste dans le cadre d'une obligation de service universel
+5320Z	Autres activités de poste et de courrier
+5510Z	Hôtels et hébergement similaire
+5520Z	Hébergement touristique et autre hébergement de courte durée
+5530Z	Terrains de camping et parcs pour caravanes ou véhicules de loisirs
+5590Z	Autres hébergements
+5610A	Restauration traditionnelle
+5610B	Cafétérias et autres libres-services
+5610C	Restauration de type rapide
+5621Z	Services des traiteurs
+5629A	Restauration collective sous contrat
+5629B	Autres services de restauration n.c.a.
+5630Z	Débits de boissons
+5811Z	Édition de livres
+5812Z	Édition de répertoires et de fichiers d'adresses
+5813Z	Édition de journaux
+5814Z	Édition de revues et périodiques
+5819Z	Autres activités d'édition
+5821Z	Édition de jeux électroniques
+5829A	Édition de logiciels système et de réseau
+5829B	Édition de logiciels outils de développement et de langages
+5829C	Édition de logiciels applicatifs
+5911A	Production de films et de programmes pour la télévision
+5911B	Production de films institutionnels et publicitaires
+5911C	Production de films pour le cinéma
+5912Z	Post-production de films cinématographiques, de vidéo et de programmes de télévision
+5913A	Distribution de films cinématographiques
+6010Z	Édition et diffusion de programmes radio
+6020A	Edition de chaînes généralistes
+6110Z	Télécommunications filaires
+6120Z	Télécommunications sans fil
+6130Z	Télécommunications par satellite
+6190Z	Autres activités de télécommunication
+6201Z	Programmation informatique
+6202A	Conseil en systèmes et logiciels informatiques
+6202B	Tierce maintenance de systèmes et d'applications informatiques
+6203Z	Gestion d'installations informatiques
+6209Z	Autres activités informatiques
+6311Z	Traitement de données, hébergement et activités connexes
+6312Z	Portails Internet
+6391Z	Activités des agences de presse
+6399Z	Autres services d'information n.c.a.
+6411Z	Activités de banque centrale
+6419Z	Autres intermédiations monétaires
+6420Z	Activités des sociétés holding
+6430Z	Fonds de placement et entités financières similaires
+6491Z	Crédit-bail
+6492Z	Autre distribution de crédit
+6499Z	Autres activités des services financiers, hors assurance et caisses de retraite, n.c.a.
+6511Z	Assurance vie
+6512Z	Autres assurances
+6520Z	Réassurance
+6622Z	Activités des agents et courtiers d'assurances
+6630Z	Gestion de fonds
+6810Z	Activités des marchands de biens immobiliers
+6820A	Location de logements
+6820B	Location de terrains et d'autres biens immobiliers
+6831Z	Agences immobilières
+6832A	Administration d'immeubles et autres biens immobiliers
+6910Z	Activités juridiques
+6920Z	Activités comptables
+7010Z	Activités des sièges sociaux
+7021Z	Conseil en relations publiques et communication
+7022Z	Conseil pour les affaires et autres conseils de gestion
+7111Z	Activités d'architecture
+7112A	Activité des géomètres
+7112B	Ingénierie, études techniques
+7120A	Contrôle technique automobile
+7120B	Analyses, essais et inspections techniques
+7211Z	Recherche-développement en biotechnologie
+7219Z	Recherche-développement en autres sciences physiques et naturelles
+7220Z	Recherche-développement en sciences humaines et sociales
+7311Z	Activités des agences de publicité
+7312Z	Régie publicitaire de médias
+7320Z	Études de marché et sondages
+7410Z	Activités spécialisées de design
+7420Z	Activités photographiques
+7430Z	Traduction et interprétation
+7490A	Activité des économistes de la construction
+7490B	Activités spécialisées, scientifiques et techniques diverses
+7500Z	Activités vétérinaires
+7711A	Location de courte durée de voitures et de véhicules automobiles légers
+7711B	Location de longue durée de voitures et de véhicules automobiles légers
+7712Z	Location et location-bail de camions
+7733Z	Location et location-bail de machines de bureau et de matériel informatique
+7740Z	Location-bail de propriété intellectuelle et de produits similaires, à l'exception des œuvres soumises à copyright
+7810Z	Activités des agences de placement de main-d'œuvre
+7820Z	Activités des agences de travail temporaire
+7830Z	Autre mise à disposition de ressources humaines
+7911Z	Activités des agences de voyage
+7912Z	Activités des voyagistes
+7990Z	Autres services de réservation et activités connexes
+8010Z	Activités de sécurité privée
+8020Z	Activités liées aux systèmes de sécurité
+8030Z	Activités d'enquête
+8110Z	Activités combinées de soutien lié aux bâtiments
+8121Z	Nettoyage courant des bâtiments
+8122Z	Autres activités de nettoyage des bâtiments et nettoyage industriel
+8129A	Désinfection, désinsectisation, dératisation
+8129B	Autres activités de nettoyage n.c.a.
+8130Z	Services d'aménagement paysager
+8211Z	Services administratifs combinés de bureau
+8219Z	Photocopie, préparation de documents et autres activités spécialisées de soutien de bureau
+8220Z	Activités de centres d'appels
+8230Z	Organisation de foires, salons professionnels et congrès
+8291Z	Activités des agences de recouvrement de factures et des sociétés d'information financière sur la clientèle
+8292Z	Activités de conditionnement
+8299Z	Autres activités de soutien aux entreprises n.c.a.
+8411Z	Administration publique générale
+8412Z	Administration publique (tutelle) de la santé, de la formation, de la culture et des services sociaux
+8413Z	Administration publique (tutelle) des activités économiques
+8510Z	Enseignement pré-primaire
+8520Z	Enseignement primaire
+8531Z	Enseignement secondaire général
+8532Z	Enseignement secondaire technique ou professionnel
+8541Z	Enseignement post-secondaire non supérieur
+8542Z	Enseignement supérieur
+8551Z	Enseignement de disciplines sportives et d'activités de loisirs
+8552Z	Enseignement culturel
+8553Z	Enseignement de la conduite
+8559A	Formation continue d'adultes
+8559B	Autres enseignements
+8560Z	Activités de soutien à l'enseignement
+8610Z	Activités hospitalières
+8621Z	Activité des médecins généralistes
+8622A	Activités de radiodiagnostic et de radiothérapie
+8622B	Activités chirurgicales
+8622C	Autres activités des médecins spécialistes
+8623Z	Pratique dentaire
+8690A	Ambulances
+8690B	Laboratoires d'analyses médicales
+8690C	Centres de collecte et banques d'organes
+8690D	Activités des infirmiers et des sages-femmes
+8690E	Activités des professionnels de la rééducation, de l'appareillage et des pédicures-podologues
+8690F	Activités de santé humaine non classées ailleurs
+8710A	Hébergement médicalisé pour personnes âgées
+8710B	Hébergement médicalisé pour enfants handicapés
+8710C	Hébergement médicalisé pour adultes handicapés et autre hébergement médicalisé
+8720A	Hébergement social pour handicapés mentaux et malades mentaux
+8790A	Hébergement social pour enfants en difficultés
+8810A	Aide à domicile
+8810B	Accueil ou accompagnement sans hébergement d'adultes handicapés ou de personnes âgées
+8810C	Aide par le travail
+8891A	Accueil de jeunes enfants
+8891B	Accueil ou accompagnement sans hébergement d'enfants handicapés
+8899A	Autre accueil ou accompagnement sans hébergement d'enfants et d'adolescents
+8899B	Action sociale sans hébergement n.c.a.
+9001Z	Arts du spectacle vivant
+9002Z	Activités de soutien au spectacle vivant
+9003A	Création artistique relevant des arts plastiques
+9003B	Autre création artistique
+9004Z	Gestion de salles de spectacles
+9101Z	Gestion des bibliothèques et des archives
+9102Z	Gestion des musées
+9103Z	Gestion des sites et monuments historiques et des attractions touristiques similaires
+9200Z	Organisation de jeux de hasard et d'argent
+9311Z	Gestion d'installations sportives
+9312Z	Activités de clubs de sports
+9313Z	Activités des centres de culture physique
+9319Z	Autres activités liées au sport
+9321Z	Activités des parcs d'attractions et parcs à thèmes
+9329Z	Autres activités récréatives et de loisirs
+9411Z	Activités des organisations patronales et consulaires
+9412Z	Activités des organisations professionnelles
+9420Z	Activités des syndicats de salariés
+9491Z	Activités des organisations religieuses
+9492Z	Activités des organisations politiques
+9499Z	Autres organisations fonctionnant par adhésion volontaire
+9511Z	Réparation d'ordinateurs et d'équipements périphériques
+9512Z	Réparation d'équipements de communication
+9521Z	Réparation de produits électroniques grand public
+9529Z	Réparation d'autres biens personnels et domestiques
+9601A	Blanchisserie-teinturerie de gros
+9601B	Blanchisserie-teinturerie de détail
+9602A	Coiffure
+9602B	Soins de beauté
+9603Z	Services funéraires
+9604Z	Entretien corporel
+9609Z	Autres services personnels n.c.a.

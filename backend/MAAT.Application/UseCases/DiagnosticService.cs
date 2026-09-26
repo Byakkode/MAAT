@@ -26,6 +26,8 @@ public class DiagnosticService(
     IDiagnosticRecommendationRepository diagnosticRecommendationRepository,
     IRecommendationEngine recommendationEngine,
     IReportGenerator reportGenerator,
+    IActionItemProgressRepository actionItemProgressRepository,
+    IRseIndicatorsRepository rseIndicatorsRepository,
     TimeProvider timeProvider)
 {
     // docs/specs/rapport-pdf.md, section 4, bloc « Mentions » : version du référentiel de
@@ -37,6 +39,10 @@ public class DiagnosticService(
     // Limite du plan d'actions affiché dans le rapport (section 4 : « limiter aux vingt
     // premières et indiquer le total »).
     private const int MaxReportRecommendations = 20;
+
+    // Nombre de points de la courbe d'évolution du rapport : au-delà, l'axe devient illisible
+    // sur une demi-largeur de page A4.
+    private const int MaxReportHistoryPoints = 6;
     // docs/specs/questionnaire.md, section 1 : une entreprise ne peut avoir qu'un seul
     // diagnostic InProgress à la fois — sans quoi la reprise devient ambiguë.
     public async Task<Diagnostic> CreateAsync(CancellationToken ct)
@@ -345,12 +351,26 @@ public class DiagnosticService(
         // de recommandations.md) ; is_active ignoré, comme pour la consultation du plan
         // d'actions (une recommandation désactivée après coup reste dans le rapport).
         var allRecommendations = await diagnosticRecommendationRepository.FindAllForDiagnosticAsync(diagnosticId, ct);
-        var reportRecommendations = allRecommendations
-            .Take(MaxReportRecommendations)
-            .Select(r => new ReportRecommendation(r.ActionText, r.Domain, r.EffortLevel, r.IsCompleted))
+        var progressByCode = await actionItemProgressRepository.GetMapByDiagnosticAsync(diagnosticId, ct);
+        var allReportRecommendations = allRecommendations
+            .Select(r =>
+            {
+                progressByCode.TryGetValue(r.Code, out var progress);
+                return new ReportRecommendation(
+                    r.PriorityRank,
+                    r.ActionText,
+                    r.DetailText,
+                    r.Domain,
+                    r.EffortLevel,
+                    r.ImpactPoints,
+                    ResolveActionStatus(r.IsCompleted, progress),
+                    progress?.AssignedTo,
+                    progress?.DueDate);
+            })
             .ToList();
 
         var roundedGlobalScore = ScoringService.RoundForDisplay(globalScore);
+        var (history, previousDomainScores) = await BuildReportHistoryAsync(diagnostic, completedAt, ct);
 
         var reportData = new ReportData(
             company.Name,
@@ -362,8 +382,16 @@ public class DiagnosticService(
             ScoreLabel.For(roundedGlobalScore),
             diagnostic.DefaultSectorWeightingApplied,
             reportDomainScores,
-            reportRecommendations,
+            [.. allReportRecommendations.Take(MaxReportRecommendations)],
             allRecommendations.Count,
+            new ReportActionStatusSummary(
+                allReportRecommendations.Count(r => r.Status == ActionItemStatus.Planned),
+                allReportRecommendations.Count(r => r.Status == ActionItemStatus.InProgress),
+                allReportRecommendations.Count(r => r.Status == ActionItemStatus.Blocked),
+                allReportRecommendations.Count(r => r.Status == ActionItemStatus.Done)),
+            history,
+            previousDomainScores,
+            await BuildReportIndicatorsAsync(company.Id, completedAt.Year, ct),
             timeProvider.GetUtcNow(),
             ReferentialVersion);
 
@@ -375,6 +403,80 @@ public class DiagnosticService(
         await unitOfWork.SaveChangesAsync(ct);
 
         return new GeneratedReport(bytes, BuildFileName(company.Name, completedAt));
+    }
+
+    // IsCompleted l'emporte : une case cochée depuis le tableau de bord (PATCH
+    // /recommendations) ne crée pas de ligne ActionItemProgress, alors que l'écran Plan
+    // d'actions synchronise déjà Done vers IsCompleted — les deux chemins aboutissent ainsi au
+    // même statut dans le document. Sans suivi ni case cochée : Planned, comme à l'écran. Un
+    // suivi Done alors que la case a été décochée depuis le tableau de bord redevient Planned :
+    // IsCompleted reste la référence du « terminé », partagée avec les widgets existants.
+    private static ActionItemStatus ResolveActionStatus(bool isCompleted, ActionItemProgress? progress)
+    {
+        if (isCompleted)
+        {
+            return ActionItemStatus.Done;
+        }
+
+        return progress is null || progress.Status == ActionItemStatus.Done
+            ? ActionItemStatus.Planned
+            : progress.Status;
+    }
+
+    // Les six derniers diagnostics complétés jusqu'à celui du rapport inclus (dashboard.md,
+    // section 4 : même série que la courbe d'évolution), et les scores par domaine du
+    // diagnostic immédiatement précédent pour l'écart domaine par domaine. Borné par
+    // completedAt, jamais par « maintenant » : un diagnostic complété plus tard ne modifie pas
+    // un rapport déjà émis (section 3).
+    private async Task<(IReadOnlyList<ReportHistoryPoint> History, IReadOnlyDictionary<RseDomain, decimal>? PreviousDomainScores)> BuildReportHistoryAsync(
+        Diagnostic diagnostic, DateTimeOffset completedAt, CancellationToken ct)
+    {
+        var completed = await diagnosticRepository.FindAllCompletedForCurrentCompanyAsync(ct);
+        var upToThis = completed
+            .Where(d => d.CompletedAt <= completedAt && d.GlobalScore is not null)
+            .OrderBy(d => d.CompletedAt)
+            .ThenBy(d => d.Id)
+            .ToList();
+
+        var history = upToThis
+            .TakeLast(MaxReportHistoryPoints)
+            .Select(d => new ReportHistoryPoint(d.CompletedAt!.Value, d.GlobalScore!.Value))
+            .ToList();
+
+        var previous = upToThis.LastOrDefault(d => d.Id != diagnostic.Id);
+        if (previous is null)
+        {
+            return (history, null);
+        }
+
+        var previousScores = await domainScoreRepository.FindAllForDiagnosticAsync(previous.Id, ct);
+        return (history, previousScores.ToDictionary(ds => ds.Domain, ds => ds.Score));
+    }
+
+    // Année de référence : la plus récente saisie qui ne dépasse pas l'année de complétion —
+    // un bilan annuel se saisit souvent l'année suivante, et un rapport de 2025 ne doit pas
+    // afficher des chiffres 2027 saisis depuis. L'année précédente, si elle existe, sert à la
+    // tendance.
+    private async Task<ReportIndicators?> BuildReportIndicatorsAsync(Guid companyId, int completionYear, CancellationToken ct)
+    {
+        var years = await rseIndicatorsRepository.GetYearsByCompanyAsync(companyId, ct);
+        var referenceYear = years.Where(y => y <= completionYear).DefaultIfEmpty().Max();
+        if (referenceYear == 0)
+        {
+            return null;
+        }
+
+        var current = await rseIndicatorsRepository.GetByCompanyAndYearAsync(companyId, referenceYear, ct);
+        if (current is null)
+        {
+            return null;
+        }
+
+        var previous = years.Contains(referenceYear - 1)
+            ? await rseIndicatorsRepository.GetByCompanyAndYearAsync(companyId, referenceYear - 1, ct)
+            : null;
+
+        return ReportIndicatorCatalog.Build(current, previous);
     }
 
     // docs/specs/rapport-pdf.md, section 2 : « maat-diagnostic-{code-entreprise-normalisé}-

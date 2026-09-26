@@ -18,6 +18,8 @@
          installée, et un chemin de fichier introduirait une dépendance de déploiement que
          l'embarquement en ressource évite. Licence OFL, voir Pdf/Fonts/*-OFL.txt. -->
     <EmbeddedResource Include="Pdf\Fonts\*.ttf" />
+    <!-- Libellés NAF de la page de garde du rapport (NafLabels.cs). -->
+    <EmbeddedResource Include="Pdf\naf-labels.tsv" />
   </ItemGroup>
 
   <ItemGroup>
