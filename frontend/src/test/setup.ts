@@ -22,5 +22,21 @@ class ResizeObserverStub {
 }
 globalThis.ResizeObserver ??= ResizeObserverStub
 
+// Framer Motion (whileInView, page vitrine src/landing/) observe l'entrée des éléments dans
+// la fenêtre via IntersectionObserver, absent de jsdom. Le stub ne déclenche jamais : les
+// éléments restent dans leur état initial, sans effet sur le DOM que les tests interrogent.
+class IntersectionObserverStub {
+  readonly root = null
+  readonly rootMargin = ''
+  readonly thresholds = []
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords() {
+    return []
+  }
+}
+globalThis.IntersectionObserver ??= IntersectionObserverStub as unknown as typeof IntersectionObserver
+
 Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, value: 600 })
 Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, value: 300 })

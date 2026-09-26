@@ -7,8 +7,8 @@ import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { NafCombobox } from '../components/ui/NafCombobox'
 import { REGIONS, type Region } from '../constants/regions'
-
-const AUTH_BG: React.CSSProperties = { background: '#0c1322' }
+import { LogoHorizontal } from '../components/ui/Logo'
+import { SectionLabel } from '../landing/primitives'
 
 const SIZE_RANGE_LABELS: Record<CompanySizeRange, string> = {
   Micro: 'Micro-entreprise (moins de 10 salariés)',
@@ -53,79 +53,104 @@ export function RegisterPage() {
     }
   }
 
+  // Mise en page alignée sur la page d'accueil (src/landing/) : panneau éditorial sombre à
+  // gauche (AuthPanel), formulaire à plat sur fond blanc, sections numérotées.
   return (
-    <div className="flex min-h-screen" style={AUTH_BG}>
+    <div className="landing flex min-h-screen bg-white">
       <AuthPanel />
-      <div className="flex flex-1 items-center justify-center p-6 py-10">
-      <div className="w-full max-w-md">
-        {/* Logo mobile (masqué quand AuthPanel visible) */}
-        <div className="mb-6 lg:hidden">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-maat">
-              <span className="text-[13px] font-bold text-white">M</span>
-            </div>
-            <p className="text-[15px] font-bold leading-tight tracking-tight text-white">MAAT</p>
-          </div>
+      <div className="flex flex-1 flex-col px-4 py-4 sm:px-10 lg:px-16">
+        <div className="flex items-center justify-between gap-4">
+          {/* Logo : seulement quand le panneau de gauche (qui le porte) est masqué. */}
+          <Link to="/" aria-label="MAAT, retour à l’accueil" className="lg:hidden">
+            <LogoHorizontal />
+          </Link>
+          <p className="ml-auto whitespace-nowrap text-[14px] text-text-muted">
+            {/* Question masquée sur téléphone : elle heurterait le logo, le lien suffit. */}
+            <span className="max-sm:hidden">Déjà un compte ? </span>
+            <Link to="/login" className="font-heading font-medium text-text underline decoration-border-strong underline-offset-4 hover:decoration-blue-maat">
+              Se connecter
+            </Link>
+          </p>
         </div>
 
-        <div className="rounded-2xl bg-white px-8 py-9 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-        <h1 className="mb-1 text-[1.375rem] font-semibold text-text">Créer un compte</h1>
-        <p className="mb-7 text-[13px] text-text-muted">
-          Votre espace RSE en quelques minutes.
-        </p>
-
-        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
-          {/* Séparateur visuel — Identifiants */}
-          <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
-            Identifiants
+        {/* Tient sans défilement sur un écran d'ordinateur portable (1366×768) : champs
+            courts groupés par deux à partir de sm, champs aux valeurs longues (secteur NAF,
+            tranche d'effectif) sur toute la largeur. Sur téléphone, tout passe en une colonne
+            et la page défile, ce qui est attendu à cette taille. */}
+        <div className="mx-auto flex w-full max-w-[560px] flex-1 flex-col justify-center py-3 max-lg:pt-10">
+          <h1 className="display text-[clamp(2rem,3.4vw,2.625rem)] text-text">Créer un compte</h1>
+          <p className="mt-2 mb-6 text-[15px] leading-relaxed text-text-muted">
+            Votre espace RSE en quelques minutes. Le diagnostic commence juste après.
           </p>
 
-          <Input
-            label="Adresse e-mail"
-            id="register-email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <Input
-            label="Mot de passe"
-            id="register-password"
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            minLength={12}
-            required
-            hint="12 caractères minimum"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+            <SectionLabel index="01">Identifiants</SectionLabel>
 
-          {/* Séparateur visuel — Entreprise */}
-          <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
-            Votre entreprise
-          </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input
+                label="Adresse e-mail"
+                id="register-email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <Input
+                label="Mot de passe"
+                id="register-password"
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                minLength={12}
+                required
+                hint="12 caractères minimum"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
 
-          <Input
-            label="Nom de l'entreprise"
-            id="register-company-name"
-            name="companyName"
-            type="text"
-            required
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-          />
+            <div className="mt-1">
+              <SectionLabel index="02">Votre entreprise</SectionLabel>
+            </div>
 
-          <NafCombobox
-            label="Secteur d'activité (code NAF)"
-            value={sectorCode}
-            onChange={setSectorCode}
-            required
-          />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input
+                label="Nom de l'entreprise"
+                id="register-company-name"
+                name="companyName"
+                type="text"
+                required
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+              />
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="register-region" className="text-[13px] font-medium text-text">
+                  Région
+                </label>
+                <select
+                  id="register-region"
+                  value={region}
+                  onChange={(e) => setRegion(e.target.value as Region)}
+                  className="w-full rounded-[10px] border border-border bg-white px-3.5 py-2.5 text-sm text-text shadow-[0_1px_2px_rgba(0,0,0,0.04)] focus:border-blue-maat/70 focus:outline-none focus:ring-2 focus:ring-blue-maat/10 transition-all duration-150"
+                >
+                  {REGIONS.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-          <div className="grid grid-cols-2 gap-4">
+            <NafCombobox
+              label="Secteur d'activité (code NAF)"
+              value={sectorCode}
+              onChange={setSectorCode}
+              required
+            />
+
             <div className="flex flex-col gap-1.5">
               <label htmlFor="register-size-range" className="text-[13px] font-medium text-text">
                 Tranche d&apos;effectif
@@ -144,52 +169,25 @@ export function RegisterPage() {
               </select>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="register-region" className="text-[13px] font-medium text-text">
-                Région
-              </label>
-              <select
-                id="register-region"
-                value={region}
-                onChange={(e) => setRegion(e.target.value as Region)}
-                className="w-full rounded-[10px] border border-border bg-white px-3.5 py-2.5 text-sm text-text shadow-[0_1px_2px_rgba(0,0,0,0.04)] focus:border-blue-maat/70 focus:outline-none focus:ring-2 focus:ring-blue-maat/10 transition-all duration-150"
+            {error && (
+              <p role="alert" className="text-sm text-red">
+                {error}
+              </p>
+            )}
+            {successMessage && (
+              <p
+                role="status"
+                className="rounded-button border border-green-maat/30 bg-green-maat/10 px-3 py-2 text-sm text-green-maat-text"
               >
-                {REGIONS.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+                {successMessage}
+              </p>
+            )}
 
-          {error && (
-            <p role="alert" className="text-sm text-red">
-              {error}
-            </p>
-          )}
-          {successMessage && (
-            <p
-              role="status"
-              className="rounded-button border border-green-maat/30 bg-green-maat/10 px-3 py-2 text-sm text-green-maat-text"
-            >
-              {successMessage}
-            </p>
-          )}
-
-          <Button type="submit" isLoading={submitting} className="w-full mt-1">
-            S&apos;inscrire
-          </Button>
-        </form>
-
-        <p className="mt-6 text-center text-[13px] text-text-muted">
-          Déjà un compte ?{' '}
-          <Link to="/login" className="font-medium text-blue-maat-text hover:underline">
-            Se connecter
-          </Link>
-        </p>
+            <Button type="submit" size="lg" isLoading={submitting} className="mt-2 w-full py-3 font-heading text-[15px]">
+              S&apos;inscrire
+            </Button>
+          </form>
         </div>
-      </div>
       </div>
     </div>
   )

@@ -55,7 +55,13 @@ test('un compte neuf s’inscrit, démarre un diagnostic et le complète — le 
     ),
     page.getByRole('button', { name: 'Se connecter' }).click(),
   ])
-  await expect(page).toHaveURL('/')
+  await expect(page).toHaveURL('/tableau-de-bord')
+  // Animation d'arrivée après connexion (LoginIntro.tsx) : plein écran, elle intercepte les
+  // clics pendant sa lecture. On vérifie qu'elle s'affiche puis qu'elle se ferme sur « Passer ».
+  const intro = page.getByRole('status', { name: /connexion réussie/i })
+  await expect(intro).toBeVisible()
+  await intro.getByRole('button', { name: 'Passer' }).click()
+  await expect(intro).toBeHidden()
   // exact: true — "Tableau de bord" est autrement un sous-texte de "Bienvenue sur votre
   // tableau de bord" (h2 affiché pour un compte sans diagnostic), qui ferait échouer le
   // localisateur en mode strict (deux titres correspondraient).

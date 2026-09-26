@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useCurrentUserStore } from '../../store/currentUserStore'
 import { useDashboardStore } from '../../store/dashboardStore'
 import { Header } from './Header'
+import { LoginIntro } from './LoginIntro'
 import { Sidebar } from './Sidebar'
 import { SkipLink } from './SkipLink'
 import { VerificationBanner } from './VerificationBanner'
@@ -17,6 +18,19 @@ export function AppShell() {
   // prefers-reduced-motion : supprime toute translation et raccourcit le fondu si l'utilisateur
   // a demandé moins de mouvement (WCAG 2.3.3 AA).
   const prefersReduced = useReducedMotion() ?? false
+  const navigate = useNavigate()
+
+  // Animation d'arrivée : uniquement juste après la connexion (LoginPage passe loginIntro dans
+  // l'état de navigation), jamais pour qui a demandé moins d'animations.
+  const [showIntro, setShowIntro] = useState(
+    () => (location.state as { loginIntro?: boolean } | null)?.loginIntro === true && !prefersReduced,
+  )
+  const closeIntro = useCallback(() => {
+    setShowIntro(false)
+    // Efface l'indicateur de l'historique : un rechargement de la page ou un retour arrière
+    // ne rejoue pas l'animation.
+    navigate(location.pathname, { replace: true, state: null })
+  }, [navigate, location.pathname])
 
   const currentUserStatus = useCurrentUserStore((s) => s.status)
   const loadCurrentUser = useCurrentUserStore((s) => s.load)
@@ -48,6 +62,7 @@ export function AppShell() {
 
   return (
     <div className="min-h-screen bg-bg">
+      <AnimatePresence>{showIntro && <LoginIntro onDone={closeIntro} />}</AnimatePresence>
       <SkipLink />
       <div className="flex min-h-screen">
         <Sidebar mobileOpen={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />

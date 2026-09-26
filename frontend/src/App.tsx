@@ -10,6 +10,7 @@ import { QuestionnairePage } from './pages/QuestionnairePage'
 import { RapportPage } from './pages/RapportPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { IndicatorsPage } from './pages/IndicatorsPage'
+import { LandingPage } from './landing/LandingPage'
 import { SupportPage } from './pages/SupportPage'
 import { useAuthStore } from './store/authStore'
 
@@ -26,6 +27,8 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Page d'accueil publique : premier écran du site, accessible sans session. */}
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route element={<ProtectedRoute />}>
@@ -33,7 +36,7 @@ function App() {
               en-tête) entoure ce sous-arbre de routes et ne se remonte jamais entre deux
               d'entre elles. */}
           <Route element={<AppShell />}>
-            <Route path="/" element={<DashboardPage />} />
+            <Route path="/tableau-de-bord" element={<DashboardPage />} />
             <Route path="/questionnaire/:diagnosticId?" element={<QuestionnairePage />} />
             <Route path="/plan-actions" element={<PlanActionsPage />} />
             <Route path="/rapport" element={<RapportPage />} />

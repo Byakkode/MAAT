@@ -5,6 +5,7 @@ import { Link, NavLink } from 'react-router-dom'
 import { Tooltip } from '../ui/Tooltip'
 import { useDashboardStore } from '../../store/dashboardStore'
 import { useFocusTrap } from './useFocusTrap'
+import { LogoHorizontal } from '../ui/Logo'
 
 type NavItem = { to: string; label: string; icon: typeof BarChart2; end?: boolean }
 
@@ -12,7 +13,7 @@ const NAV_SECTIONS: Array<{ label: string; items: NavItem[] }> = [
   {
     label: 'Analyse',
     items: [
-      { to: '/', label: 'Tableau de bord', icon: BarChart2, end: true },
+      { to: '/tableau-de-bord', label: 'Tableau de bord', icon: BarChart2, end: true },
       { to: '/questionnaire', label: 'Diagnostic', icon: ClipboardList },
       { to: '/indicateurs', label: 'Indicateurs', icon: TrendingUp },
     ],
@@ -38,14 +39,8 @@ const ALL_NAV_ITEMS = NAV_SECTIONS.flatMap((s) => s.items)
 
 function Wordmark() {
   return (
-    <Link to="/" className="flex items-center gap-3 px-2">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-maat">
-        <span className="text-sm font-bold text-white">M</span>
-      </div>
-      <div>
-        <span className="block text-[15px] font-bold leading-tight tracking-tight text-white">MAAT</span>
-        <span className="block text-[11px] text-white/40">Diagnostic RSE</span>
-      </div>
+    <Link to="/tableau-de-bord" className="flex items-center px-2">
+      <LogoHorizontal tone="dark" />
     </Link>
   )
 }
