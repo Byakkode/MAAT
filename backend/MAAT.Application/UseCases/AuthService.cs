@@ -4,6 +4,7 @@ using MAAT.Application.Interfaces;
 using MAAT.Application.Security;
 using MAAT.Domain.Entities;
 using MAAT.Domain.Enums;
+using MAAT.Domain.Services;
 
 namespace MAAT.Application.UseCases;
 
@@ -12,6 +13,7 @@ public class AuthService(
     ICompanyRepository companyRepository,
     IRefreshTokenRepository refreshTokenRepository,
     IEmailVerificationTokenRepository emailVerificationTokenRepository,
+    ISubscriptionRepository subscriptionRepository,
     IUnitOfWork unitOfWork,
     IPasswordHasher passwordHasher,
     ICompromisedPasswordChecker compromisedPasswordChecker,
@@ -35,6 +37,13 @@ public class AuthService(
             throw new CompromisedPasswordException("Ce mot de passe a été compromis lors d'une fuite de données connue. Choisissez-en un autre.");
         }
 
+        // Vérifiée avant la recherche de doublon, comme le mot de passe ci-dessus : un refus qui
+        // ne viendrait qu'après révélerait si l'adresse est déjà enregistrée.
+        if (request.Plan is { } requestedPlan && !SubscriptionPlanCatalog.IsAvailable(requestedPlan))
+        {
+            throw new PlanNotAvailableException(requestedPlan);
+        }
+
         // Hachage exécuté systématiquement, y compris sur le chemin doublon ci-dessous :
         // un retour anticipé qui l'aurait sauté aurait créé un écart de latence
         // (~250 ms, cf. section 1 de la spec) exploitable pour détecter qu'une adresse
@@ -53,6 +62,11 @@ public class AuthService(
 
         var user = new User(email, passwordHash, company.Id, UserRole.Admin);
         await userRepository.AddAsync(user, ct);
+
+        if (request.Plan is { } plan)
+        {
+            await subscriptionRepository.AddAsync(Subscription.ChooseAtRegistration(company.Id, plan, request.BillingPeriod), ct);
+        }
 
         await IssueAndSendVerificationEmailAsync(user, email, ct);
     }

@@ -19,7 +19,9 @@ test('un compte neuf s’inscrit, démarre un diagnostic et le complète — le 
   const email = `e2e-questionnaire-${suffix}@maat-test.local`
   const password = 'MotDePasseValide2026!'
 
-  await page.goto('/register')
+  // Offre Starter choisie d'avance, comme depuis la page d'accueil : ce parcours porte sur
+  // l'application, pas sur l'écran de sélection d'abonnement (voir abonnement.spec.ts).
+  await page.goto('/register?offre=starter')
   await page.getByLabel('Adresse e-mail').fill(email)
   await page.getByLabel('Mot de passe').fill(password)
   await page.getByLabel("Nom de l'entreprise").fill(`Entreprise E2E ${suffix}`)

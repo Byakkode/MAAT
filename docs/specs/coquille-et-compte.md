@@ -107,12 +107,16 @@ Le bandeau se ferme pour la session, jamais définitivement.
 
 ## 5. Espace du compte
 
-`/compte`. Quatre blocs, dans cet ordre de risque croissant.
+`/compte`. Cinq blocs, dans cet ordre de risque croissant.
 
 **Identité.** Adresse e-mail, rôle, entreprise, date de création. L'adresse n'est
 pas modifiable dans le MVP : la changer imposerait un nouveau cycle de
 vérification et une gestion de l'adresse intermédiaire. À inscrire à la feuille
 de route avec cette raison.
+
+**Abonnement.** Offre et période en cours, accès au portail Stripe (factures, moyen
+de paiement, changement d'offre, résiliation) ou à l'écran de sélection des offres.
+Détaillé dans `abonnement.md`, section 2.
 
 **Mot de passe.** Changement exigeant le mot de passe actuel, conformément au
 patron de confirmation déjà en place. Un changement réussi invalide les autres

@@ -65,7 +65,8 @@ renseigner. Quand il est fourni, valider la longueur et la clé de Luhn.
 Une entreprise dont le code NAF n'a pas d'entrée dans `SectorWeight` utilise la
 pondération par défaut — cas à gérer explicitement, pas à laisser planter.
 
-Relations : `1 Company → N Users`, `1 Company → N Diagnostics`.
+Relations : `1 Company → N Users`, `1 Company → N Diagnostics`,
+`1 Company → 0..1 Subscription`.
 
 ---
 
@@ -427,6 +428,34 @@ sauvegarder ou sécuriser, aucun rapport périmé quand le diagnostic évolue, e
 aucune durée de conservation de fichiers à justifier au registre des traitements.
 
 Cette table sert uniquement de journal d'audit : qui a généré quoi, et quand.
+
+---
+
+## Subscription
+
+Abonnement de l'entreprise (`abonnement.md`). Absent tant qu'elle n'a choisi aucune
+offre.
+
+| Colonne | Type | Contraintes |
+| --- | --- | --- |
+| `id` | uuid | PK |
+| `company_id` | uuid | FK → Company, unique, requis, `ON DELETE CASCADE` |
+| `plan` | enum | requis |
+| `billing_period` | enum | nullable (`null` pour Starter) |
+| `status` | enum | requis |
+| `stripe_customer_id` | varchar(255) | nullable |
+| `stripe_subscription_id` | varchar(255) | unique, nullable |
+| `created_at` | timestamptz | requis |
+| `updated_at` | timestamptz | requis |
+
+`plan` ∈ { `Starter`, `Essential`, `Professional`, `Enterprise` } ;
+`billing_period` ∈ { `Monthly`, `Yearly` } ;
+`status` ∈ { `PendingPayment`, `Active`, `PastDue` }.
+
+`stripe_subscription_id` n'est renseigné que pendant un abonnement payant en cours ;
+il repasse à `null` quand cet abonnement se termine (retour à Starter), tandis que
+`stripe_customer_id` est conservé. Aucune donnée de carte n'est stockée : le paiement
+se fait sur la page hébergée par Stripe.
 
 ---
 

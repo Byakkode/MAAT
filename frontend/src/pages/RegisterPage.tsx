@@ -1,5 +1,7 @@
 import { type FormEvent, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import { toApiPeriod, toApiPlan } from '../api/billingApi'
+import { findPlan, parsePlanParams } from '../billing/plans'
 import { useAuthStore } from '../store/authStore'
 import type { CompanySizeRange } from '../types/auth'
 import { AuthPanel } from '../components/auth/AuthPanel'
@@ -28,6 +30,11 @@ export function RegisterPage() {
   const [region, setRegion] = useState<Region>(REGIONS[0])
   const [submitting, setSubmitting] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  // Offre choisie sur la page d'accueil (« Choisir Essential ») : enregistrée avec le compte,
+  // pour que la première connexion mène directement au paiement (docs/specs/abonnement.md,
+  // section 2) plutôt qu'à l'écran de sélection.
+  const [searchParams] = useSearchParams()
+  const chosenPlan = parsePlanParams(searchParams)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -40,6 +47,10 @@ export function RegisterPage() {
       sectorCode: (fd.get('sectorCode') as string | null) || sectorCode,
       sizeRange,
       region: (fd.get('region') as string | null) || region,
+      ...(chosenPlan && {
+        plan: toApiPlan(chosenPlan.plan) as 'Starter' | 'Essential' | 'Professional',
+        billingPeriod: toApiPeriod(chosenPlan.period),
+      }),
     }
     setSubmitting(true)
     setSuccessMessage(null)
@@ -82,6 +93,17 @@ export function RegisterPage() {
           <p className="mt-2 mb-6 text-[15px] leading-relaxed text-text-muted">
             Votre espace RSE en quelques minutes. Le diagnostic commence juste après.
           </p>
+          {chosenPlan && (
+            <p className="mb-6 flex flex-wrap items-baseline justify-between gap-2 rounded-button border border-border bg-kpi-blue px-4 py-3 text-[14px] text-text">
+              <span>
+                Offre choisie : <span className="font-heading font-semibold">{findPlan(chosenPlan.plan).name}</span>
+                {chosenPlan.plan !== 'starter' && <> ({chosenPlan.period === 'monthly' ? 'mensuelle' : 'annuelle'})</>}
+              </span>
+              <Link to="/#tarifs" className="text-[13px] text-text-muted underline underline-offset-4 hover:text-text">
+                Changer d&apos;offre
+              </Link>
+            </p>
+          )}
 
           <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
             <SectionLabel index="01">Identifiants</SectionLabel>

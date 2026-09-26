@@ -18,6 +18,9 @@ export interface RegisterPayload {
   sectorCode: string
   sizeRange: CompanySizeRange
   region: string
+  // docs/specs/abonnement.md, section 2 : offre choisie sur la page d'accueil, absente sinon.
+  plan?: 'Starter' | 'Essential' | 'Professional'
+  billingPeriod?: 'Monthly' | 'Yearly'
 }
 
 export interface AuthTokens {

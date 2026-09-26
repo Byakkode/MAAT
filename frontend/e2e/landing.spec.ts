@@ -43,6 +43,8 @@ test('la section Tarifs compare quatre offres et mène à l’inscription', asyn
 
   await table.getByRole('link', { name: 'Choisir Essential' }).click()
 
-  await expect(page).toHaveURL(/\/register$/)
+  // L'offre choisie suit le visiteur jusqu'à l'inscription (docs/specs/abonnement.md, section 2).
+  await expect(page).toHaveURL(/\/register\?offre=essential&periode=mensuelle$/)
   await expect(page.getByRole('heading', { name: 'Créer un compte' })).toBeVisible()
+  await expect(page.getByText(/offre choisie/i)).toContainText('Essential (mensuelle)')
 })

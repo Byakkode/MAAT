@@ -5,6 +5,7 @@ using MAAT.Api.Security;
 using MAAT.Application.Interfaces;
 using MAAT.Application.UseCases;
 using MAAT.Domain.Services;
+using MAAT.Infrastructure.Billing;
 using MAAT.Infrastructure.Email;
 using MAAT.Infrastructure.GitHub;
 using MAAT.Infrastructure.Jobs;
@@ -68,6 +69,7 @@ builder.Services.AddScoped<IRecommendationRepository, RecommendationRepository>(
 builder.Services.AddScoped<IActionItemProgressRepository, ActionItemProgressRepository>();
 builder.Services.AddScoped<IRseIndicatorsRepository, RseIndicatorsRepository>();
 builder.Services.AddScoped<ISupportTicketRepository, SupportTicketRepository>();
+builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
 
 // Charge Question, Recommendation et SectorWeight depuis MAAT.Infrastructure/Seed/*.csv
 // (docs/specs/modele-donnees.md) — jamais depuis les migrations, qui ne portent que le
@@ -129,6 +131,16 @@ else
 }
 
 builder.Services.AddScoped<AuthService>();
+
+// Abonnements (docs/specs/abonnement.md). Stripe:SecretKey et Stripe:WebhookSecret viennent
+// des user-secrets en développement, des variables Stripe__SecretKey / Stripe__WebhookSecret
+// en production. Absents, l'application démarre quand même : seuls le paiement et le portail
+// répondent 503, comme le support sans jeton GitHub.
+builder.Services.Configure<StripeOptions>(builder.Configuration.GetSection(StripeOptions.Section));
+builder.Services.AddScoped<IPaymentGateway, StripePaymentGateway>();
+builder.Services.AddScoped<SubscriptionSynchronizer>();
+builder.Services.AddScoped<BillingService>();
+builder.Services.AddScoped<BillingWebhookHandler>();
 builder.Services.AddHostedService<RefreshTokenPurgeService>();
 
 // Système de ticketing : POST /api/support/tickets → GitHub Issues (Byakkode/MAAT).

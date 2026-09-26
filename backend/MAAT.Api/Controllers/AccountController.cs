@@ -77,6 +77,15 @@ public class AccountController(AccountService accountService, ILogger<AccountCon
             LogConfirmationFailure();
             return Unauthorized(new { message = ex.Message });
         }
+        catch (Exception ex) when (ex is PaymentProviderException or PaymentProviderNotConfiguredException)
+        {
+            // docs/specs/abonnement.md, section 6 : l'abonnement payant n'a pas pu être résilié,
+            // donc rien n'a été supprimé — réessayer plus tard plutôt que de continuer à facturer.
+            return StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                message = "La résiliation de votre abonnement a échoué : votre compte n'a pas été supprimé. Réessayez dans quelques minutes.",
+            });
+        }
 
         Response.Cookies.Delete("refresh_token", new CookieOptions { Path = "/api/auth" });
         return NoContent();
