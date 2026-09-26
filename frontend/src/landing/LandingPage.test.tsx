@@ -49,6 +49,31 @@ describe('LandingPage', () => {
     expect(within(section).getByText('60', { selector: '.sr-only' })).toBeTruthy()
   })
 
+  it('compare quatre offres, dont Enterprise en « bientôt disponible » sans lien d’inscription', () => {
+    renderLanding()
+    const table = screen.getByRole('table', { name: /fonctionnalités incluses/i })
+
+    const plans = within(table).getAllByRole('columnheader')
+    expect(plans.map((th) => th.textContent)).toEqual([
+      expect.stringContaining('Starter'),
+      expect.stringContaining('Essential'),
+      expect.stringContaining('Professional'),
+      expect.stringContaining('Enterprise'),
+    ])
+    expect(within(plans[3]).getAllByText('Bientôt disponible').length).toBeGreaterThan(0)
+    expect(within(plans[3]).queryByRole('link')).toBeNull()
+    for (const plan of plans.slice(0, 3)) expect(within(plan).getByRole('link').getAttribute('href')).toBe('/register')
+    expect(within(plans[2]).queryByText('Bientôt disponible')).toBeNull()
+  })
+
+  it('annonce inclus / non inclus pour chaque cellule du comparatif', () => {
+    renderLanding()
+    const table = screen.getByRole('table', { name: /fonctionnalités incluses/i })
+    const row = within(table).getByRole('row', { name: /score par domaine/i })
+
+    expect(within(row).getAllByRole('cell').map((td) => td.textContent)).toEqual(['Non inclus', 'Inclus', 'Inclus', 'Inclus'])
+  })
+
   it('parcourt les onglets de la visite produit au clavier', async () => {
     const user = userEvent.setup()
     renderLanding()

@@ -6,11 +6,12 @@ import { Header } from './sections/Header'
 import { Hero } from './sections/Hero'
 import { Method } from './sections/Method'
 import { ProductTour } from './sections/ProductTour'
+import { Pricing } from './sections/Pricing'
 import { Sectors } from './sections/Sectors'
 import { Security } from './sections/Security'
 
 // Page d'accueil publique, route « / » (App.tsx). Déroulé : promesse et produit réel
-// (héros), méthode, visite des écrans, pondération sectorielle manipulable, sécurité, questions, appel à l'action.
+// (héros), méthode, visite des écrans, pondération sectorielle manipulable, sécurité, tarifs, questions, appel à l'action.
 export function LandingPage() {
   return (
     // reducedMotion="user" : les visiteurs qui ont activé « réduire les animations » dans
@@ -30,6 +31,7 @@ export function LandingPage() {
           <ProductTour />
           <Sectors />
           <Security />
+          <Pricing />
           <Faq />
           <Closing />
         </main>
