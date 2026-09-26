@@ -9,9 +9,19 @@ import App from './App'
 // non authentifié, commun à toute visite de l'application.
 describe('App (fumée Vitest + React Testing Library)', () => {
   it('affiche le chargement de la session au démarrage', () => {
+    // « / » est la page d'accueil publique : la restauration de session ne se voit que sur
+    // une route protégée.
+    window.history.pushState({}, '', '/tableau-de-bord')
     render(<App />)
 
     expect(screen.getByRole('status').textContent).toBe('Chargement de la session…')
+  })
+
+  it('affiche la page d’accueil sur la route racine', () => {
+    window.history.pushState({}, '', '/')
+    render(<App />)
+
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('trente minutes')
   })
 })
 

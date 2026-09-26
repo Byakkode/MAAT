@@ -1,0 +1,49 @@
+/* Réglages propres à la vitrine. Les couleurs, polices et rayons viennent exclusivement des
+   jetons de index.css (charte MAAT) : aucune valeur hexadécimale n'est introduite ici. */
+
+/* Feuille chargée avec toute l'application (la page d'accueil fait partie du même bundle) :
+   le défilement doux ne s'applique que lorsque la page d'accueil est affichée, jamais aux
+   écrans de l'application. */
+html:has(.landing) {
+  scroll-padding-top: 88px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.landing) {
+    scroll-behavior: smooth;
+  }
+}
+
+.landing ::selection {
+  background: var(--color-blue-maat);
+  color: white;
+}
+
+/* Titres d'affichage : Poppins n'est intéressante qu'en grand et resserrée
+   (docs/specs/charte-maat-v2.md, section 4). */
+.display {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+.numeric {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Repères de colonnes du héros : quatre filets verticaux qui rendent la grille visible,
+   à la manière d'une page de magazine. Purement décoratif. */
+.column-guides {
+  background-image: linear-gradient(to right, var(--color-border) 1px, transparent 1px);
+  background-size: calc(100% / 4) 100%;
+  background-position: -1px 0;
+}
+
+.landing details > summary {
+  list-style: none;
+}
+.landing details > summary::-webkit-details-marker {
+  display: none;
+}

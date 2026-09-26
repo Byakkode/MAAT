@@ -54,13 +54,17 @@ exactement le but.
 
 Le nom renvoie au tableau de bord au clic, comme partout ailleurs sur le web.
 
+La route `/` n'appartient pas à la coquille : c'est la page d'accueil publique
+(`frontend/src/landing/`), affichée sans session, d'où partent l'inscription et la
+connexion. Après connexion, l'utilisateur arrive sur `/tableau-de-bord`.
+
 ---
 
 ## 3. Navigation
 
 | Entrée | Destination | Visible pour |
 | --- | --- | --- |
-| Tableau de bord | `/` | tous |
+| Tableau de bord | `/tableau-de-bord` | tous |
 | Diagnostic | questionnaire en cours, ou démarrage | tous |
 | Plan d'actions | liste complète des recommandations | tous |
 | Rapports | génération et historique | tous |

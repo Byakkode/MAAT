@@ -40,7 +40,13 @@ test('compte sans diagnostic complété → Plan d’actions affiche une invitat
     ),
     page.getByRole('button', { name: 'Se connecter' }).click(),
   ])
-  await expect(page).toHaveURL('/')
+  await expect(page).toHaveURL('/tableau-de-bord')
+  // Animation d'arrivée après connexion (LoginIntro.tsx) : plein écran, elle intercepte les
+  // clics pendant sa lecture. On vérifie qu'elle s'affiche puis qu'elle se ferme sur « Passer ».
+  const intro = page.getByRole('status', { name: /connexion réussie/i })
+  await expect(intro).toBeVisible()
+  await intro.getByRole('button', { name: 'Passer' }).click()
+  await expect(intro).toBeHidden()
   await expect(page.getByRole('heading', { name: 'Tableau de bord', exact: true })).toBeVisible()
 
   await page.getByRole('link', { name: "Plan d'actions", exact: true }).click()
@@ -89,7 +95,10 @@ test('diagnostic complété avec des réponses faibles → recommandations visib
     ),
     page.getByRole('button', { name: 'Se connecter' }).click(),
   ])
-  await expect(page).toHaveURL('/')
+  await expect(page).toHaveURL('/tableau-de-bord')
+  // Animation d'arrivée après connexion : voir le premier test de ce fichier.
+  await page.getByRole('button', { name: 'Passer' }).click()
+  await expect(page.getByRole('status', { name: /connexion réussie/i })).toBeHidden()
 
   await page.getByRole('link', { name: 'Diagnostic', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Questionnaire' })).toBeVisible()

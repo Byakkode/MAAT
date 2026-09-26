@@ -1,9 +1,13 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, X } from 'lucide-react'
+import { BarChart2, CheckCircle, FileText, Plus, X } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import { LogoHorizontal } from '../components/ui/Logo'
+import { AuthPanel } from '../components/auth/AuthPanel'
+import { SectionLabel } from '../landing/primitives'
+import type { AuthPanelItem } from '../components/auth/AuthPanel'
 
 // ── Cache localStorage ───────────────────────────────────────────────────────
 
@@ -48,7 +52,21 @@ function emailInitial(email: string): string {
   return (email.split('@')[0]?.[0] ?? '?').toUpperCase()
 }
 
-const AUTH_BG = { background: '#0c1322' } as const
+// ── Panneau de gauche ────────────────────────────────────────────────────────
+
+// L'utilisateur qui se connecte a déjà un espace : on lui rappelle ce qu'il y retrouve, pas
+// le parcours d'inscription. Icônes identiques à celles de la barre latérale (Sidebar.tsx).
+const RETURN_TITLE = (
+  <>
+    Bon retour. <span className="text-white/45">Votre démarche RSE vous attend.</span>
+  </>
+)
+
+const RETURN_ITEMS: AuthPanelItem[] = [
+  { icon: BarChart2, title: 'Votre tableau de bord', text: 'Votre score et son évolution d’un diagnostic à l’autre.' },
+  { icon: CheckCircle, title: 'Votre plan d’actions', text: 'Les actions en cours, leurs responsables et leurs échéances.' },
+  { icon: FileText, title: 'Vos rapports', text: 'Le rapport VSME, toujours à jour de vos dernières réponses.' },
+]
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
@@ -95,7 +113,8 @@ export function LoginPage() {
     try {
       await login(loginEmail, loginPassword)
       setRecentEmails(saveRecentEmail(loginEmail))
-      navigate('/')
+      // loginIntro : AppShell joue l'animation du logo à l'arrivée (LoginIntro.tsx).
+      navigate('/tableau-de-bord', { state: { loginIntro: true } })
     } catch {
       // L'erreur est déjà exposée par le store (state.error), affichée ci-dessous.
     } finally {
@@ -103,87 +122,85 @@ export function LoginPage() {
     }
   }
 
+  // Mise en page alignée sur l'inscription et la page d'accueil : panneau éditorial sombre à
+  // gauche (AuthPanel), formulaire à plat sur fond blanc.
   return (
-    <div className="flex min-h-screen items-center justify-center p-4" style={AUTH_BG}>
-      <div className="flex w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+    <div className="landing flex min-h-screen bg-white">
+      <AuthPanel title={RETURN_TITLE} items={RETURN_ITEMS} />
+      <div className="flex flex-1 flex-col px-4 py-6 sm:px-10 lg:px-16">
+        <div className="flex items-center justify-between gap-4">
+          {/* Logo : seulement quand le panneau de gauche (qui le porte) est masqué. */}
+          <Link to="/" aria-label="MAAT, retour à l’accueil" className="lg:hidden">
+            <LogoHorizontal />
+          </Link>
+          <p className="ml-auto whitespace-nowrap text-[14px] text-text-muted">
+            {/* Question masquée sur téléphone : elle heurterait le logo, le lien suffit. */}
+            <span className="max-sm:hidden">Pas encore de compte ? </span>
+            <Link to="/register" className="font-heading font-medium text-text underline decoration-border-strong underline-offset-4 hover:decoration-blue-maat">
+              Créer un compte
+            </Link>
+          </p>
+        </div>
 
-        {/* ── Panneau gauche : connexions récentes ──────────────────────── */}
-        <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-bg p-8 md:flex">
-          {/* Logo */}
-          <div className="mb-8 flex h-8 w-8 items-center justify-center rounded-lg bg-blue-maat">
-            <span className="text-[13px] font-bold text-white">M</span>
-          </div>
-
-          <h2 className="mb-0.5 text-[13px] font-semibold text-text">Connexions récentes</h2>
-          <p className="mb-6 text-[12px] text-text-muted">
-            Cliquez sur votre compte ou ajoutez-en un autre.
+        <div className="mx-auto flex w-full max-w-[480px] flex-1 flex-col justify-center py-12">
+          <h1 className="display text-[clamp(2.25rem,4vw,3rem)] text-text">Connexion</h1>
+          <p className="mt-3 mb-10 text-[16px] leading-relaxed text-text-muted">
+            Accédez à votre tableau de bord RSE.
           </p>
 
-          <div className="grid grid-cols-2 gap-3">
-            {recentEmails.map((recent) => (
-              <div key={recent} className="relative">
+          {/* Connexions récentes : liste à filets, comme le choix de secteur de la page
+              d'accueil. Absente tant qu'aucun compte n'a été mémorisé sur ce navigateur. */}
+          {recentEmails.length > 0 && (
+            <section aria-labelledby="recent-title" className="mb-10">
+              <div className="flex items-baseline justify-between gap-4">
+                <SectionLabel index="01">
+                  <span id="recent-title">Connexions récentes</span>
+                </SectionLabel>
                 <button
                   type="button"
-                  onClick={() => handleSelectAccount(recent)}
-                  className={[
-                    'flex w-full flex-col items-center gap-2 rounded-xl border px-2 py-3 text-center',
-                    'transition-colors hover:bg-blue-maat/[0.04]',
-                    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-maat',
-                    email === recent ? 'border-blue-maat/40 bg-blue-maat/[0.04]' : 'border-border bg-white',
-                  ].join(' ')}
+                  onClick={handleAddAccount}
+                  className="inline-flex cursor-pointer items-center gap-1.5 text-[13px] font-medium text-text-muted transition-colors hover:text-text"
                 >
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-maat text-[13px] font-bold text-white">
-                    {emailInitial(recent)}
-                  </span>
-                  <span className="w-full truncate text-[11px] text-text-muted" title={recent}>
-                    {recent.split('@')[0]}
-                  </span>
-                </button>
-
-                {/* Supprimer du cache */}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveAccount(recent)}
-                  aria-label={`Retirer ${recent} des connexions récentes`}
-                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-text-muted text-white transition-colors hover:bg-text focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-blue-maat"
-                >
-                  <X size={10} aria-hidden />
+                  <Plus size={14} aria-hidden="true" />
+                  Autre compte
                 </button>
               </div>
-            ))}
-
-            {/* Tile "Autre compte" */}
-            <button
-              type="button"
-              onClick={handleAddAccount}
-              className={[
-                'flex flex-col items-center gap-2 rounded-xl border border-dashed px-2 py-3 text-center',
-                'transition-colors hover:bg-blue-maat/[0.04]',
-                'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-maat',
-                recentEmails.length === 0 ? 'border-blue-maat/30' : 'border-border',
-              ].join(' ')}
-            >
-              <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-dashed border-border text-text-muted">
-                <Plus size={15} aria-hidden />
-              </span>
-              <span className="text-[11px] text-text-muted">
-                {recentEmails.length === 0 ? 'Connexion' : 'Autre compte'}
-              </span>
-            </button>
-          </div>
-        </aside>
-
-        {/* ── Panneau droit : formulaire ────────────────────────────────── */}
-        <div className="flex flex-1 flex-col justify-center px-8 py-10">
-          {/* Logo mobile uniquement */}
-          <div className="mb-6 flex h-8 w-8 items-center justify-center rounded-lg bg-blue-maat md:hidden">
-            <span className="text-[13px] font-bold text-white">M</span>
-          </div>
-
-          <h1 className="mb-1 text-[1.375rem] font-semibold text-text">Connexion</h1>
-          <p className="mb-7 text-[13px] text-text-muted">Accédez à votre tableau de bord RSE.</p>
+              <ul className="mt-4 border-t border-border">
+                {recentEmails.map((recent) => {
+                  const selected = email === recent
+                  return (
+                    <li key={recent} className="flex items-center border-b border-border">
+                      <button
+                        type="button"
+                        onClick={() => handleSelectAccount(recent)}
+                        aria-pressed={selected}
+                        className={`group flex min-w-0 flex-1 cursor-pointer items-center gap-4 py-3 text-left transition-colors ${selected ? 'text-text' : 'text-text-muted hover:text-text'}`}
+                      >
+                        <span
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md font-heading text-[13px] font-semibold transition-colors ${selected ? 'bg-blue-maat text-white' : 'bg-bg text-text-muted group-hover:text-text'}`}
+                          aria-hidden="true"
+                        >
+                          {emailInitial(recent)}
+                        </span>
+                        <span className={`truncate text-[15px] ${selected ? 'font-medium' : ''}`}>{recent}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveAccount(recent)}
+                        aria-label={`Retirer ${recent} des connexions récentes`}
+                        className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-text-muted transition-colors hover:bg-bg hover:text-text"
+                      >
+                        <X size={15} aria-hidden="true" />
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          )}
 
           <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+            {recentEmails.length > 0 && <SectionLabel index="02">Identifiants</SectionLabel>}
             <Input
               ref={emailRef}
               label="Adresse e-mail"
@@ -213,17 +230,10 @@ export function LoginPage() {
               </p>
             )}
 
-            <Button type="submit" isLoading={submitting} className="w-full mt-1">
+            <Button type="submit" size="lg" isLoading={submitting} className="mt-3 w-full py-3 font-heading text-[15px]">
               Se connecter
             </Button>
           </form>
-
-          <p className="mt-6 text-sm text-text-muted">
-            Pas encore de compte ?{' '}
-            <Link to="/register" className="font-medium text-blue-maat-text hover:underline">
-              Créer un compte
-            </Link>
-          </p>
         </div>
       </div>
     </div>

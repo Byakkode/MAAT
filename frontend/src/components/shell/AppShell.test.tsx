@@ -33,7 +33,7 @@ function renderShellAt(path: string) {
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route element={<AppShell />}>
-          <Route path="/" element={<h1>Tableau de bord (écran)</h1>} />
+          <Route path="/tableau-de-bord" element={<h1>Tableau de bord (écran)</h1>} />
           <Route path="/rapport" element={<h1>Rapports (écran)</h1>} />
         </Route>
       </Routes>
@@ -43,10 +43,10 @@ function renderShellAt(path: string) {
 
 function renderShellWithDashboard() {
   return render(
-    <MemoryRouter initialEntries={['/']}>
+    <MemoryRouter initialEntries={['/tableau-de-bord']}>
       <Routes>
         <Route element={<AppShell />}>
-          <Route path="/" element={<DashboardPage />} />
+          <Route path="/tableau-de-bord" element={<DashboardPage />} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -68,7 +68,7 @@ describe('AppShell', () => {
   })
 
   it("cas 1 : la navigation ne se remonte pas en changeant d’écran", async () => {
-    renderShellAt('/')
+    renderShellAt('/tableau-de-bord')
     await screen.findByText('Tableau de bord (écran)')
     const navBefore = screen.getByRole('navigation', { name: 'Navigation principale' })
 
@@ -80,7 +80,7 @@ describe('AppShell', () => {
   })
 
   it("cas 2 : l’entrée active se signale par deux moyens distincts", async () => {
-    renderShellAt('/')
+    renderShellAt('/tableau-de-bord')
     await screen.findByText('Tableau de bord (écran)')
 
     const active = screen.getByRole('link', { name: /tableau de bord/i })
@@ -97,7 +97,7 @@ describe('AppShell', () => {
       makeDashboardView({ inProgressDiagnostic: makeInProgressDiagnostic({ answeredCount: 23, totalActiveQuestions: 45 }) }),
     )
 
-    renderShellAt('/')
+    renderShellAt('/tableau-de-bord')
 
     await screen.findByText('23 / 45')
   })
@@ -105,7 +105,7 @@ describe('AppShell', () => {
   it('cas 4 : Viewer voit les sept entrées de navigation', async () => {
     useAuthStore.setState({ status: 'authenticated', user: { userId: 'u-1', companyId: 'c-1', role: 'Viewer' }, error: null })
 
-    renderShellAt('/')
+    renderShellAt('/tableau-de-bord')
     await screen.findByText('Tableau de bord (écran)')
 
     // Le titre "Mon compte" apparaît aussi dans le menu de l'en-tête (Header) : la portée sur
@@ -126,11 +126,11 @@ describe('AppShell', () => {
     await screen.findByText('Rapports (écran)')
 
     const wordmark = screen.getByRole('link', { name: /MAAT/ })
-    expect(wordmark.getAttribute('href')).toBe('/')
+    expect(wordmark.getAttribute('href')).toBe('/tableau-de-bord')
   })
 
   it("cas 6 : lien d’évitement présent, atteignable au premier Tab, menant au contenu principal", async () => {
-    renderShellAt('/')
+    renderShellAt('/tableau-de-bord')
     await screen.findByText('Tableau de bord (écran)')
 
     await userEvent.tab()
@@ -142,7 +142,7 @@ describe('AppShell', () => {
   })
 
   it('cas 7 : le panneau mobile piège le focus et se ferme à Échap', async () => {
-    renderShellAt('/')
+    renderShellAt('/tableau-de-bord')
     await screen.findByText('Tableau de bord (écran)')
 
     await userEvent.click(screen.getByRole('button', { name: /ouvrir la navigation/i }))
@@ -199,5 +199,45 @@ describe('AppShell', () => {
     await screen.findByText('Démarche structurée')
 
     expect(await axe(container)).toHaveNoViolations()
+  })
+
+  describe('animation d’arrivée après connexion (LoginIntro)', () => {
+    function renderAfterLogin(state: unknown) {
+      return render(
+        <MemoryRouter initialEntries={[{ pathname: '/tableau-de-bord', state }]}>
+          <Routes>
+            <Route element={<AppShell />}>
+              <Route path="/tableau-de-bord" element={<h1>Tableau de bord (écran)</h1>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>,
+      )
+    }
+
+    it('se joue quand LoginPage signale une connexion, et se ferme sur « Passer »', async () => {
+      renderAfterLogin({ loginIntro: true })
+      const intro = screen.getByRole('status', { name: /connexion réussie/i })
+      // Le tableau de bord se charge derrière l'animation, pas après elle.
+      expect(screen.getByText('Tableau de bord (écran)')).toBeDefined()
+      expect(document.activeElement).toBe(within(intro).getByRole('button', { name: 'Passer' }))
+
+      await userEvent.click(within(intro).getByRole('button', { name: 'Passer' }))
+
+      await waitFor(() => expect(screen.queryByRole('status', { name: /connexion réussie/i })).toBeNull())
+    })
+
+    it('se ferme avec Échap', async () => {
+      renderAfterLogin({ loginIntro: true })
+
+      await userEvent.keyboard('{Escape}')
+
+      await waitFor(() => expect(screen.queryByRole('status', { name: /connexion réussie/i })).toBeNull())
+    })
+
+    it('ne se joue pas sur une simple navigation vers le tableau de bord', () => {
+      renderAfterLogin(null)
+
+      expect(screen.queryByRole('status', { name: /connexion réussie/i })).toBeNull()
+    })
   })
 })

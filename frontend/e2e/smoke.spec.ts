@@ -9,7 +9,7 @@ import { expect, test } from '@playwright/test'
 // est redirigé vers /login, contrairement à l'ancienne navigation rendue hors de
 // ProtectedRoute.
 test('la page charge et redirige vers la connexion sans session', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/tableau-de-bord')
 
   await expect(page).toHaveURL(/\/login$/)
   await expect(page.getByRole('heading', { name: 'Connexion', exact: true })).toBeVisible()

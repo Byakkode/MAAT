@@ -1,87 +1,87 @@
-import { CheckCircle, ShieldCheck, FileText, BarChart2 } from 'lucide-react'
+import type { ReactNode } from 'react'
+import type { LucideIcon } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import '../../landing/landing.css'
+import { LogoHorizontal } from '../ui/Logo'
+import { EASE_OUT } from '../../landing/motion'
 
-const FEATURES = [
-  {
-    icon: BarChart2,
-    text: '45 questions, diagnostic en moins de 30 min',
-  },
-  {
-    icon: CheckCircle,
-    text: "Plan d'actions personnalisé par domaine RSE",
-  },
-  {
-    icon: FileText,
-    text: 'Rapport PDF conforme au standard VSME',
-  },
-  {
-    icon: ShieldCheck,
-    text: 'Données hébergées en France, souveraineté garantie',
-  },
+// Mêmes codes visuels que la page d'accueil (src/landing/) : fond ardoise de la section
+// Sécurité, grand titre Poppins resserré, étapes numérotées séparées par des filets. Le
+// visiteur qui arrive depuis « Commencer le diagnostic » ne change pas de site.
+export interface AuthPanelItem {
+  title: string
+  text: string
+  // Avec icône : liste de contenus (connexion). Sans icône : étapes numérotées (inscription).
+  icon?: LucideIcon
+}
+
+// Par défaut, le parcours d'un nouvel inscrit.
+const STEPS: AuthPanelItem[] = [
+  { title: 'Créez votre espace', text: 'Un compte par entreprise, rattaché à votre secteur NAF.' },
+  { title: 'Répondez à 45 questions', text: 'Environ trente minutes, enregistrement automatique.' },
+  { title: 'Pilotez votre démarche', text: "Score pondéré, plan d’actions priorisé, rapport VSME." },
 ]
 
-const STATS = [
-  { value: '45', label: 'questions RSE' },
-  { value: '5', label: 'domaines évalués' },
-  { value: '< 30', label: 'minutes' },
-]
+interface AuthPanelProps {
+  // Titre et liste propres à chaque page : l'inscription présente le parcours, la connexion
+  // rappelle à un utilisateur qui revient ce qui l'attend dans son espace.
+  title?: ReactNode
+  items?: AuthPanelItem[]
+}
 
-export function AuthPanel() {
+const DEFAULT_TITLE = (
+  <>
+    Trente minutes pour savoir <span className="text-white/45">où vous en êtes.</span>
+  </>
+)
+
+export function AuthPanel({ title = DEFAULT_TITLE, items = STEPS }: AuthPanelProps) {
   return (
     <aside
-      className="hidden lg:flex lg:w-[44%] flex-col justify-between overflow-hidden"
-      style={{ background: '#0c1322' }}
+      className="relative hidden flex-col justify-between overflow-hidden bg-sidebar px-12 py-10 text-white lg:flex lg:w-[42%] xl:px-16"
       aria-label="Présentation de MAAT"
     >
-      <div className="flex flex-col gap-10 p-10">
-        {/* Wordmark */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-maat">
-            <span className="text-sm font-bold text-white">M</span>
-          </div>
-          <div>
-            <p className="text-[15px] font-bold leading-tight tracking-tight text-white">MAAT</p>
-            <p className="text-[11px] text-white/40">Diagnostic RSE pour PME</p>
-          </div>
-        </div>
+      <Link to="/" aria-label="MAAT, retour à l’accueil" className="self-start">
+        <LogoHorizontal tone="dark" />
+      </Link>
 
-        {/* Heading */}
-        <div>
-          <h2 className="text-[1.5rem] font-semibold leading-snug tracking-tight text-white">
-            Mesurez et pilotez votre performance&nbsp;RSE en moins de 30&nbsp;min.
-          </h2>
-          <p className="mt-3 text-[13.5px] leading-relaxed text-white/50">
-            Questionnaire de 45 questions, score pondéré par secteur NAF, recommandations
-            personnalisées et rapport PDF conforme VSME.
-          </p>
-        </div>
+      <div className="py-8">
+        <motion.h2
+          className="display max-w-[16ch] text-[clamp(2rem,3vw,3rem)]"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, ease: EASE_OUT }}
+        >
+          {title}
+        </motion.h2>
 
-        {/* Features */}
-        <ul className="flex flex-col gap-3">
-          {FEATURES.map(({ icon: Icon, text }) => (
-            <li key={text} className="flex items-center gap-3">
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white/[0.07]">
-                <Icon size={13} className="text-white/60" aria-hidden="true" />
+        <ol className="mt-10 border-t border-white/10">
+          {items.map((step, i) => (
+            <motion.li
+              key={step.title}
+              className="grid grid-cols-[3rem_1fr] border-b border-white/10 py-4"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: EASE_OUT, delay: 0.15 + i * 0.08 }}
+            >
+              {step.icon ? (
+                <step.icon size={18} strokeWidth={1.75} className="mt-0.5 text-blue-maat" aria-hidden="true" />
+              ) : (
+                <span className="numeric font-heading text-[14px] text-blue-maat" aria-hidden="true">
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+              )}
+              <div>
+                <p className="font-heading text-[16px] font-semibold tracking-tight">{step.title}</p>
+                <p className="mt-1 text-[14px] leading-relaxed text-white/60">{step.text}</p>
               </div>
-              <span className="text-[13px] text-white/60">{text}</span>
-            </li>
+            </motion.li>
           ))}
-        </ul>
-
-        {/* Stats row */}
-        <div className="flex gap-8 border-t border-white/[0.07] pt-8">
-          {STATS.map(({ value, label }) => (
-            <div key={label}>
-              <p className="text-2xl font-bold text-white tabular-nums">{value}</p>
-              <p className="mt-0.5 text-[11px] text-white/40">{label}</p>
-            </div>
-          ))}
-        </div>
+        </ol>
       </div>
 
-      {/* Footer */}
-      <div className="px-10 pb-8">
-        <p className="text-[11px] text-white/25">Hébergé en France · Données souveraines · RGPD conforme</p>
-      </div>
+      <p className="text-[12.5px] text-white/50">Hébergé en France · Données souveraines · RGPD</p>
     </aside>
   )
 }
