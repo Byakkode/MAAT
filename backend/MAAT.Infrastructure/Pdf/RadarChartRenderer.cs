@@ -9,24 +9,23 @@ namespace MAAT.Infrastructure.Pdf;
 // dépendance à une police à l'intérieur même du rendu SkiaSharp et garde le PNG déterministe.
 public static class RadarChartRenderer
 {
-    // ~3x une taille d'affichage cible d'environ 400 px dans le document (section 5 : dessiner
-    // à environ trois fois la taille d'affichage cible, pour ne pas pixelliser à l'impression).
-    public const int RenderedSizePx = 1200;
+    // Environ cinq fois la taille d'affichage dans le document (section 5 : au moins trois
+    // fois, pour ne pas pixelliser à l'impression) — plus de 400 dpi à la taille affichée,
+    // voir QuestPdfReportGeneratorTests.Le_radar_atteint_au_moins_300_dpi_a_la_taille_d_affichage.
+    public const int RenderedSizePx = 1500;
 
     // docs/specs/charte-maat-v2.md, section 3 : couleurs par domaine, à ne jamais réattribuer,
     // identiques à frontend/src/index.css (--color-chart-*) — DomainColorConsistencyTests lit
     // les deux fichiers et l'atteste. internal (pas private) : lu directement par ce test,
     // sans valeur recopiée côté test.
-    internal static readonly IReadOnlyDictionary<RseDomain, SKColor> DomainColors = new Dictionary<RseDomain, SKColor>
-    {
-        [RseDomain.Environmental] = SKColor.Parse("#29CC6A"),
-        [RseDomain.Social] = SKColor.Parse("#1E88E5"),
-        [RseDomain.Ethics] = SKColor.Parse("#7E57C2"),
-        [RseDomain.Procurement] = SKColor.Parse("#FFB74D"),
-        [RseDomain.Governance] = SKColor.Parse("#42A5F5"),
-    };
+    // Source unique : ReportTheme.DomainHex, partagée avec les pastilles et barres de domaine
+    // du document.
+    internal static readonly IReadOnlyDictionary<RseDomain, SKColor> DomainColors =
+        ReportTheme.DomainHex.ToDictionary(pair => pair.Key, pair => SKColor.Parse(pair.Value));
 
     private static readonly SKColor GridColor = SKColor.Parse("#E5E7EB"); // --color-border (charte-maat)
+    private static readonly SKColor AxisColor = SKColor.Parse("#CBD5E1"); // --color-border-strong (charte-maat)
+    private static readonly SKColor BandColor = SKColor.Parse("#F8F9FC"); // --maat-bg (charte-maat)
     private static readonly SKColor SeriesColor = SKColor.Parse("#1565FF"); // --color-blue-maat (charte-maat)
 
     // Échelle fixe 0-100, jamais adaptée aux données (dashboard.md, section 3) — un domaine
@@ -35,7 +34,7 @@ public static class RadarChartRenderer
     public static byte[] Render(IReadOnlyDictionary<RseDomain, decimal> scoreByDomain)
     {
         const int size = RenderedSizePx;
-        const float padding = size * 0.12f;
+        const float padding = size * 0.04f;
         var center = new SKPoint(size / 2f, size / 2f);
         var radius = size / 2f - padding;
 
@@ -46,22 +45,43 @@ public static class RadarChartRenderer
         var axisPoints = RadarAxisLayout.Compute();
         var axisDirections = axisPoints.Select(p => new SKPoint(p.DirectionX, p.DirectionY)).ToArray();
 
+        // Fond alterné un anneau sur deux (0-20, 40-60, 80-100) : repère de lecture des
+        // paliers sans surcharger la grille de traits.
+        using (var bandPaint = new SKPaint { Color = BandColor, Style = SKPaintStyle.Fill, IsAntialias = true })
+        using (var whitePaint = new SKPaint { Color = SKColors.White, Style = SKPaintStyle.Fill, IsAntialias = true })
+        {
+            for (var step = 5; step >= 1; step--)
+            {
+                DrawPolygon(canvas, step % 2 == 1 ? bandPaint : whitePaint, center, axisDirections, radius * (step / 5f));
+            }
+        }
+
         using (var gridPaint = new SKPaint
         {
             Color = GridColor,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = size * 0.002f,
+            IsAntialias = true,
+        })
+        {
+            for (var step = 1; step <= 4; step++)
+            {
+                DrawPolygon(canvas, gridPaint, center, axisDirections, radius * (step / 5f));
+            }
+        }
+
+        using (var axisPaint = new SKPaint
+        {
+            Color = AxisColor,
             Style = SKPaintStyle.Stroke,
             StrokeWidth = size * 0.0025f,
             IsAntialias = true,
         })
         {
-            for (var step = 1; step <= 5; step++)
-            {
-                DrawPolygon(canvas, gridPaint, center, axisDirections, radius * (step / 5f));
-            }
-
+            DrawPolygon(canvas, axisPaint, center, axisDirections, radius);
             foreach (var direction in axisDirections)
             {
-                canvas.DrawLine(center, new SKPoint(center.X + (direction.X * radius), center.Y + (direction.Y * radius)), gridPaint);
+                canvas.DrawLine(center, new SKPoint(center.X + (direction.X * radius), center.Y + (direction.Y * radius)), axisPaint);
             }
         }
 
@@ -75,8 +95,15 @@ public static class RadarChartRenderer
                 center.Y + (axisDirections[i].Y * radius * ratio));
         }
 
-        using (var fillPaint = new SKPaint { Color = SeriesColor.WithAlpha(64), Style = SKPaintStyle.Fill, IsAntialias = true })
-        using (var strokePaint = new SKPaint { Color = SeriesColor, Style = SKPaintStyle.Stroke, StrokeWidth = size * 0.004f, IsAntialias = true })
+        using (var fillPaint = new SKPaint { Color = SeriesColor.WithAlpha(46), Style = SKPaintStyle.Fill, IsAntialias = true })
+        using (var strokePaint = new SKPaint
+        {
+            Color = SeriesColor,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = size * 0.005f,
+            StrokeJoin = SKStrokeJoin.Round,
+            IsAntialias = true,
+        })
         {
             var pathBuilder = new SKPathBuilder();
             pathBuilder.AddPoly(scorePoints, close: true);
@@ -85,10 +112,14 @@ public static class RadarChartRenderer
             canvas.DrawPath(path, strokePaint);
         }
 
+        // Point de chaque domaine à sa couleur, cerclé de blanc pour rester lisible sur le
+        // tracé bleu qu'il chevauche.
+        using var ringPaint = new SKPaint { Color = SKColors.White, Style = SKPaintStyle.Fill, IsAntialias = true };
         for (var i = 0; i < axisPoints.Count; i++)
         {
             using var dotPaint = new SKPaint { Color = DomainColors[axisPoints[i].Domain], Style = SKPaintStyle.Fill, IsAntialias = true };
-            canvas.DrawCircle(scorePoints[i], size * 0.012f, dotPaint);
+            canvas.DrawCircle(scorePoints[i], size * 0.019f, ringPaint);
+            canvas.DrawCircle(scorePoints[i], size * 0.013f, dotPaint);
         }
 
         using var image = surface.Snapshot();
