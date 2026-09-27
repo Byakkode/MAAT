@@ -147,8 +147,11 @@ jamais coupée entre deux pages. Chaque page de contenu porte en en-tête la
 raison sociale et la date du diagnostic, et en pied de page la réserve
 d'auto-évaluation et la pagination.
 
-**Page de garde.** Logo MAAT, raison sociale, code NAF et son libellé,
-effectif, région, date de complétion. Score global en grand, sur une jauge,
+**Page de garde.** Logo officiel MAAT en blanc, en haut à droite du bandeau
+(copie de `frontend/src/assets/maat-logo-blanc.png`, embarquée dans l'assembly comme
+les polices ; un test compare les deux fichiers), raison sociale, code NAF et son libellé,
+effectif, région, date de complétion, et le logo de l'entreprise quand elle en a
+envoyé un et que son offre l'inclut (section 7). Score global en grand, sur une jauge,
 accompagné de son libellé qualitatif et, s'il existe un diagnostic précédent,
 de l'écart depuis celui-ci. Profil des cinq domaines en barres. Trois cartes de
 synthèse : point fort, priorité de progrès, avancement du plan d'actions. Un
@@ -311,6 +314,49 @@ laisserait l'utilisateur croire que la fonctionnalité n'existe pas.
 
 ---
 
+## 7. Logo de l'entreprise
+
+Inclus à partir de l'offre Essential (`abonnement.md`, section 8). Posé en page de
+garde, à droite de la raison sociale, sur un cartouche blanc : le bandeau est bleu
+foncé, et un logo sombre sur fond transparent y disparaîtrait. Zone utile de 150 × 60
+pt, proportions conservées. Seulement en page de garde : l'en-tête des pages de contenu
+reste celui de MAAT, qui produit le document.
+
+**Endpoints.** `GET /api/company/logo` (tous les rôles, `404` sans logo, `Cache-Control:
+no-store`), `PUT` en `multipart/form-data` (champ `file`) et `DELETE` (`Admin`
+uniquement : le logo engage l'identité de l'entreprise sur un document transmis à des
+tiers). L'envoi exige l'offre (`403 plan_required`) ; la lecture et la suppression non —
+une entreprise revenue sur Starter retrouve son logo et peut le retirer. Jamais d'URL
+publique : l'écran récupère l'image en blob, comme le rapport.
+
+**Le fichier reçu n'est jamais stocké tel quel.** Il est décodé, contrôlé, réduit puis
+réencodé en PNG (`SkiaLogoImageProcessor`) :
+
+- formats acceptés : PNG, JPEG, WebP, **reconnus au décodage** — le type annoncé et
+  l'extension ne prouvent rien. Pas de SVG : c'est un document, qui peut porter du
+  script et des références externes, pas une image ;
+- 2 Mo au plus avant traitement, 16 à 5 000 px de côté, dimensions lues dans l'en-tête
+  **avant** décodage (une image de quelques Ko peut occuper des Go une fois décompressée) ;
+- réduite à 600 px sur son plus grand côté — quatre fois la taille d'affichage, au-delà
+  des 300 dpi de la section 5 ;
+- le réencodage supprime les métadonnées embarquées (EXIF, position GPS d'une photo
+  prise au téléphone) avant qu'elles ne circulent dans un document envoyé à des tiers.
+
+**Déterminisme.** Le logo fait partie des données d'entrée (section 3) : l'image
+normalisée est stockée, puis embarquée sans rééchantillonnage. Le même logo produit
+donc toujours les mêmes octets ; le remplacer change le document, comme une mise à jour
+du suivi.
+
+**Offre.** Le logo suit l'offre effective : conservé en base après un retour sur
+Starter, il n'est simplement plus transmis au générateur, et réapparaît au
+réabonnement.
+
+**Écran.** Carte « Logo sur le rapport » de la page Rapports : aperçu reproduisant le
+cartouche de la page de garde, ajout, remplacement et retrait pour un `Admin`, lecture
+seule pour les autres rôles, invitation à l'offre Essential en Starter.
+
+---
+
 ## Cas de test
 
 **Endpoint**
@@ -404,3 +450,15 @@ un document quand un élément ne tient pas dans la page, et c'est un libellé
 d'action un peu long, pas une donnée exotique, qui l'a déclenché la première
 fois — sur la carte « Par où commencer », avant que l'effort et le gain ne
 passent sur deux lignes.
+
+**Logo de l'entreprise (section 7)**
+
+32. Logo carré, très allongé ou très haut, avec une raison sociale longue : la page de
+    garde se génère, et deux générations avec le même logo sont identiques.
+33. Envoi en Starter → `403 plan_required` (Essential) ; en Essential → `204`, relu en
+    PNG ; image de plus de 600 px réduite en gardant ses proportions.
+34. Fichier qui n'est pas une image, GIF, fichier de plus de 2 Mo, image de plus de
+    5 000 px ou de moins de 16 px → refusés, rien n'est enregistré.
+35. `Viewer` : lecture autorisée, envoi et suppression → `403`. Suppression idempotente.
+36. Logo transmis au générateur en Essential, plus en Starter, de nouveau au
+    réabonnement ; supprimé avec l'entreprise.

@@ -66,7 +66,7 @@ Une entreprise dont le code NAF n'a pas d'entrée dans `SectorWeight` utilise la
 pondération par défaut — cas à gérer explicitement, pas à laisser planter.
 
 Relations : `1 Company → N Users`, `1 Company → N Diagnostics`,
-`1 Company → 0..1 Subscription`.
+`1 Company → 0..1 Subscription`, `1 Company → 0..1 CompanyLogo`.
 
 ---
 
@@ -456,6 +456,26 @@ offre.
 il repasse à `null` quand cet abonnement se termine (retour à Starter), tandis que
 `stripe_customer_id` est conservé. Aucune donnée de carte n'est stockée : le paiement
 se fait sur la page hébergée par Stripe.
+
+---
+
+## CompanyLogo
+
+Logo de l'entreprise, posé sur la page de garde du rapport (`rapport-pdf.md`,
+section 7). Absent tant qu'aucun logo n'a été envoyé.
+
+| Colonne | Type | Contraintes |
+| --- | --- | --- |
+| `company_id` | uuid | PK, FK → Company, `ON DELETE CASCADE` |
+| `png_content` | bytea | requis |
+| `updated_at` | timestamptz | requis |
+
+Table séparée plutôt qu'une colonne de `Company` : les nombreuses requêtes qui chargent
+l'entreprise n'ont pas à ramener l'image. `png_content` est toujours l'image normalisée
+(PNG, 600 px au plus sur son plus grand côté), jamais le fichier reçu tel quel. Stockée
+en base plutôt que sur disque : elle pèse quelques dizaines de Ko, elle suit
+l'entreprise dans les sauvegardes et dans la suppression RGPD sans mécanisme de plus,
+et aucun fichier n'est servi hors d'un endpoint authentifié (CLAUDE.md, hébergement).
 
 ---
 

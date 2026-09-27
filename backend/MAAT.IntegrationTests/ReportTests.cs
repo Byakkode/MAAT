@@ -289,14 +289,19 @@ public class ReportTests(ReportApiFixture fixture)
         // UseOriginalImage (QuestPdfReportGenerator) embarque les pixels sans rééchantillonnage :
         // les dictionnaires d'image du PDF (non compressés, contrairement aux flux de contenu)
         // portent donc /Width et /Height à la résolution de rendu exacte.
+        // Dimensions relevées image par image : le document porte plusieurs images (radar, logo
+        // MAAT de la page de garde), et la première trouvée n'est pas forcément le radar.
         var text = Encoding.Latin1.GetString(bytes);
-        var widthMatch = Regex.Match(text, @"/Width\s+(\d+)");
-        var heightMatch = Regex.Match(text, @"/Height\s+(\d+)");
+        var images = Regex.Matches(text, @"/Subtype\s*/Image\b.*?(?=\bstream\b)", RegexOptions.Singleline)
+            .Select(m => (
+                Width: int.Parse(Regex.Match(m.Value, @"/Width\s+(\d+)").Groups[1].Value),
+                Height: int.Parse(Regex.Match(m.Value, @"/Height\s+(\d+)").Groups[1].Value)))
+            .ToList();
 
-        Assert.True(widthMatch.Success, "Aucune ressource /Width trouvée dans le PDF — image non embarquée ?");
-        Assert.True(heightMatch.Success, "Aucune ressource /Height trouvée dans le PDF — image non embarquée ?");
-        Assert.Equal(RadarChartRenderer.RenderedSizePx, int.Parse(widthMatch.Groups[1].Value));
-        Assert.Equal(RadarChartRenderer.RenderedSizePx, int.Parse(heightMatch.Groups[1].Value));
+        Assert.True(images.Count > 0, "Aucune image trouvée dans le PDF — image non embarquée ?");
+        Assert.Contains((RadarChartRenderer.RenderedSizePx, RadarChartRenderer.RenderedSizePx), images);
+        // Même règle pour le logo MAAT blanc de la page de garde : ses pixels d'origine.
+        Assert.Contains((471, 409), images);
     }
 
     [Fact]

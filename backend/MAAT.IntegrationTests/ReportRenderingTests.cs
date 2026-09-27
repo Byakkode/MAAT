@@ -183,4 +183,29 @@ public class ReportRenderingTests
         Assert.True(bytes.Length < generator.Generate(Rich()).Length);
         Assert.Equal(bytes, generator.Generate(starter));
     }
+
+    // rapport-pdf.md, section 7 : logo de l'entreprise en page de garde, tel que
+    // SkiaLogoImageProcessor l'a normalisé à l'envoi. Logo carré, très allongé ou très haut,
+    // avec une raison sociale longue : la page de garde tient toujours, et le document reste
+    // déterministe — le logo fait partie des données d'entrée (section 3).
+    [Theory]
+    [InlineData(200, 200)]
+    [InlineData(600, 40)]
+    [InlineData(40, 600)]
+    public void Cas32_Logo_de_l_entreprise_en_page_de_garde(int width, int height)
+    {
+        var logo = new SkiaLogoImageProcessor().NormalizeToPng(CompanyLogoTests.MakeImage(width, height));
+        var withLogo = Rich() with
+        {
+            CompanyName = "Société Coopérative Ouvrière de Production des Travaux Publics et du Bâtiment de la Vallée",
+            CompanyLogoPng = logo,
+        };
+        var generator = new QuestPdfReportGenerator();
+
+        var bytes = generator.Generate(withLogo);
+
+        AssertValidPdf(bytes);
+        Assert.True(bytes.Length > generator.Generate(withLogo with { CompanyLogoPng = null }).Length);
+        Assert.Equal(bytes, generator.Generate(withLogo with { CompanyLogoPng = [.. logo] }));
+    }
 }

@@ -70,6 +70,7 @@ builder.Services.AddScoped<IActionItemProgressRepository, ActionItemProgressRepo
 builder.Services.AddScoped<IRseIndicatorsRepository, RseIndicatorsRepository>();
 builder.Services.AddScoped<ISupportTicketRepository, SupportTicketRepository>();
 builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+builder.Services.AddScoped<ICompanyLogoRepository, CompanyLogoRepository>();
 
 // Charge Question, Recommendation et SectorWeight depuis MAAT.Infrastructure/Seed/*.csv
 // (docs/specs/modele-donnees.md) — jamais depuis les migrations, qui ne portent que le
@@ -92,6 +93,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 // Substitué en test pour le cas 8 (échec de la génération → aucune ligne Report), même
 // principe que IScoringService/IRecommendationEngine ci-dessus.
 builder.Services.AddSingleton<IReportGenerator, QuestPdfReportGenerator>();
+builder.Services.AddSingleton<ILogoImageProcessor, SkiaLogoImageProcessor>();
 
 // Jeu de données de démonstration (commande "seed", drapeau demo, Development uniquement) :
 // voir DemoDataSeeder. Jamais invoqué au démarrage, contrairement à ReferenceDataSeeder
@@ -103,6 +105,7 @@ builder.Services.AddScoped<DiagnosticService>();
 builder.Services.AddScoped<DashboardService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<AccountService>();
+builder.Services.AddScoped<CompanyLogoService>();
 
 // LoggingEmailSender journalise les adresses e-mail (donnée personnelle), ce que
 // la section 5 de la spec interdit en dehors du poste de développement. Aucun

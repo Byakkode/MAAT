@@ -32,6 +32,8 @@ export interface Entitlements {
   canViewBenchmark: boolean
   canOpenSupportTickets: boolean
   fullReport: boolean
+  // Logo de l'entreprise sur la page de garde du rapport (rapport-pdf.md, section 7).
+  canCustomizeReportLogo: boolean
 }
 
 const API_PLANS: Record<PlanId, ApiPlan> = {

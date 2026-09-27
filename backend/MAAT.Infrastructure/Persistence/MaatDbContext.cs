@@ -21,6 +21,7 @@ public class MaatDbContext(DbContextOptions<MaatDbContext> options) : DbContext(
     public DbSet<RseIndicators> RseIndicators => Set<RseIndicators>();
     public DbSet<ActionItemProgress> ActionItemProgresses => Set<ActionItemProgress>();
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
+    public DbSet<CompanyLogo> CompanyLogos => Set<CompanyLogo>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

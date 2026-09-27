@@ -282,6 +282,7 @@ autre mécanisme. Enterprise, pas encore commercialisée, a les droits de Profes
 | Benchmark sectoriel | ❌ | ❌ | ✅ |
 | Support : ouvrir un ticket | ❌ | ✅ | ✅ |
 | Rapport PDF | page de garde réduite | complet | complet |
+| Logo de l'entreprise sur le rapport (`rapport-pdf.md`, section 7) | ❌ | ✅ | ✅ |
 
 Ces droits s'ajoutent aux rôles, ils ne les remplacent pas : un `Viewer` reste en
 lecture seule quelle que soit l'offre (`auth-securite-rgpd.md`).
@@ -339,7 +340,8 @@ que l'écran distingue un manque de droit d'offre d'un manque de rôle :
 **Exposition au frontend.** `GET /api/billing/subscription` renvoie, en plus de
 l'offre, l'offre effective et ses droits (`canViewDomainScores`,
 `visibleRecommendations` (`null` : toutes), `canTrackActions`, `canEditActionPlan`,
-`canEditIndicators`, `canViewBenchmark`, `canOpenSupportTickets`, `fullReport`, et
+`canEditIndicators`, `canViewBenchmark`, `canOpenSupportTickets`, `fullReport`,
+`canCustomizeReportLogo`, et
 `canStartDiagnostic`, calculé avec le nombre de diagnostics complétés). L'écran s'en
 sert pour masquer, désactiver et proposer l'offre supérieure ; il ne décide jamais seul.
 Les règles ne sont pas recopiées dans le frontend.
@@ -350,8 +352,7 @@ Les fonctionnalités annoncées mais pas encore construites restent dans le comp
 (`frontend/src/billing/plans.ts`) avec la mention « Bientôt » : générateur VSME,
 préparation EcoVadis et B Corp, base documentaire, module CSRD, reporting
 multi-référentiels, CDP et SFDR, alertes de conformité, historique du suivi des
-actions, collecte collaborative, API d'intégration, logo de l'entreprise dans le PDF,
-et toutes les options propres à Enterprise. Une fonctionnalité perd cette mention dans
+actions, collecte collaborative, API d'intégration, et toutes les options propres à Enterprise. Une fonctionnalité perd cette mention dans
 le commit qui la livre.
 
 ---
