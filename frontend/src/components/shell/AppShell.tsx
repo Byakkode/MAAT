@@ -7,6 +7,7 @@ import { Header } from './Header'
 import { LoginIntro } from './LoginIntro'
 import { Sidebar } from './Sidebar'
 import { SkipLink } from './SkipLink'
+import { PastDueBanner } from './PastDueBanner'
 import { VerificationBanner } from './VerificationBanner'
 
 // docs/specs/coquille-et-compte.md, section 1 : "La barre latérale et l'en-tête sont rendus
@@ -68,6 +69,7 @@ export function AppShell() {
         <Sidebar mobileOpen={mobileNavOpen} onCloseMobile={() => setMobileNavOpen(false)} />
         <div className="flex flex-1 flex-col">
           <Header onOpenMobileNav={() => setMobileNavOpen(true)} />
+          <PastDueBanner />
           <VerificationBanner />
           <main id="contenu-principal" tabIndex={-1} className="flex flex-1 flex-col p-6">
             {/* mode="wait" : la page sortante termine son exit avant que la suivante entre,

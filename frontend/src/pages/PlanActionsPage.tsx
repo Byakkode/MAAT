@@ -2,6 +2,9 @@ import { ChevronDown, ChevronUp, ClipboardList, SlidersHorizontal, X } from 'luc
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import * as actionPlanApi from '../api/actionPlanApi'
+import * as recommendationsApi from '../api/recommendationsApi'
+import { useEntitlements } from '../billing/entitlements'
+import { UpgradeNotice } from '../components/billing/UpgradeNotice'
 import type { ActionItemStatus, ActionItemWithProgress, UpsertPayload } from '../api/actionPlanApi'
 import { EFFORT_LABELS } from '../constants/effortLabels'
 import { useAuthStore } from '../store/authStore'
@@ -20,6 +23,11 @@ function formatDate(iso: string): string {
 
 function pluralize(count: number, singular: string, plural: string): string {
   return count > 1 ? plural : singular
+}
+
+function hiddenActionsTitle(hiddenCount: number): string {
+  if (hiddenCount <= 0) return "Suivez l'avancement de vos actions"
+  return `${hiddenCount} ${pluralize(hiddenCount, 'autre action recommandée', 'autres actions recommandées')} pour votre entreprise`
 }
 
 const EFFORT_BADGE_VARIANT: Record<EffortLevel, BadgeVariant> = {
@@ -65,13 +73,22 @@ const STATUS_CONFIG: Record<ActionItemStatus, { label: string; classes: string }
 
 // ─── Carte d'action expandable ────────────────────────────────────────────────
 
+// docs/specs/abonnement.md, section 8, croisé avec le rôle :
+// - full : suivi enrichi (statut, responsable, échéance, notes) — Professional ;
+// - check : case « terminée » seulement — Essential ;
+// - readonly : Starter, ou rôle Viewer quelle que soit l'offre.
+// Les détails déjà saisis restent lisibles dans tous les cas (retour d'une offre supérieure).
+export type ActionItemMode = 'full' | 'check' | 'readonly'
+
 interface ActionItemCardProps {
   item: ActionItemWithProgress
-  canEdit: boolean
+  mode: ActionItemMode
   onSave: (payload: UpsertPayload) => Promise<void>
+  onToggle: (isCompleted: boolean) => Promise<void>
 }
 
-function ActionItemCardComponent({ item, canEdit, onSave }: ActionItemCardProps) {
+function ActionItemCardComponent({ item, mode, onSave, onToggle }: ActionItemCardProps) {
+  const canEdit = mode === 'full'
   const [isOpen, setIsOpen] = useState(false)
   const [localNotes, setLocalNotes] = useState(item.notes ?? '')
   const [localAssignedTo, setLocalAssignedTo] = useState(item.assignedTo ?? '')
@@ -137,7 +154,16 @@ function ActionItemCardComponent({ item, canEdit, onSave }: ActionItemCardProps)
     void doSave({ status: cur.status, assignedTo: cur.assignedTo, dueDate: value || null, notes: cur.notes })
   }
 
-  const isDone = item.status === 'Done'
+  async function handleToggle(isCompleted: boolean) {
+    setIsSaving(true)
+    try {
+      await onToggle(isCompleted)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const isDone = mode === 'check' ? item.isCompleted : item.status === 'Done'
   const { label: statusLabel, classes: statusClasses } = STATUS_CONFIG[item.status]
   const nextStatus = STATUS_ORDER[(STATUS_ORDER.indexOf(item.status) + 1) % STATUS_ORDER.length]!
 
@@ -149,16 +175,27 @@ function ActionItemCardComponent({ item, canEdit, onSave }: ActionItemCardProps)
     >
       {/* Ligne principale */}
       <div className="flex items-start gap-3 p-4">
-        {/* Badge de statut actionnable */}
-        <button
-          type="button"
-          disabled={!canEdit || isSaving}
-          onClick={handleStatusCycle}
-          className={`mt-0.5 shrink-0 rounded-full border px-2.5 py-[3px] text-[11.5px] font-semibold transition-colors disabled:cursor-default disabled:opacity-50 ${statusClasses}`}
-          aria-label={`Statut : ${statusLabel}. Cliquer pour passer à ${STATUS_CONFIG[nextStatus].label}`}
-        >
-          {statusLabel}
-        </button>
+        {mode === 'check' ? (
+          <input
+            type="checkbox"
+            checked={item.isCompleted}
+            disabled={isSaving}
+            onChange={(e) => void handleToggle(e.target.checked)}
+            aria-label={`Action terminée : ${item.actionText}`}
+            className="mt-1 h-4 w-4 shrink-0 accent-blue-maat"
+          />
+        ) : (
+          /* Badge de statut actionnable */
+          <button
+            type="button"
+            disabled={!canEdit || isSaving}
+            onClick={handleStatusCycle}
+            className={`mt-0.5 shrink-0 rounded-full border px-2.5 py-[3px] text-[11.5px] font-semibold transition-colors disabled:cursor-default disabled:opacity-50 ${statusClasses}`}
+            aria-label={`Statut : ${statusLabel}. Cliquer pour passer à ${STATUS_CONFIG[nextStatus].label}`}
+          >
+            {statusLabel}
+          </button>
+        )}
 
         {/* Texte + badges */}
         <div className="min-w-0 flex-1">
@@ -192,13 +229,13 @@ function ActionItemCardComponent({ item, canEdit, onSave }: ActionItemCardProps)
         </div>
 
         {/* Bouton d'expansion */}
-        {canEdit && (
+        {(canEdit || item.detailText || item.assignedTo || item.dueDate || item.notes) && (
           <button
             type="button"
             onClick={() => setIsOpen(!isOpen)}
             className="shrink-0 rounded-lg border border-border p-1.5 text-text-muted transition-colors hover:border-border-strong hover:text-text"
             aria-expanded={isOpen}
-            aria-label={isOpen ? 'Réduire les détails' : 'Modifier les détails'}
+            aria-label={isOpen ? 'Réduire les détails' : canEdit ? 'Modifier les détails' : 'Voir les détails'}
           >
             {isOpen
               ? <ChevronUp size={14} strokeWidth={2} aria-hidden />
@@ -214,6 +251,31 @@ function ActionItemCardComponent({ item, canEdit, onSave }: ActionItemCardProps)
             <p className="mb-3 text-[12.5px] leading-relaxed text-text-muted">{item.detailText}</p>
           )}
 
+          {!canEdit && (
+            <dl className="grid grid-cols-1 gap-x-3 gap-y-1 text-[12.5px] sm:grid-cols-[auto_1fr]">
+              {item.assignedTo && (
+                <>
+                  <dt className="font-semibold text-text-muted">Responsable</dt>
+                  <dd className="text-text">{item.assignedTo}</dd>
+                </>
+              )}
+              {item.dueDate && (
+                <>
+                  <dt className="font-semibold text-text-muted">Échéance</dt>
+                  <dd className="text-text">{formatDate(item.dueDate)}</dd>
+                </>
+              )}
+              {item.notes && (
+                <>
+                  <dt className="font-semibold text-text-muted">Notes</dt>
+                  <dd className="whitespace-pre-line text-text">{item.notes}</dd>
+                </>
+              )}
+            </dl>
+          )}
+
+          {canEdit && (
+          <>
           <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {/* Responsable */}
             <div>
@@ -276,6 +338,8 @@ function ActionItemCardComponent({ item, canEdit, onSave }: ActionItemCardProps)
               className="w-full resize-y rounded-lg border border-border bg-bg px-3 py-2 text-[13px] leading-relaxed text-text outline-none placeholder:text-text-muted focus:border-blue-maat focus:ring-1 focus:ring-blue-maat/20"
             />
           </div>
+          </>
+          )}
         </div>
       )}
     </li>
@@ -292,6 +356,7 @@ export function PlanActionsPage() {
   const dashboardLoadStatus = useDashboardStore((s) => s.loadStatus)
   const hasCompletedDiagnostic = useDashboardStore((s) => s.hasCompletedDiagnostic)
   const latestDiagnosticId = useDashboardStore((s) => s.latestDiagnostic?.id)
+  const triggeredCount = useDashboardStore((s) => s.actionPlan.triggeredCount)
   const loadDashboard = useDashboardStore((s) => s.load)
 
   const [items, setItems] = useState<ActionItemWithProgress[]>([])
@@ -299,7 +364,12 @@ export function PlanActionsPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
 
   const role = useAuthStore((s) => s.user?.role)
-  const canEdit = role !== 'Viewer'
+  const entitlements = useEntitlements()
+  const mode: ActionItemMode =
+    role === 'Viewer' ? 'readonly'
+      : entitlements.canEditActionPlan ? 'full'
+        : entitlements.canTrackActions ? 'check'
+          : 'readonly'
 
   const [effortFilter, setEffortFilter] = useState<Set<EffortLevel>>(() => new Set())
   const [domainFilter, setDomainFilter] = useState<Set<RseDomain>>(() => new Set())
@@ -388,6 +458,25 @@ export function PlanActionsPage() {
     )
   }
 
+  // Essential : la case bascule is_completed seulement ; le statut affiché suit, sans toucher
+  // au suivi enrichi (ActionItemProgress) réservé à Professional.
+  async function handleToggle(code: string, isCompleted: boolean) {
+    if (!latestDiagnosticId) return
+    const result = await recommendationsApi.updateRecommendationProgress(latestDiagnosticId, code, isCompleted)
+    setItems((prev) =>
+      prev.map((i) =>
+        i.code === code
+          ? {
+              ...i,
+              isCompleted: result.isCompleted,
+              completedAt: result.completedAt,
+              status: result.isCompleted ? 'Done' : i.status === 'Done' ? 'Planned' : i.status,
+            }
+          : i
+      )
+    )
+  }
+
   // ── Early returns ────────────────────────────────────────────────────────────
 
   if (dashboardLoadStatus === 'idle' || dashboardLoadStatus === 'loading') {
@@ -457,6 +546,20 @@ export function PlanActionsPage() {
   return (
     <div className="flex flex-col gap-5">
       <PageHeader title="Plan d'actions" />
+
+      {mode === 'readonly' && role !== 'Viewer' && (
+        <UpgradeNotice requiredPlan="Essential" title={hiddenActionsTitle(triggeredCount - items.length)}>
+          L&apos;offre Starter présente vos trois actions prioritaires. Essential en montre douze et
+          vous permet de cocher celles que vous avez terminées.
+        </UpgradeNotice>
+      )}
+
+      {mode === 'check' && triggeredCount > items.length && (
+        <UpgradeNotice requiredPlan="Professional" title={hiddenActionsTitle(triggeredCount - items.length)}>
+          L&apos;offre Essential présente vos douze actions prioritaires. Professional les montre
+          toutes, avec un suivi détaillé : statut, responsable, échéance et notes.
+        </UpgradeNotice>
+      )}
 
       {/* Progression globale + répartition par domaine */}
       {items.length > 0 && (
@@ -638,8 +741,9 @@ export function PlanActionsPage() {
               <ActionItemCard
                 key={item.code}
                 item={item}
-                canEdit={canEdit}
+                mode={mode}
                 onSave={(payload) => handleSave(item.code, payload)}
+                onToggle={(isCompleted) => handleToggle(item.code, isCompleted)}
               />
             ))}
           </ul>

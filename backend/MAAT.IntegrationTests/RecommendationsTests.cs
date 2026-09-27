@@ -60,6 +60,13 @@ public class RecommendationsTests(RecommendationsApiFixture fixture)
         var companyId = Guid.Parse(jwt.Claims.Single(c => c.Type == "company_id").Value);
         var userId = Guid.Parse(jwt.Claims.Single(c => c.Type == "sub").Value);
 
+        // Ces tests portent sur les fonctionnalités, pas sur les limites d'offre
+        // (PlanLimitsTests) : l'entreprise a tous les droits.
+        await using (var planContext = fixture.CreateDbContext())
+        {
+            await TestSubscriptions.SetPlanAsync(planContext, companyId, SubscriptionPlan.Professional);
+        }
+
         return (companyId, userId, accessToken);
     }
 

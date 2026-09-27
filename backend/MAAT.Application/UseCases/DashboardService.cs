@@ -17,7 +17,8 @@ public class DashboardService(
     ISectorBenchmarkRepository sectorBenchmarkRepository,
     IResponseRepository responseRepository,
     IQuestionRepository questionRepository,
-    ICurrentUserContext currentUser)
+    ICurrentUserContext currentUser,
+    CurrentPlanService currentPlan)
 {
     // Seuil d'anonymat RGPD (section 5) : en-deçà, les scores redeviennent
     // ré-identifiables par recoupement.
@@ -35,10 +36,14 @@ public class DashboardService(
         LatestDiagnosticView? latestView = null;
         IReadOnlyList<DomainScoreView> domainScores = [];
         SectorBenchmarkView? benchmark = null;
-        var actionPlan = new ActionPlanView([], 0, 0);
+        var actionPlan = new ActionPlanView([], 0, 0, 0);
 
         if (latest is not null)
         {
+            // docs/specs/abonnement.md, section 8 : le contenu suit l'offre effective. Les
+            // données restent en base ; seul ce qui est renvoyé change.
+            var entitlements = await currentPlan.GetAsync(ct);
+
             var company = await companyRepository.GetByIdAsync(currentUser.CompanyId, ct)
                 ?? throw new InvalidOperationException("Entreprise du principal authentifié introuvable.");
 
@@ -47,20 +52,28 @@ public class DashboardService(
             // Chargée avant les DomainScore ci-dessous : le radar (section 3) a besoin, par
             // domaine, du nombre de recommandations déclenchées sur l'ensemble du plan — pas
             // seulement les cinq premières que ActionPlanView.Items retiendra plus bas.
-            var recommendations = await diagnosticRecommendationRepository.FindAllForDiagnosticAsync(latest.Id, ct);
+            var triggered = await diagnosticRecommendationRepository.FindAllForDiagnosticAsync(latest.Id, ct);
+            var recommendations = entitlements.TakeVisibleRecommendations(triggered);
             var triggeredCountByDomain = recommendations.GroupBy(r => r.Domain).ToDictionary(g => g.Key, g => g.Count());
 
-            var scores = await domainScoreRepository.FindAllForDiagnosticAsync(latest.Id, ct);
-            domainScores = scores
-                .Select(s => new DomainScoreView(s.Domain, s.Score, s.SectorWeight, triggeredCountByDomain.GetValueOrDefault(s.Domain)))
-                .ToList();
+            if (entitlements.CanViewDomainScores)
+            {
+                var scores = await domainScoreRepository.FindAllForDiagnosticAsync(latest.Id, ct);
+                domainScores = scores
+                    .Select(s => new DomainScoreView(s.Domain, s.Score, s.SectorWeight, triggeredCountByDomain.GetValueOrDefault(s.Domain)))
+                    .ToList();
+            }
 
-            benchmark = await BuildBenchmarkAsync(company.SectorCode, latest.GlobalScore!.Value, ct);
+            if (entitlements.CanViewBenchmark)
+            {
+                benchmark = await BuildBenchmarkAsync(company.SectorCode, latest.GlobalScore!.Value, ct);
+            }
 
             actionPlan = new ActionPlanView(
                 recommendations.Take(ActionPlanItemsShown).ToList(),
                 recommendations.Count,
-                recommendations.Count(r => r.IsCompleted));
+                recommendations.Count(r => r.IsCompleted),
+                triggered.Count);
         }
 
         var inProgressView = await BuildInProgressViewAsync(ct);

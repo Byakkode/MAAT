@@ -23,7 +23,7 @@ const emptyDashboard: DashboardView = {
   domainScores: [],
   history: [],
   benchmark: null,
-  actionPlan: { items: [], totalCount: 0, completedCount: 0 },
+  actionPlan: { items: [], totalCount: 0, completedCount: 0, triggeredCount: 0 },
   inProgressDiagnostic: null,
 }
 

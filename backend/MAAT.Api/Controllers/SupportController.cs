@@ -1,4 +1,6 @@
 using MAAT.Application.Interfaces;
+using MAAT.Application.UseCases;
+using MAAT.Domain.Enums;
 using MAAT.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -42,6 +44,7 @@ file sealed record TicketDetailResponse(
 public class SupportController(
     IGitHubIssueService gitHubIssueService,
     ISupportTicketRepository ticketRepository,
+    CurrentPlanService currentPlan,
     ILogger<SupportController> logger) : ControllerBase
 {
     private static readonly HashSet<string> AllowedExtensions =
@@ -55,6 +58,10 @@ public class SupportController(
     [EnableRateLimiting("ticket-creation")]
     public async Task<IActionResult> CreateTicket([FromForm] CreateTicketRequest request, CancellationToken ct)
     {
+        // docs/specs/abonnement.md, section 8 : ouvrir un ticket est inclus à partir d'Essential.
+        // Les tickets déjà ouverts restent consultables (GetTickets, sans restriction d'offre).
+        await currentPlan.EnsureAsync(e => e.CanOpenSupportTickets, SubscriptionPlan.Essential, ct);
+
         var files = request.Attachments ?? [];
 
         if (files.Count > 5)

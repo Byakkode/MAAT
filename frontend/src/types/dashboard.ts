@@ -66,10 +66,13 @@ export interface DashboardRecommendation {
 // totalCount et completedCount portent sur l'intégralité du plan, pas seulement sur items (au
 // plus cinq, section 6) : « 3 actions terminées sur 24 » doit rester vrai même si les trois
 // terminées ne sont pas parmi les cinq affichées.
+// totalCount et completedCount portent sur les recommandations visibles selon l'offre ;
+// triggeredCount sur toutes celles déclenchées (docs/specs/abonnement.md, section 8).
 export interface ActionPlan {
   items: DashboardRecommendation[]
   totalCount: number
   completedCount: number
+  triggeredCount: number
 }
 
 export interface InProgressDiagnostic {

@@ -24,6 +24,8 @@ import * as supportApi from '../api/supportApi'
 import type { TicketDetail, TicketSummary, TicketType } from '../api/supportApi'
 import { Card } from '../components/ui/Card'
 import { PageHeader } from '../components/ui/PageHeader'
+import { useEntitlements } from '../billing/entitlements'
+import { UpgradeNotice } from '../components/billing/UpgradeNotice'
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -559,7 +561,10 @@ function NewTicketForm({ onSuccess }: { onSuccess: () => void }) {
 type Tab = 'form' | 'list'
 
 export function SupportPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('form')
+  // docs/specs/abonnement.md, section 8 : ouvrir un ticket est inclus à partir d'Essential ;
+  // les tickets déjà ouverts restent consultables.
+  const { canOpenSupportTickets } = useEntitlements()
+  const [activeTab, setActiveTab] = useState<Tab>(canOpenSupportTickets ? 'form' : 'list')
 
   function handleSuccess() {
     setActiveTab('list')
@@ -595,7 +600,14 @@ export function SupportPage() {
         </button>
       </div>
 
-      {activeTab === 'form' && <NewTicketForm onSuccess={handleSuccess} />}
+      {activeTab === 'form' && (canOpenSupportTickets ? (
+        <NewTicketForm onSuccess={handleSuccess} />
+      ) : (
+        <UpgradeNotice requiredPlan="Essential" title="Contactez notre équipe">
+          Posez vos questions sur la plateforme ou sur votre démarche RSE : réponse par e-mail sous
+          48 heures.
+        </UpgradeNotice>
+      ))}
       {activeTab === 'list' && <TicketListView onNewTicket={() => setActiveTab('form')} />}
     </div>
   )

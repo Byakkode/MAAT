@@ -35,6 +35,10 @@ Contenu de la réponse :
 
 Scopé par entreprise selon le patron établi. Accessible aux trois rôles.
 
+Le contenu suit l'offre effective (`abonnement.md`, section 8) : scores de domaine
+absents en Starter, benchmark réservé à Professional, recommandations limitées aux 3
+(Starter) ou 12 (Essential) premières, toutes en Professional, dont les cinq premières alimentent le bloc Plan d'actions.
+
 **Trois états distincts** à traiter explicitement, et non comme des cas d'erreur :
 
 | État | Réponse |

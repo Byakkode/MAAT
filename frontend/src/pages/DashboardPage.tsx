@@ -1,6 +1,8 @@
 import { BarChart2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useEntitlements } from '../billing/entitlements'
+import { UpgradeNotice } from '../components/billing/UpgradeNotice'
 import { ActionPlanCard } from '../components/dashboard/ActionPlanCard'
 import { DomainRadarChart } from '../components/dashboard/DomainRadarChart'
 import { DomainScoreCard } from '../components/dashboard/DomainScoreCard'
@@ -18,6 +20,7 @@ import { DOMAIN_ORDER } from '../types/questionnaire'
 import type { SectorBenchmark } from '../types/dashboard'
 import { useAuthStore } from '../store/authStore'
 import { useDashboardStore } from '../store/dashboardStore'
+import { useSubscriptionStore } from '../store/subscriptionStore'
 import { getScoreLabel, roundScoreForDisplay } from '../constants/scoreLabels'
 
 // docs/specs/dashboard.md, section 1 : trois états traités comme des écrans à part entière.
@@ -41,9 +44,16 @@ export function DashboardPage() {
   const role = useAuthStore((s) => s.user?.role)
   const canEditActionPlan = role !== 'Viewer'
 
+  // docs/specs/abonnement.md, section 8 : l'API ne renvoie déjà que ce que l'offre inclut ;
+  // les droits servent à expliquer ce qui manque plutôt qu'à le masquer.
+  const entitlements = useEntitlements()
+  const loadSubscription = useSubscriptionStore((s) => s.load)
+
   useEffect(() => {
     void load()
-  }, [load])
+    // Relu ici aussi : un diagnostic tout juste complété change canStartDiagnostic.
+    void loadSubscription()
+  }, [load, loadSubscription])
 
   if (loadStatus === 'idle' || loadStatus === 'loading') {
     return (
@@ -151,7 +161,17 @@ export function DashboardPage() {
           delay={0}
         />
 
-        <BenchmarkTile benchmark={benchmark} sectorCode={latestDiagnostic.sectorCode} />
+        {entitlements.canViewBenchmark ? (
+          <BenchmarkTile benchmark={benchmark} sectorCode={latestDiagnostic.sectorCode} />
+        ) : (
+          <KpiCard
+            title="Benchmark sectoriel"
+            value="—"
+            subtitle="Inclus dans l'offre Professional"
+            accent="neutral"
+            delay={0.08}
+          />
+        )}
 
         <KpiCard
           title="Plan d'actions"
@@ -171,30 +191,40 @@ export function DashboardPage() {
       </div>
 
       {/* Ligne 2 : scores par domaine */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:grid-cols-5">
-        {orderedDomainScores.map((ds, i) => (
-          <DomainScoreCard
-            key={ds.domain}
-            domainScore={ds}
-            delay={0.05 * i}
-          />
-        ))}
-      </div>
+      {entitlements.canViewDomainScores && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+          {orderedDomainScores.map((ds, i) => (
+            <DomainScoreCard
+              key={ds.domain}
+              domainScore={ds}
+              delay={0.05 * i}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Ligne 3 : radar + table | évolution + plan d'actions */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[3fr_2fr]">
-        <Card as="section">
-          <DomainRadarChart domainScores={domainScores} />
-          <div className="mt-5 border-t border-border pt-4">
-            <DomainScoreTable domainScores={domainScores} />
-          </div>
-        </Card>
+        {entitlements.canViewDomainScores ? (
+          <Card as="section">
+            <DomainRadarChart domainScores={domainScores} />
+            <div className="mt-5 border-t border-border pt-4">
+              <DomainScoreTable domainScores={domainScores} />
+            </div>
+          </Card>
+        ) : (
+          <UpgradeNotice requiredPlan="Essential" title="Votre score par domaine">
+            Le détail de votre score sur les cinq domaines RSE (environnement, social, éthique,
+            achats responsables, gouvernance) : radar, points forts et axes de progrès.
+          </UpgradeNotice>
+        )}
 
         <div className="flex flex-col gap-4">
           <EvolutionChart history={history} />
           <ActionPlanCard
             actionPlan={actionPlan}
             canEdit={canEditActionPlan}
+            canTrack={entitlements.canTrackActions}
             togglingCode={togglingCode}
             onToggle={(code, isCompleted) => void toggleRecommendation(latestDiagnostic.id, code, isCompleted)}
           />

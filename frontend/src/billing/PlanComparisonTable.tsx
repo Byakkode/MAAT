@@ -82,6 +82,11 @@ export function PlanComparisonTable({ period, renderAction }: PlanComparisonTabl
               <tr key={feature.label} className="border-t border-border">
                 <th scope="row" className="px-6 py-4 text-[14.5px] font-normal text-text">
                   {feature.label}
+                  {feature.comingSoon && (
+                    <span className="ml-2 inline-block rounded-full bg-kpi-amber px-2 py-0.5 align-middle text-[11.5px] font-medium text-amber">
+                      Bientôt
+                    </span>
+                  )}
                 </th>
                 {PLANS.map((plan) => (
                   <td key={plan.id} className={`border-l border-border px-4 py-4 text-center ${highlight(plan)}`}>

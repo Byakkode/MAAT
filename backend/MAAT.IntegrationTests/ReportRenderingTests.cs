@@ -158,4 +158,29 @@ public class ReportRenderingTests
 
         Assert.Equal(generator.Generate(Rich()), generator.Generate(Rich()));
     }
+
+    // docs/specs/abonnement.md, cas 31 : rapport de l'offre Starter, tel que DiagnosticService
+    // le transmet (ni scores de domaine, ni plan d'actions, ni indicateurs). Une seule page,
+    // plus courte que le rapport complet, et déterministe comme lui.
+    [Fact]
+    public void Cas31_Rapport_Starter_reduit_a_la_page_de_garde_et_aux_mentions()
+    {
+        var starter = Rich() with
+        {
+            DomainScores = [],
+            Recommendations = [],
+            TotalRecommendationCount = 0,
+            ActionStatusSummary = new ReportActionStatusSummary(0, 0, 0, 0),
+            PreviousDomainScores = null,
+            Indicators = null,
+            FullReport = false,
+        };
+        var generator = new QuestPdfReportGenerator();
+
+        var bytes = generator.Generate(starter);
+
+        AssertValidPdf(bytes);
+        Assert.True(bytes.Length < generator.Generate(Rich()).Length);
+        Assert.Equal(bytes, generator.Generate(starter));
+    }
 }

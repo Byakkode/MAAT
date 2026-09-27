@@ -60,7 +60,7 @@ test('compte sans diagnostic complété → Plan d’actions affiche une invitat
   await expect(page.getByRole('heading', { name: 'Questionnaire' })).toBeVisible()
 })
 
-test('diagnostic complété avec des réponses faibles → recommandations visibles et actionnables', async ({ page }) => {
+test('Starter : diagnostic complété avec des réponses faibles → trois actions en lecture seule, nouveau diagnostic bloqué', async ({ page }) => {
   // Même raison que questionnaire.spec.ts : 45 questions, chacune un cycle debounce (500 ms) +
   // aller-retour réseau ; ce test répond en plus à toutes, comme celui-là, puis exerce l'écran
   // Plan d'actions par-dessus.
@@ -150,26 +150,23 @@ test('diagnostic complété avec des réponses faibles → recommandations visib
   await page.getByRole('link', { name: "Plan d'actions", exact: true }).click()
   await expect(page.getByRole('heading', { name: "Plan d'actions" })).toBeVisible()
 
-  // Écran non vide : au moins une recommandation, jamais un écran blanc pour ce compte.
-  // Les actions utilisent un bouton de statut cyclique (4 états : Planifié → En cours →
-  // Bloqué → Terminé), pas de case à cocher binaire.
-  // timeout: 15 000 ms — en CI la page attend la réponse réseau du GET action-plan avant
-  // d'afficher les boutons ; count() est volontairement absent : c'est un snapshot
-  // non-retrying, flaky quand React est encore en train de réconcilier au même moment.
+  // docs/specs/abonnement.md, section 8 : compte Starter. Les trois premières actions du
+  // classement, en lecture seule (le suivi est réservé aux offres payantes), et l'invitation à
+  // l'offre supérieure qui annonce les actions masquées. Le suivi enrichi (statut cyclique)
+  // relève de Professional, que ce parcours ne peut pas atteindre sans paiement Stripe : il est
+  // couvert par PlanLimitsTests (API) et planLimits.test.tsx (écran).
+  // timeout: 15 000 ms — la page attend la réponse réseau du GET action-plan avant d'afficher
+  // les boutons ; count() est volontairement absent (snapshot non-retrying).
   const statusButtons = page.getByRole('button', { name: /Statut :/ })
   await expect(statusButtons.first()).toBeVisible({ timeout: 15_000 })
+  await expect(statusButtons).toHaveCount(3)
+  await expect(statusButtons.first()).toBeDisabled()
+  await expect(page.getByText(/autres actions recommandées pour votre entreprise/)).toBeVisible()
+  await expect(page.getByText(/Inclus à partir de l'offre Essential/).first()).toBeVisible()
 
-  // Fait passer la première action jusqu'à "Terminé" (3 clics) et vérifie que l'état survit
-  // à un rechargement complet — persisté côté serveur (PATCH + re-fetch), pas état React local.
-  // toHaveAccessibleName attend le re-rendu après chaque sauvegarde avant le clic suivant.
-  const firstItem = page.locator('li').filter({ has: statusButtons.first() })
-  for (const expectedLabel of [/Statut : En cours/, /Statut : Bloqué/, /Statut : Terminé/]) {
-    await statusButtons.first().click()
-    await expect(statusButtons.first()).toHaveAccessibleName(expectedLabel, { timeout: 10_000 })
-  }
-  await expect(firstItem.getByText(/Terminée le/)).toBeVisible()
-
-  await page.reload()
-  await expect(page.getByRole('heading', { name: "Plan d'actions" })).toBeVisible()
-  await expect(page.getByRole('button', { name: /Statut : Terminé/ }).first()).toBeVisible()
+  // L'unique évaluation du Starter est consommée : le questionnaire n'en propose plus.
+  await page.getByRole('link', { name: 'Diagnostic', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Questionnaire RSE' })).toBeVisible()
+  await expect(page.getByText('Vous avez réalisé votre diagnostic')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Démarrer un diagnostic' })).toHaveCount(0)
 })

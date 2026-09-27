@@ -7,6 +7,7 @@ vi.mock('../api/billingApi', () => billingApi)
 
 import { SubscriptionGate } from './SubscriptionGate'
 import { useSubscriptionStore } from '../store/subscriptionStore'
+import { makeSubscription, STARTER_ENTITLEMENTS } from '../test/subscriptionFixtures'
 
 function renderGate() {
   return render(
@@ -61,7 +62,7 @@ describe('SubscriptionGate', () => {
   // Un état « chargé » laissé par l'écran précédent ne doit pas afficher la coquille avant
   // le rechargement (elle serait démontée aussitôt).
   it('attend son propre chargement avant de décider', () => {
-    useSubscriptionStore.setState({ status: 'loaded', subscription: { plan: 'Starter', billingPeriod: null, status: 'Active', hasBillingAccount: false } })
+    useSubscriptionStore.setState({ status: 'loaded', subscription: makeSubscription({ plan: 'Starter', billingPeriod: null, hasBillingAccount: false, effectivePlan: 'Starter', entitlements: STARTER_ENTITLEMENTS }) })
     billingApi.getSubscription.mockReturnValue(new Promise(() => {}))
     renderGate()
 

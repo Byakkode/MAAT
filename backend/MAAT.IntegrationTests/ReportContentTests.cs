@@ -80,6 +80,14 @@ public class ReportContentTests(ReportContentApiFixture fixture)
 
         var jwt = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(accessToken);
         var userId = Guid.Parse(jwt.Claims.Single(c => c.Type == "sub").Value);
+        var companyId = Guid.Parse(jwt.Claims.Single(c => c.Type == "company_id").Value);
+        // Ces tests portent sur les fonctionnalités, pas sur les limites d'offre
+        // (PlanLimitsTests) : l'entreprise a tous les droits.
+        await using (var planContext = fixture.CreateDbContext())
+        {
+            await TestSubscriptions.SetPlanAsync(planContext, companyId, SubscriptionPlan.Professional);
+        }
+
         return (userId, accessToken);
     }
 

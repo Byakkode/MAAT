@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { UpgradeNotice } from '../billing/UpgradeNotice'
 import { EFFORT_LABELS } from '../../constants/effortLabels'
 import { DOMAIN_LABELS } from '../../types/questionnaire'
 import type { ActionPlan, EffortLevel } from '../../types/dashboard'
@@ -9,12 +10,18 @@ interface ActionPlanCardProps {
   actionPlan: ActionPlan
   // Admin/User : cases actionnables. Viewer : présentes, jamais actionnables (cas 19).
   canEdit: boolean
+  // docs/specs/abonnement.md, section 8 : false en Starter, cases en lecture seule.
+  canTrack?: boolean
   togglingCode: string | null
   onToggle: (code: string, isCompleted: boolean) => void
 }
 
 function pluralize(count: number, singular: string, plural: string): string {
   return count > 1 ? plural : singular
+}
+
+function hiddenActionsLabel(hiddenCount: number): string {
+  return `${hiddenCount} ${pluralize(hiddenCount, 'autre action recommandée', 'autres actions recommandées')} pour votre entreprise`
 }
 
 const EFFORT_BADGE_VARIANT: Record<EffortLevel, BadgeVariant> = {
@@ -24,7 +31,8 @@ const EFFORT_BADGE_VARIANT: Record<EffortLevel, BadgeVariant> = {
 }
 
 // docs/specs/dashboard.md, section 6.
-export function ActionPlanCard({ actionPlan, canEdit, togglingCode, onToggle }: ActionPlanCardProps) {
+export function ActionPlanCard({ actionPlan, canEdit, canTrack = true, togglingCode, onToggle }: ActionPlanCardProps) {
+  const hiddenCount = actionPlan.triggeredCount - actionPlan.totalCount
   const progressPercent =
     actionPlan.totalCount > 0
       ? Math.round((actionPlan.completedCount / actionPlan.totalCount) * 100)
@@ -61,7 +69,7 @@ export function ActionPlanCard({ actionPlan, canEdit, togglingCode, onToggle }: 
                 type="checkbox"
                 id={`action-plan-${item.code}`}
                 checked={item.isCompleted}
-                disabled={!canEdit || togglingCode === item.code}
+                disabled={!canEdit || !canTrack || togglingCode === item.code}
                 onChange={(event) => onToggle(item.code, event.target.checked)}
                 className="mt-0.5 h-4 w-4 shrink-0 accent-blue-maat"
               />
@@ -84,6 +92,25 @@ export function ActionPlanCard({ actionPlan, canEdit, togglingCode, onToggle }: 
       <p className="mt-3 text-xs text-text-muted">
         Cocher une action ne modifie pas le score. Prise en compte au prochain diagnostic.
       </p>
+
+      {/* docs/specs/abonnement.md, section 8 : trois paliers (3, 12, toutes). Starter : l'offre
+          supérieure débloque le suivi et davantage d'actions ; Essential : les actions
+          au-delà des douze premières. */}
+      {!canTrack ? (
+        <div className="mt-3">
+          <UpgradeNotice
+            compact
+            requiredPlan="Essential"
+            title={hiddenCount > 0 ? hiddenActionsLabel(hiddenCount) : 'Suivi de vos actions'}
+          >
+            Cochez les actions terminées pour suivre votre progression.
+          </UpgradeNotice>
+        </div>
+      ) : hiddenCount > 0 && (
+        <div className="mt-3">
+          <UpgradeNotice compact requiredPlan="Professional" title={hiddenActionsLabel(hiddenCount)} />
+        </div>
+      )}
 
       <Link to="/plan-actions" className="mt-2 inline-block text-sm font-medium text-blue-maat-text hover:underline">
         Voir tout le plan d&apos;actions →

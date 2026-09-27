@@ -78,8 +78,15 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
         var view = new ReportView(data);
         var document = Document.Create(container =>
         {
-            ComposeCoverPage(container, view);
-            ComposeBodyPages(container, view);
+            if (data.FullReport)
+            {
+                ComposeCoverPage(container, view);
+                ComposeBodyPages(container, view);
+            }
+            else
+            {
+                ComposeStarterPage(container, view);
+            }
         }).WithMetadata(metadata);
 
         return document.GeneratePdf();
@@ -109,15 +116,45 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
                 column.Item().PaddingHorizontal(CoverGutter).PaddingTop(26).Element(ComposeTableOfContents);
             });
 
-            page.Footer().PaddingHorizontal(CoverGutter).PaddingBottom(26).Column(footer =>
+            page.Footer().Element(c => ComposeCoverFooter(c, view));
+        });
+    }
+
+    // docs/specs/abonnement.md, section 8 : rapport de l'offre Starter, une seule page. Identité
+    // de l'entreprise et score global, puis les Mentions, obligatoires quelle que soit l'offre.
+    // Ni profil des domaines ni cartes de synthèse : ils en dérivent, et ne font pas partie de
+    // l'offre (ReportData ne les transmet d'ailleurs pas).
+    private static void ComposeStarterPage(IDocumentContainer container, ReportView view)
+    {
+        container.Page(page =>
+        {
+            page.Size(PageSizes.A4);
+            page.Margin(0);
+            page.PageColor(T.Surface);
+            page.DefaultTextStyle(x => x.FontFamily(FontFamilies.Inter).FontSize(10).FontColor(T.Ink));
+
+            page.Content().ScaleToFit().Column(column =>
             {
-                footer.Item().PaddingBottom(8).LineHorizontal(0.75f).LineColor(T.Border);
-                footer.Item().Row(row =>
-                {
-                    row.RelativeItem().Text(FooterDisclaimer).FontFamily(FontFamilies.InterLight).FontSize(7.5f).FontColor(T.InkMuted);
-                    row.AutoItem().Text($"Généré le {FrenchFormat.LongDate(view.Data.GeneratedAt)}")
-                        .FontFamily(FontFamilies.InterLight).FontSize(7.5f).FontColor(T.InkMuted);
-                });
+                column.Item().Element(c => ComposeCoverBand(c, view));
+                column.Item().PaddingHorizontal(CoverGutter).PaddingTop(28).AlignCenter().Width(196)
+                    .Element(c => ComposeGlobalScoreCard(c, view));
+                column.Item().PaddingHorizontal(CoverGutter).PaddingTop(28).Element(c => ComposeMentions(c, view));
+            });
+
+            page.Footer().Element(c => ComposeCoverFooter(c, view));
+        });
+    }
+
+    private static void ComposeCoverFooter(IContainer container, ReportView view)
+    {
+        container.PaddingHorizontal(CoverGutter).PaddingBottom(26).Column(footer =>
+        {
+            footer.Item().PaddingBottom(8).LineHorizontal(0.75f).LineColor(T.Border);
+            footer.Item().Row(row =>
+            {
+                row.RelativeItem().Text(FooterDisclaimer).FontFamily(FontFamilies.InterLight).FontSize(7.5f).FontColor(T.InkMuted);
+                row.AutoItem().Text($"Généré le {FrenchFormat.LongDate(view.Data.GeneratedAt)}")
+                    .FontFamily(FontFamilies.InterLight).FontSize(7.5f).FontColor(T.InkMuted);
             });
         });
     }
@@ -185,34 +222,7 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
         {
             row.Spacing(16);
 
-            // Jauge du score global.
-            row.ConstantItem(196).Element(Card).Column(column =>
-            {
-                column.Item().Text("Score global").FontFamily(FontFamilies.PoppinsSemiBold).FontSize(10.5f);
-                column.Item().PaddingTop(12).AlignCenter().Width(132).Height(132).Layers(layers =>
-                {
-                    layers.PrimaryLayer().Svg(ReportCharts.ScoreGauge(data.GlobalScore, "#1565FF", "#EFF6FF", 132, 12));
-                    layers.Layer().AlignCenter().AlignMiddle().Column(center =>
-                    {
-                        center.Item().AlignCenter().Text(FrenchFormat.Score(data.GlobalScore))
-                            .FontFamily(FontFamilies.PoppinsBold).FontSize(38).FontColor(T.Ink).LineHeight(1f);
-                        center.Item().AlignCenter().Text("sur 100").FontFamily(FontFamilies.InterLight).FontSize(8.5f).FontColor(T.InkMuted);
-                    });
-                });
-                column.Item().PaddingTop(12).AlignCenter()
-                    .Background(T.KpiBlue).CornerRadius(10).PaddingVertical(3).PaddingHorizontal(10)
-                    .Text(data.GlobalScoreLabel).FontFamily(FontFamilies.PoppinsSemiBold).FontSize(9).FontColor(T.BlueText);
-
-                if (view.GlobalDelta is { } delta)
-                {
-                    column.Item().PaddingTop(8).AlignCenter().Text(text =>
-                    {
-                        text.AlignCenter();
-                        text.Span($"{FrenchFormat.SignedPoints(delta)} pts").FontFamily(FontFamilies.PoppinsSemiBold).FontSize(8.5f).FontColor(DeltaColor(delta));
-                        text.Span($" depuis {FrenchFormat.MonthYear(view.PreviousCompletedAt!.Value)}").FontSize(8.5f).FontColor(T.InkMuted);
-                    });
-                }
-            });
+            row.ConstantItem(196).Element(c => ComposeGlobalScoreCard(c, view));
 
             // Profil par domaine.
             row.RelativeItem().Element(Card).Column(column =>
@@ -241,6 +251,40 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
                     }
                 });
             });
+        });
+    }
+
+    // Jauge du score global, avec son libellé et l'écart depuis le diagnostic précédent.
+    private static void ComposeGlobalScoreCard(IContainer container, ReportView view)
+    {
+        var data = view.Data;
+
+        container.Element(Card).Column(column =>
+        {
+            column.Item().Text("Score global").FontFamily(FontFamilies.PoppinsSemiBold).FontSize(10.5f);
+            column.Item().PaddingTop(12).AlignCenter().Width(132).Height(132).Layers(layers =>
+            {
+                layers.PrimaryLayer().Svg(ReportCharts.ScoreGauge(data.GlobalScore, "#1565FF", "#EFF6FF", 132, 12));
+                layers.Layer().AlignCenter().AlignMiddle().Column(center =>
+                {
+                    center.Item().AlignCenter().Text(FrenchFormat.Score(data.GlobalScore))
+                        .FontFamily(FontFamilies.PoppinsBold).FontSize(38).FontColor(T.Ink).LineHeight(1f);
+                    center.Item().AlignCenter().Text("sur 100").FontFamily(FontFamilies.InterLight).FontSize(8.5f).FontColor(T.InkMuted);
+                });
+            });
+            column.Item().PaddingTop(12).AlignCenter()
+                .Background(T.KpiBlue).CornerRadius(10).PaddingVertical(3).PaddingHorizontal(10)
+                .Text(data.GlobalScoreLabel).FontFamily(FontFamilies.PoppinsSemiBold).FontSize(9).FontColor(T.BlueText);
+
+            if (view.GlobalDelta is { } delta)
+            {
+                column.Item().PaddingTop(8).AlignCenter().Text(text =>
+                {
+                    text.AlignCenter();
+                    text.Span($"{FrenchFormat.SignedPoints(delta)} pts").FontFamily(FontFamilies.PoppinsSemiBold).FontSize(8.5f).FontColor(DeltaColor(delta));
+                    text.Span($" depuis {FrenchFormat.MonthYear(view.PreviousCompletedAt!.Value)}").FontSize(8.5f).FontColor(T.InkMuted);
+                });
+            }
         });
     }
 

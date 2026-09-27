@@ -28,6 +28,7 @@ public class DiagnosticService(
     IReportGenerator reportGenerator,
     IActionItemProgressRepository actionItemProgressRepository,
     IRseIndicatorsRepository rseIndicatorsRepository,
+    CurrentPlanService currentPlan,
     TimeProvider timeProvider)
 {
     // docs/specs/rapport-pdf.md, section 4, bloc « Mentions » : version du référentiel de
@@ -51,6 +52,15 @@ public class DiagnosticService(
         if (existing is not null)
         {
             throw new DiagnosticAlreadyInProgressException(existing.Id);
+        }
+
+        // docs/specs/abonnement.md, section 8 : Starter = un seul diagnostic complété. Contrôlé
+        // à la création seulement : un diagnostic déjà en cours lors d'un retour à Starter
+        // peut être terminé.
+        var entitlements = await currentPlan.GetAsync(ct);
+        if (!await currentPlan.CanStartDiagnosticAsync(entitlements, ct))
+        {
+            throw new PlanRequiredException(SubscriptionPlan.Essential);
         }
 
         var diagnostic = await diagnosticRepository.CreateAsync(ct);
@@ -251,8 +261,11 @@ public class DiagnosticService(
             .ToList();
     }
 
-    public Task<DomainScore?> GetDomainScoreAsync(Guid diagnosticId, RseDomain domain, CancellationToken ct) =>
-        domainScoreRepository.FindAsync(diagnosticId, domain, ct);
+    public async Task<DomainScore?> GetDomainScoreAsync(Guid diagnosticId, RseDomain domain, CancellationToken ct)
+    {
+        await currentPlan.EnsureAsync(e => e.CanViewDomainScores, SubscriptionPlan.Essential, ct);
+        return await domainScoreRepository.FindAsync(diagnosticId, domain, ct);
+    }
 
     public Task<Report?> GetReportByIdAsync(Guid reportId, CancellationToken ct) =>
         reportRepository.FindByIdAsync(reportId, ct);
@@ -262,7 +275,11 @@ public class DiagnosticService(
     // GetQuestionsWithAnswersAsync. Null si le diagnostic n'existe pas / n'appartient pas à
     // l'entreprise courante (404) ; liste vide un résultat valide (aucun déclenchement,
     // cas 5).
-    public async Task<IReadOnlyList<DiagnosticRecommendationView>?> GetRecommendationsAsync(Guid diagnosticId, CancellationToken ct)
+    //
+    // docs/specs/abonnement.md, section 8 : seules les N premières par priority_rank selon
+    // l'offre, avec le nombre total déclenché pour que l'écran annonce ce que l'offre
+    // supérieure débloquerait. Toutes restent persistées.
+    public async Task<VisibleRecommendations?> GetRecommendationsAsync(Guid diagnosticId, CancellationToken ct)
     {
         var diagnostic = await diagnosticRepository.FindByIdAsync(diagnosticId, ct);
         if (diagnostic is null)
@@ -270,7 +287,9 @@ public class DiagnosticService(
             return null;
         }
 
-        return await diagnosticRecommendationRepository.FindAllForDiagnosticAsync(diagnosticId, ct);
+        var entitlements = await currentPlan.GetAsync(ct);
+        var all = await diagnosticRecommendationRepository.FindAllForDiagnosticAsync(diagnosticId, ct);
+        return new VisibleRecommendations(entitlements.TakeVisibleRecommendations(all), all.Count);
     }
 
     // section 5 : bascule is_completed / completed_at. Autorisée même sur un diagnostic
@@ -278,9 +297,13 @@ public class DiagnosticService(
     // questionnaire.md section 1 (on modifie le suivi, jamais les réponses ni le score,
     // cas 20). Null si le diagnostic n'existe pas, si le code de recommandation n'existe
     // pas, ou s'il n'a jamais été déclenché pour ce diagnostic — 404 dans les trois cas.
+    // Une recommandation hors des N visibles de l'offre (abonnement.md, section 8) est traitée
+    // de même : ce que l'écran ne montre pas n'existe pas pour l'appelant.
     public async Task<DiagnosticRecommendation?> UpdateRecommendationProgressAsync(
         Guid diagnosticId, string recommendationCode, bool isCompleted, CancellationToken ct)
     {
+        var entitlements = await currentPlan.EnsureAsync(e => e.CanTrackActions, SubscriptionPlan.Essential, ct);
+
         var diagnostic = await diagnosticRepository.FindByIdAsync(diagnosticId, ct);
         if (diagnostic is null)
         {
@@ -294,7 +317,7 @@ public class DiagnosticService(
         }
 
         var entry = await diagnosticRecommendationRepository.FindAsync(diagnosticId, recommendation.Id, ct);
-        if (entry is null)
+        if (entry is null || !entitlements.IsRecommendationVisible(entry.PriorityRank))
         {
             return null;
         }
@@ -333,6 +356,11 @@ public class DiagnosticService(
         var company = await companyRepository.GetByIdAsync(diagnostic.CompanyId, ct)
             ?? throw new InvalidOperationException("Entreprise du diagnostic introuvable.");
 
+        // docs/specs/abonnement.md, section 8 : l'offre effective fait partie des données
+        // d'entrée du document (rapport-pdf.md, section 3). En Starter, rien de ce que l'offre
+        // n'inclut n'est transmis au générateur.
+        var entitlements = await currentPlan.GetAsync(ct);
+
         var globalScore = diagnostic.GlobalScore
             ?? throw new InvalidOperationException("Un diagnostic Completed doit porter un score global.");
         var completedAt = diagnostic.CompletedAt
@@ -350,7 +378,9 @@ public class DiagnosticService(
         // Déjà triées par priority_rank par le dépôt (section 4 : jamais un recalcul, cas 12
         // de recommandations.md) ; is_active ignoré, comme pour la consultation du plan
         // d'actions (une recommandation désactivée après coup reste dans le rapport).
-        var allRecommendations = await diagnosticRecommendationRepository.FindAllForDiagnosticAsync(diagnosticId, ct);
+        var allRecommendations = entitlements.FullReport
+            ? entitlements.TakeVisibleRecommendations(await diagnosticRecommendationRepository.FindAllForDiagnosticAsync(diagnosticId, ct))
+            : new List<DiagnosticRecommendationView>();
         var progressByCode = await actionItemProgressRepository.GetMapByDiagnosticAsync(diagnosticId, ct);
         var allReportRecommendations = allRecommendations
             .Select(r =>
@@ -381,7 +411,7 @@ public class DiagnosticService(
             globalScore,
             ScoreLabel.For(roundedGlobalScore),
             diagnostic.DefaultSectorWeightingApplied,
-            reportDomainScores,
+            entitlements.FullReport ? reportDomainScores : [],
             [.. allReportRecommendations.Take(MaxReportRecommendations)],
             allRecommendations.Count,
             new ReportActionStatusSummary(
@@ -390,10 +420,11 @@ public class DiagnosticService(
                 allReportRecommendations.Count(r => r.Status == ActionItemStatus.Blocked),
                 allReportRecommendations.Count(r => r.Status == ActionItemStatus.Done)),
             history,
-            previousDomainScores,
-            await BuildReportIndicatorsAsync(company.Id, completedAt.Year, ct),
+            entitlements.FullReport ? previousDomainScores : null,
+            entitlements.FullReport ? await BuildReportIndicatorsAsync(company.Id, completedAt.Year, ct) : null,
             timeProvider.GetUtcNow(),
-            ReferentialVersion);
+            ReferentialVersion,
+            entitlements.FullReport);
 
         // Peut lever : aucune ligne Report ne doit alors être écrite (cas 8), d'où l'appel
         // avant AddAsync/SaveChangesAsync ci-dessous plutôt qu'après.

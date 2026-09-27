@@ -15,3 +15,7 @@ public sealed record DiagnosticRecommendationView(
     int PriorityRank,
     bool IsCompleted,
     DateTimeOffset? CompletedAt);
+
+// docs/specs/abonnement.md, section 8 : les recommandations que l'offre laisse voir (les N
+// premières par priority_rank) et le nombre total déclenché pour ce diagnostic.
+public sealed record VisibleRecommendations(IReadOnlyList<DiagnosticRecommendationView> Items, int TotalCount);
