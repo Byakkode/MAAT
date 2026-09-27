@@ -164,7 +164,7 @@ export const FEATURE_GROUPS: { title: string; features: Feature[] }[] = [
         cells: { starter: false, essential: { note: 'Actions terminées' }, professional: true, enterprise: true },
       },
       { label: 'Indicateurs RSE chiffrés, suivis d’une année sur l’autre', cells: { starter: false, essential: false, professional: true, enterprise: true } },
-      { label: 'Historique du suivi des actions', cells: { starter: false, essential: false, professional: true, enterprise: true }, comingSoon: true },
+      { label: 'Historique du suivi des actions', cells: { starter: false, essential: false, professional: true, enterprise: true } },
       {
         label: 'Collecte collaborative multi-contributeurs',
         cells: { starter: false, essential: false, professional: { note: '5 utilisateurs' }, enterprise: { note: 'Illimités, rôles avancés' } },

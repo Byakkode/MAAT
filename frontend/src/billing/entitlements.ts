@@ -16,6 +16,7 @@ const UNKNOWN: Entitlements = {
   canOpenSupportTickets: true,
   fullReport: true,
   canCustomizeReportLogo: true,
+  canViewActionHistory: true,
 }
 
 export function useEntitlements(): Entitlements {

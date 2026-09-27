@@ -13,6 +13,7 @@ export const STARTER_ENTITLEMENTS: Entitlements = {
   canOpenSupportTickets: false,
   fullReport: false,
   canCustomizeReportLogo: false,
+  canViewActionHistory: false,
 }
 
 export const ESSENTIAL_ENTITLEMENTS: Entitlements = {
@@ -26,6 +27,7 @@ export const ESSENTIAL_ENTITLEMENTS: Entitlements = {
   canOpenSupportTickets: true,
   fullReport: true,
   canCustomizeReportLogo: true,
+  canViewActionHistory: false,
 }
 
 export const PROFESSIONAL_ENTITLEMENTS: Entitlements = {
@@ -34,6 +36,7 @@ export const PROFESSIONAL_ENTITLEMENTS: Entitlements = {
   canEditActionPlan: true,
   canEditIndicators: true,
   canViewBenchmark: true,
+  canViewActionHistory: true,
 }
 
 export function makeSubscription(overrides: Partial<Subscription> = {}): Subscription {

@@ -164,6 +164,12 @@ test('Starter : diagnostic complété avec des réponses faibles → trois actio
   await expect(page.getByText(/autres actions recommandées pour votre entreprise/)).toBeVisible()
   await expect(page.getByText(/Inclus à partir de l'offre Essential/).first()).toBeVisible()
 
+  // docs/specs/recommandations.md, section 4 bis : l'historique du suivi est réservé à
+  // Professional — absent du détail d'une action en Starter.
+  await page.getByRole('button', { name: 'Voir les détails' }).first().click()
+  await expect(page.getByRole('button', { name: 'Réduire les détails' })).toBeVisible()
+  await expect(page.getByRole('button', { name: "Voir l'historique" })).toHaveCount(0)
+
   // L'unique évaluation du Starter est consommée : le questionnaire n'en propose plus.
   await page.getByRole('link', { name: 'Diagnostic', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Questionnaire RSE' })).toBeVisible()

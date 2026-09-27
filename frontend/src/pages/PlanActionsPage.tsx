@@ -4,7 +4,9 @@ import { Link } from 'react-router-dom'
 import * as actionPlanApi from '../api/actionPlanApi'
 import * as recommendationsApi from '../api/recommendationsApi'
 import { useEntitlements } from '../billing/entitlements'
+import { ActionItemHistory } from '../components/actionPlan/ActionItemHistory'
 import { UpgradeNotice } from '../components/billing/UpgradeNotice'
+import { ACTION_STATUS_LABELS } from '../constants/actionStatusLabels'
 import type { ActionItemStatus, ActionItemWithProgress, UpsertPayload } from '../api/actionPlanApi'
 import { EFFORT_LABELS } from '../constants/effortLabels'
 import { useAuthStore } from '../store/authStore'
@@ -65,10 +67,10 @@ function chipCls(active: boolean, activeClass: string): string {
 const STATUS_ORDER: ActionItemStatus[] = ['Planned', 'InProgress', 'Blocked', 'Done']
 
 const STATUS_CONFIG: Record<ActionItemStatus, { label: string; classes: string }> = {
-  Planned:    { label: 'Planifié',  classes: 'border-border bg-bg text-text-muted hover:border-border-strong' },
-  InProgress: { label: 'En cours',  classes: 'border-blue-maat/40 bg-blue-maat/10 text-blue-maat-text hover:bg-blue-maat/15' },
-  Blocked:    { label: 'Bloqué',    classes: 'border-orange/40 bg-orange/10 text-orange hover:bg-orange/15' },
-  Done:       { label: 'Terminé',   classes: 'border-green-maat/40 bg-green-maat/10 text-green-maat-text hover:bg-green-maat/15' },
+  Planned:    { label: ACTION_STATUS_LABELS.Planned,    classes: 'border-border bg-bg text-text-muted hover:border-border-strong' },
+  InProgress: { label: ACTION_STATUS_LABELS.InProgress, classes: 'border-blue-maat/40 bg-blue-maat/10 text-blue-maat-text hover:bg-blue-maat/15' },
+  Blocked:    { label: ACTION_STATUS_LABELS.Blocked,    classes: 'border-orange/40 bg-orange/10 text-orange hover:bg-orange/15' },
+  Done:       { label: ACTION_STATUS_LABELS.Done,       classes: 'border-green-maat/40 bg-green-maat/10 text-green-maat-text hover:bg-green-maat/15' },
 }
 
 // ─── Carte d'action expandable ────────────────────────────────────────────────
@@ -83,11 +85,14 @@ export type ActionItemMode = 'full' | 'check' | 'readonly'
 interface ActionItemCardProps {
   item: ActionItemWithProgress
   mode: ActionItemMode
+  diagnosticId: string
+  // Professional, tous rôles (recommandations.md, section 4 bis).
+  canViewHistory: boolean
   onSave: (payload: UpsertPayload) => Promise<void>
   onToggle: (isCompleted: boolean) => Promise<void>
 }
 
-function ActionItemCardComponent({ item, mode, onSave, onToggle }: ActionItemCardProps) {
+function ActionItemCardComponent({ item, mode, diagnosticId, canViewHistory, onSave, onToggle }: ActionItemCardProps) {
   const canEdit = mode === 'full'
   const [isOpen, setIsOpen] = useState(false)
   const [localNotes, setLocalNotes] = useState(item.notes ?? '')
@@ -229,7 +234,7 @@ function ActionItemCardComponent({ item, mode, onSave, onToggle }: ActionItemCar
         </div>
 
         {/* Bouton d'expansion */}
-        {(canEdit || item.detailText || item.assignedTo || item.dueDate || item.notes) && (
+        {(canEdit || canViewHistory || item.detailText || item.assignedTo || item.dueDate || item.notes) && (
           <button
             type="button"
             onClick={() => setIsOpen(!isOpen)}
@@ -339,6 +344,10 @@ function ActionItemCardComponent({ item, mode, onSave, onToggle }: ActionItemCar
             />
           </div>
           </>
+          )}
+
+          {canViewHistory && (
+            <ActionItemHistory diagnosticId={diagnosticId} code={item.code} refreshKey={item.progressUpdatedAt} />
           )}
         </div>
       )}
@@ -742,6 +751,8 @@ export function PlanActionsPage() {
                 key={item.code}
                 item={item}
                 mode={mode}
+                diagnosticId={latestDiagnosticId}
+                canViewHistory={entitlements.canViewActionHistory}
                 onSave={(payload) => handleSave(item.code, payload)}
                 onToggle={(isCompleted) => handleToggle(item.code, isCompleted)}
               />

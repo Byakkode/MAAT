@@ -28,7 +28,10 @@ public class ActionItemProgress
     {
         Status = status;
         AssignedTo = assignedTo;
-        DueDate = dueDate;
+        // Un jour du calendrier, gardé tel que choisi à minuit UTC : « 2026-11-15 » reçu d'un
+        // serveur réglé sur Paris arrive à +01:00, que timestamptz refuse, et une conversion
+        // en UTC le ramènerait au 14 (ActionItemProgressTests).
+        DueDate = dueDate is { } due ? new DateTimeOffset(due.Year, due.Month, due.Day, 0, 0, 0, TimeSpan.Zero) : null;
         Notes = notes;
         UpdatedAt = DateTimeOffset.UtcNow;
     }

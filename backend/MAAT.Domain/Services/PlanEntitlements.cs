@@ -23,7 +23,9 @@ public sealed record PlanEntitlements(
     // false : rapport réduit à la page de garde et aux Mentions.
     bool FullReport,
     // Logo de l'entreprise sur la page de garde du rapport (rapport-pdf.md, section 7).
-    bool CanCustomizeReportLogo)
+    bool CanCustomizeReportLogo,
+    // Historique du suivi des actions (recommandations.md, section 4 bis).
+    bool CanViewActionHistory)
 {
     private static readonly PlanEntitlements Starter = new(
         SubscriptionPlan.Starter,
@@ -36,7 +38,8 @@ public sealed record PlanEntitlements(
         CanViewBenchmark: false,
         CanOpenSupportTickets: false,
         FullReport: false,
-        CanCustomizeReportLogo: false);
+        CanCustomizeReportLogo: false,
+        CanViewActionHistory: false);
 
     private static readonly PlanEntitlements Essential = new(
         SubscriptionPlan.Essential,
@@ -49,7 +52,8 @@ public sealed record PlanEntitlements(
         CanViewBenchmark: false,
         CanOpenSupportTickets: true,
         FullReport: true,
-        CanCustomizeReportLogo: true);
+        CanCustomizeReportLogo: true,
+        CanViewActionHistory: false);
 
     private static readonly PlanEntitlements Professional = Essential with
     {
@@ -58,6 +62,7 @@ public sealed record PlanEntitlements(
         CanEditActionPlan = true,
         CanEditIndicators = true,
         CanViewBenchmark = true,
+        CanViewActionHistory = true,
     };
 
     // Paramètres nullables : une entreprise qui n'a encore rien choisi n'a pas de ligne

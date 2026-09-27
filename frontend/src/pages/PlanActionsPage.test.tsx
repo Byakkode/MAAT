@@ -9,11 +9,14 @@ vi.mock('../api/dashboardApi', () => dashboardApi)
 const actionPlanApiMock = vi.hoisted(() => ({
   getActionPlan: vi.fn(),
   upsertActionItemProgress: vi.fn(),
+  getActionItemHistory: vi.fn(),
 }))
 vi.mock('../api/actionPlanApi', () => actionPlanApiMock)
 
 import { PlanActionsPage } from './PlanActionsPage'
 import { useAuthStore } from '../store/authStore'
+import { useSubscriptionStore } from '../store/subscriptionStore'
+import { ESSENTIAL_ENTITLEMENTS, PROFESSIONAL_ENTITLEMENTS, makeSubscription } from '../test/subscriptionFixtures'
 import { makeDashboardView, makeLatestDiagnostic, resetDashboardStore } from '../test/dashboardFixtures'
 import { makeActionItemWithProgress, resetPlanActionsStore } from '../test/planActionsFixtures'
 
@@ -38,6 +41,7 @@ describe('PlanActionsPage', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    useSubscriptionStore.setState({ status: 'idle', subscription: null })
   })
 
   it('affiche un état de chargement tant que le tableau de bord n’est pas résolu', () => {
@@ -148,5 +152,39 @@ describe('PlanActionsPage', () => {
 
     const statusBtn = await screen.findByRole('button', { name: /Statut/i })
     expect(statusBtn.hasAttribute('disabled')).toBe(true)
+  })
+
+  // docs/specs/recommandations.md, section 4 bis : historique dans le détail de chaque action,
+  // en Professional seulement.
+  it('Professional : l’historique s’ouvre depuis le détail d’une action', async () => {
+    useSubscriptionStore.setState({ status: 'loaded', subscription: makeSubscription({ entitlements: PROFESSIONAL_ENTITLEMENTS }) })
+    dashboardApi.getDashboard.mockResolvedValue(
+      makeDashboardView({ hasCompletedDiagnostic: true, latestDiagnostic: makeLatestDiagnostic({ id: 'diag-1' }) }),
+    )
+    actionPlanApiMock.getActionPlan.mockResolvedValue([makeActionItemWithProgress({ code: 'REC-ENV-01' })])
+    actionPlanApiMock.getActionItemHistory.mockResolvedValue([
+      { field: 'Status', oldValue: 'Planned', newValue: 'InProgress', changedAt: '2026-10-12T12:05:00Z', changedBy: 'claire@entreprise.test' },
+    ])
+
+    renderPage()
+    await userEvent.click(await screen.findByRole('button', { name: 'Modifier les détails' }))
+    await userEvent.click(screen.getByRole('button', { name: "Voir l'historique" }))
+
+    expect(await screen.findByText('Statut : Planifié → En cours')).toBeDefined()
+    expect(actionPlanApiMock.getActionItemHistory).toHaveBeenCalledWith('diag-1', 'REC-ENV-01')
+  })
+
+  it('Essential : pas d’historique', async () => {
+    useSubscriptionStore.setState({ status: 'loaded', subscription: makeSubscription({ effectivePlan: 'Essential', entitlements: ESSENTIAL_ENTITLEMENTS }) })
+    dashboardApi.getDashboard.mockResolvedValue(
+      makeDashboardView({ hasCompletedDiagnostic: true, latestDiagnostic: makeLatestDiagnostic({ id: 'diag-1' }) }),
+    )
+    actionPlanApiMock.getActionPlan.mockResolvedValue([makeActionItemWithProgress({ detailText: 'Détail de l’action.' })])
+
+    renderPage()
+    await userEvent.click(await screen.findByRole('button', { name: 'Voir les détails' }))
+
+    expect(screen.getByText('Détail de l’action.')).toBeDefined()
+    expect(screen.queryByRole('button', { name: "Voir l'historique" })).toBeNull()
   })
 })

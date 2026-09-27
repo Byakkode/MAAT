@@ -68,3 +68,24 @@ export async function upsertActionItemProgress(
   }
   return (await res.json()) as UpsertResult
 }
+
+// docs/specs/recommandations.md, section 4 bis. Valeurs brutes : nom de statut, texte du
+// responsable, date aaaa-mm-jj ; toujours null pour les notes, dont le contenu n'est pas
+// retenu. changedBy : null quand le compte de l'auteur a été supprimé.
+export type ActionItemField = 'Status' | 'AssignedTo' | 'DueDate' | 'Notes'
+
+export interface ActionItemChange {
+  field: ActionItemField
+  oldValue: string | null
+  newValue: string | null
+  changedAt: string
+  changedBy: string | null
+}
+
+export async function getActionItemHistory(diagnosticId: string, code: string): Promise<ActionItemChange[]> {
+  const res = await apiFetch(`/api/diagnostics/${diagnosticId}/action-plan/${code}/history`)
+  if (!res.ok) {
+    throw new ApiError(await readError(res, "Impossible de récupérer l'historique de l'action."), res.status)
+  }
+  return (await res.json()) as ActionItemChange[]
+}
