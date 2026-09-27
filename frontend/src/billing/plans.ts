@@ -146,7 +146,7 @@ export const FEATURE_GROUPS: { title: string; features: Feature[] }[] = [
           enterprise: { note: 'Complet, avec vos indicateurs' },
         },
       },
-      { label: 'Logo de votre entreprise sur le rapport', cells: { starter: false, essential: true, professional: true, enterprise: true }, comingSoon: true },
+      { label: 'Logo de votre entreprise sur le rapport', cells: { starter: false, essential: true, professional: true, enterprise: true } },
       { label: 'Générateur de rapport VSME', cells: { starter: false, essential: true, professional: true, enterprise: true }, comingSoon: true },
       { label: 'Préparation des questionnaires EcoVadis et B Corp', cells: { starter: false, essential: true, professional: true, enterprise: true }, comingSoon: true },
       { label: 'Module CSRD : double matérialité simplifiée', cells: { starter: false, essential: false, professional: true, enterprise: true }, comingSoon: true },

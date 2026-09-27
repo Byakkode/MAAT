@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { useEntitlements } from '../billing/entitlements'
 import { UpgradeNotice } from '../components/billing/UpgradeNotice'
 import { ReportDownloadButton } from '../components/report/ReportDownloadButton'
+import { ReportLogoCard } from '../components/report/ReportLogoCard'
 import { Card } from '../components/ui/Card'
 import { PageHeader } from '../components/ui/PageHeader'
 import { buttonLinkClass } from '../components/ui/buttonStyles'
@@ -75,6 +76,7 @@ export function RapportPage() {
             Commencer le questionnaire
           </Link>
         </Card>
+        <ReportLogoCard />
       </div>
     )
   }
@@ -131,6 +133,8 @@ export function RapportPage() {
           <ReportDownloadButton diagnosticId={latestDiagnostic.id} />
         </div>
       </Card>
+
+      <ReportLogoCard />
     </div>
   )
 }

@@ -43,16 +43,14 @@ l'historique justifie un filtre.
 
 ## 2. Identité
 
-**Le nom sert de logo.** « MAAT » en Poppins Bold, blanc sur le bleu foncé de la
-barre latérale, avec « diagnostic RSE » en Inter sous le nom, en plus petit et
-plus discret. C'est déjà le traitement de la page de garde du PDF, et la
-cohérence entre les deux supports vaut mieux qu'un pictogramme improvisé.
+**Logo officiel.** Le symbole et le nom MAAT, découpés du logo officiel
+(`frontend/src/assets/`, composants `LogoHorizontal` et `LogoVertical`) : version
+blanche sur le fond foncé de la barre latérale, noire sur fond clair. Version
+horizontale dans les barres de navigation, où le logo vertical réduit à leur hauteur
+rendrait le nom illisible. La page de garde du rapport PDF porte le même logo blanc,
+en haut à droite (`rapport-pdf.md`, section 4) : même marque sur les deux supports.
 
-Ne pas dessiner de symbole faute d'en avoir un. Un logo faible attire l'œil et
-affaiblit l'ensemble ; un mot bien posé ne se remarque pas, ce qui est
-exactement le but.
-
-Le nom renvoie au tableau de bord au clic, comme partout ailleurs sur le web.
+Le logo renvoie au tableau de bord au clic, comme partout ailleurs sur le web.
 
 La route `/` n'appartient pas à la coquille : c'est la page d'accueil publique
 (`frontend/src/landing/`), affichée sans session, d'où partent l'inscription et la

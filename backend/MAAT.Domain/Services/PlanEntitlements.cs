@@ -21,7 +21,9 @@ public sealed record PlanEntitlements(
     bool CanViewBenchmark,
     bool CanOpenSupportTickets,
     // false : rapport réduit à la page de garde et aux Mentions.
-    bool FullReport)
+    bool FullReport,
+    // Logo de l'entreprise sur la page de garde du rapport (rapport-pdf.md, section 7).
+    bool CanCustomizeReportLogo)
 {
     private static readonly PlanEntitlements Starter = new(
         SubscriptionPlan.Starter,
@@ -33,7 +35,8 @@ public sealed record PlanEntitlements(
         CanEditIndicators: false,
         CanViewBenchmark: false,
         CanOpenSupportTickets: false,
-        FullReport: false);
+        FullReport: false,
+        CanCustomizeReportLogo: false);
 
     private static readonly PlanEntitlements Essential = new(
         SubscriptionPlan.Essential,
@@ -45,7 +48,8 @@ public sealed record PlanEntitlements(
         CanEditIndicators: false,
         CanViewBenchmark: false,
         CanOpenSupportTickets: true,
-        FullReport: true);
+        FullReport: true,
+        CanCustomizeReportLogo: true);
 
     private static readonly PlanEntitlements Professional = Essential with
     {

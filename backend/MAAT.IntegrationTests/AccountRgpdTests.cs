@@ -10,8 +10,8 @@ namespace MAAT.IntegrationTests;
 // docs/specs/auth-securite-rgpd.md, section 6 : cas de test 18 à 20. La purge doit
 // couvrir les neuf tables de la chaîne documentée (EmailVerificationToken incluse) et
 // laisser les tables de référence (Question, Recommendation, SectorWeight) intactes.
-[Collection(AuthApiCollection.Name)]
-public class AccountRgpdTests(AuthApiFixture fixture)
+[Collection(AccountApiCollection.Name)]
+public class AccountRgpdTests(AccountApiFixture fixture)
 {
     private const string ValidPassword = "MotDePasseValide2026!";
 

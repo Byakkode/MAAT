@@ -20,6 +20,9 @@
     <EmbeddedResource Include="Pdf\Fonts\*.ttf" />
     <!-- Libellés NAF de la page de garde du rapport (NafLabels.cs). -->
     <EmbeddedResource Include="Pdf\naf-labels.tsv" />
+    <!-- Logo MAAT blanc de la page de garde (ReportAssets.cs), copie de
+         frontend/src/assets/maat-logo-blanc.png : ReportAssetsConsistencyTests compare les deux. -->
+    <EmbeddedResource Include="Pdf\Assets\*.png" />
   </ItemGroup>
 
   <ItemGroup>

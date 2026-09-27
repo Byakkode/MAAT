@@ -6,7 +6,7 @@ pondéré par secteur d'activité NAF, des recommandations priorisées, un plan
 d'actions, des indicateurs quantitatifs et un rapport PDF conforme au standard
 VSME.
 
-> Projet de fin d'études — Master ESI, soutenance septembre 2026.
+> Projet de fin d'études — Master ESI, soutenance octobre 2026.
 
 ---
 

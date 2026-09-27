@@ -26,7 +26,8 @@ public sealed record EntitlementsView(
     bool CanEditIndicators,
     bool CanViewBenchmark,
     bool CanOpenSupportTickets,
-    bool FullReport);
+    bool FullReport,
+    bool CanCustomizeReportLogo);
 
 public sealed record StartCheckoutRequest(SubscriptionPlan Plan, BillingPeriod BillingPeriod);
 

@@ -28,6 +28,7 @@ public class DiagnosticService(
     IReportGenerator reportGenerator,
     IActionItemProgressRepository actionItemProgressRepository,
     IRseIndicatorsRepository rseIndicatorsRepository,
+    ICompanyLogoRepository companyLogoRepository,
     CurrentPlanService currentPlan,
     TimeProvider timeProvider)
 {
@@ -424,7 +425,13 @@ public class DiagnosticService(
             entitlements.FullReport ? await BuildReportIndicatorsAsync(company.Id, completedAt.Year, ct) : null,
             timeProvider.GetUtcNow(),
             ReferentialVersion,
-            entitlements.FullReport);
+            entitlements.FullReport,
+            // rapport-pdf.md, section 7 : le logo suit l'offre effective, comme le reste du
+            // document. Conservé en base après un retour sur Starter, il n'est simplement plus
+            // transmis.
+            entitlements.CanCustomizeReportLogo
+                ? (await companyLogoRepository.FindByCompanyIdAsync(company.Id, ct))?.PngContent
+                : null);
 
         // Peut lever : aucune ligne Report ne doit alors être écrite (cas 8), d'où l'appel
         // avant AddAsync/SaveChangesAsync ci-dessous plutôt qu'après.

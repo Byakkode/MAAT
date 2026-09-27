@@ -12,6 +12,7 @@ export const STARTER_ENTITLEMENTS: Entitlements = {
   canViewBenchmark: false,
   canOpenSupportTickets: false,
   fullReport: false,
+  canCustomizeReportLogo: false,
 }
 
 export const ESSENTIAL_ENTITLEMENTS: Entitlements = {
@@ -24,6 +25,7 @@ export const ESSENTIAL_ENTITLEMENTS: Entitlements = {
   canViewBenchmark: false,
   canOpenSupportTickets: true,
   fullReport: true,
+  canCustomizeReportLogo: true,
 }
 
 export const PROFESSIONAL_ENTITLEMENTS: Entitlements = {

@@ -43,6 +43,15 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
 
     private const float CoverGutter = 48f;
 
+    // Hauteur du logo MAAT en haut à droite de la page de garde.
+    private const float MaatLogoHeight = 46f;
+
+    // Cartouche du logo de l'entreprise en page de garde (section 7) : zone utile de
+    // 150 × 60 pt, marge intérieure comprise dans la largeur.
+    private const float CompanyLogoPlatePadding = 10f;
+    private const float CompanyLogoHeight = 60f;
+    private const float CompanyLogoPlateWidth = 16f + 150f + 2 * CompanyLogoPlatePadding;
+
     private const float EvolutionChartHeight = 130f;
 
     private const float SectionSpacing = 30f;
@@ -166,25 +175,36 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
 
         container.Background(T.Sidebar).PaddingHorizontal(CoverGutter).PaddingTop(34).PaddingBottom(34).Column(column =>
         {
+            // Logo officiel MAAT, version blanche, en haut à droite : il porte déjà le nom, d'où
+            // l'intitulé seul à gauche plutôt qu'un second « MAAT » en texte. UseOriginalImage :
+            // embarqué tel quel, sans rééchantillonnage — 409 px sur MaatLogoHeight pt, bien
+            // au-delà des 300 dpi de la section 5.
             column.Item().Row(row =>
             {
-                row.RelativeItem().Text(text =>
-                {
-                    text.Span("MAAT").FontFamily(FontFamilies.PoppinsBold).FontSize(20).FontColor(white);
-                    text.Span(".").FontFamily(FontFamilies.PoppinsBold).FontSize(20).FontColor(T.Blue);
-                });
-                row.AutoItem().AlignMiddle().Text("Diagnostic RSE · VSME")
+                row.RelativeItem().AlignMiddle().Text("Diagnostic RSE · VSME")
                     .FontFamily(FontFamilies.PoppinsMedium).FontSize(8.5f).FontColor(white.WithAlpha(0.7f)).LetterSpacing(0.04f);
+                row.AutoItem().Height(MaatLogoHeight).Image(ReportAssets.MaatLogoWhitePng).FitHeight().UseOriginalImage(true);
             });
 
-            column.Item().PaddingTop(54).Text("RAPPORT DE DIAGNOSTIC RSE")
-                .FontFamily(FontFamilies.PoppinsMedium).FontSize(9).FontColor(white.WithAlpha(0.7f)).LetterSpacing(0.14f);
+            column.Item().PaddingTop(40).Row(row =>
+            {
+                row.RelativeItem().Column(identity =>
+                {
+                    identity.Item().Text("RAPPORT DE DIAGNOSTIC RSE")
+                        .FontFamily(FontFamilies.PoppinsMedium).FontSize(9).FontColor(white.WithAlpha(0.7f)).LetterSpacing(0.14f);
 
-            column.Item().PaddingTop(6).Text(data.CompanyName)
-                .FontFamily(FontFamilies.PoppinsBold).FontSize(CoverTitleSize(data.CompanyName)).FontColor(white).LineHeight(1.1f);
+                    identity.Item().PaddingTop(6).Text(data.CompanyName)
+                        .FontFamily(FontFamilies.PoppinsBold).FontSize(CoverTitleSize(data.CompanyName)).FontColor(white).LineHeight(1.1f);
 
-            column.Item().PaddingTop(6).Text(view.SectorLine)
-                .FontFamily(FontFamilies.Inter).FontSize(11).FontColor(white.WithAlpha(0.82f));
+                    identity.Item().PaddingTop(6).Text(view.SectorLine)
+                        .FontFamily(FontFamilies.Inter).FontSize(11).FontColor(white.WithAlpha(0.82f));
+                });
+
+                if (data.CompanyLogoPng is { } logo)
+                {
+                    row.ConstantItem(CompanyLogoPlateWidth).PaddingLeft(16).AlignBottom().Element(c => ComposeCompanyLogo(c, logo));
+                }
+            });
 
             column.Item().PaddingTop(20).Row(row =>
             {
@@ -204,6 +224,16 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
             });
         });
     }
+
+    // rapport-pdf.md, section 7 : logo de l'entreprise, sur un cartouche blanc — le bandeau
+    // est bleu foncé, et un logo sombre sur fond transparent y disparaîtrait. FitArea : le
+    // logo garde ses proportions dans la zone, qu'il soit carré ou très allongé. L'image est
+    // embarquée telle qu'elle a été normalisée à l'envoi (SkiaLogoImageProcessor), sans
+    // rééchantillonnage du moteur de mise en page : mêmes octets, même document (section 3).
+    private static void ComposeCompanyLogo(IContainer container, byte[] logo) =>
+        container.Background(Colors.White).CornerRadius(8).Padding(CompanyLogoPlatePadding)
+            .Height(CompanyLogoHeight).AlignCenter().AlignMiddle()
+            .Image(logo).FitArea().UseOriginalImage(true);
 
     // Raison sociale en grand, mais pas au point de pousser le sommaire hors de la page : une
     // SCOP ou une SAS au nom complet dépasse facilement soixante caractères.

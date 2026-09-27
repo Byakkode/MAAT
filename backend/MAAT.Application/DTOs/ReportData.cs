@@ -33,7 +33,10 @@ public sealed record ReportData(
     // docs/specs/abonnement.md, section 8 : false pour l'offre Starter, dont le document se
     // réduit à la page de garde et aux Mentions. L'appelant ne transmet alors ni scores de
     // domaine, ni plan d'actions, ni indicateurs.
-    bool FullReport = true);
+    bool FullReport = true,
+    // rapport-pdf.md, section 7 : logo de l'entreprise, PNG déjà normalisé à l'envoi (jamais
+    // le fichier reçu tel quel). null : pas de logo, ou offre qui ne l'inclut pas.
+    byte[]? CompanyLogoPng = null);
 
 // Numerator/Denominator : Σ(r×w) et Σ(w×5) du domaine, persistés dans DomainScore
 // (modele-donnees.md) — jamais recalculés à la génération, pour la raison qui y est
