@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { axe } from 'vitest-axe'
@@ -42,11 +42,18 @@ describe('ReportLogoCard', () => {
   beforeEach(() => {
     URL.createObjectURL = vi.fn(() => 'blob:logo')
     URL.revokeObjectURL = vi.fn()
+    // Valeur par défaut : un test qui ne la redéfinit pas ne doit jamais recevoir undefined.
+    logoApi.fetchCompanyLogo.mockResolvedValue(null)
     setRole('Admin')
     setEntitlements(ESSENTIAL_ENTITLEMENTS)
   })
 
+  // Démontage AVANT de réinitialiser les stores : les afterEach s'exécutent du plus récent au
+  // plus ancien, donc celui de src/test/setup.ts (cleanup) passerait après celui-ci. Sans ce
+  // cleanup explicite, la carte encore montée verrait l'abonnement repasser à null (droits
+  // « inconnus », logo autorisé) et relancerait un chargement sur un mock déjà vidé.
   afterEach(() => {
+    cleanup()
     vi.clearAllMocks()
     useSubscriptionStore.setState({ status: 'idle', subscription: null })
   })
