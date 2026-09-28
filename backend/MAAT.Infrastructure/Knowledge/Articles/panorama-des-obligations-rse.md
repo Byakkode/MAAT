@@ -12,6 +12,8 @@ source: Portail RSE, « Seuils CSRD et directive Omnibus » | https://portail-rs
 source: Service Public Entreprendre, « Réduction de la consommation d'énergie dans les bâtiments tertiaires » | https://entreprendre.service-public.gouv.fr/vosdroits/F38065
 source: Service Public Entreprendre, « Les critères environnementaux des marchés publics évoluent le 21 août » (18 août 2026) | https://entreprendre.service-public.gouv.fr/actualites/A19042?lang=fr
 source: Code civil, article 1833 | https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000038589931
+source: Service Public Entreprendre, « Tri à la source des déchets des entreprises » | https://entreprendre.service-public.gouv.fr/vosdroits/F37782
+source: Code de l'énergie, article R. 241-26 (température de chauffage) | https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000031748167
 ---
 
 Les obligations RSE ne tombent pas toutes en même temps : la plupart se déclenchent à un **seuil d'effectif**, d'autres dépendent de vos **bâtiments**, de votre **consommation d'énergie** ou de votre **activité** (répondre à des marchés publics, par exemple). Ce panorama vous aide à repérer celles qui vous concernent ; chacune est détaillée dans un article dédié.
@@ -22,6 +24,8 @@ Les obligations RSE ne tombent pas toutes en même temps : la plupart se déclen
 
 - **Gestion tenant compte des enjeux sociaux et environnementaux** : depuis la loi PACTE, toute société est gérée « en prenant en considération les enjeux sociaux et environnementaux de son activité » (article 1833 du Code civil).
 - **Marchés publics** : si vous y répondez, chaque marché lancé depuis le 21 août 2026 comporte au moins un critère d'attribution environnemental. Voir [Marchés publics : le critère environnemental obligatoire](/documentation/marches-publics-critere-environnemental).
+- **Tri des déchets** : tri à la source du papier, du métal, du plastique, du verre, du bois, des biodéchets et des textiles, quelle que soit la taille de l'entreprise. Voir [Le tri des déchets en entreprise](/documentation/tri-des-dechets-professionnels).
+- **Températures de chauffage** : 19 °C au plus en moyenne dans les locaux occupés (Code de l'énergie). Voir [Réduire la consommation d'énergie](/documentation/reduire-sa-consommation-d-energie).
 - **Norme VSME** : volontaire, mais c'est le format de référence pour répondre aux demandes de vos clients et de votre banque. Voir [La norme VSME](/documentation/norme-vsme).
 
 ## Selon l'effectif
