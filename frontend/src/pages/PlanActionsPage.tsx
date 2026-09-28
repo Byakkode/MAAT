@@ -1,9 +1,11 @@
 import { ChevronDown, ChevronUp, ClipboardList, SlidersHorizontal, X } from 'lucide-react'
-import { memo, useEffect, useMemo, useRef, useState } from 'react'
+import { type FormEvent, memo, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import * as actionPlanApi from '../api/actionPlanApi'
 import * as recommendationsApi from '../api/recommendationsApi'
 import { useEntitlements } from '../billing/entitlements'
+import { ActionItemHistory } from '../components/actionPlan/ActionItemHistory'
+import { ActionStatusMenu } from '../components/actionPlan/ActionStatusMenu'
 import { UpgradeNotice } from '../components/billing/UpgradeNotice'
 import type { ActionItemStatus, ActionItemWithProgress, UpsertPayload } from '../api/actionPlanApi'
 import { EFFORT_LABELS } from '../constants/effortLabels'
@@ -13,6 +15,7 @@ import { DOMAIN_LABELS, DOMAIN_ORDER } from '../types/questionnaire'
 import type { RseDomain } from '../types/questionnaire'
 import type { EffortLevel } from '../types/dashboard'
 import { Badge, type BadgeVariant } from '../components/ui/Badge'
+import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { PageHeader } from '../components/ui/PageHeader'
 import { buttonLinkClass } from '../components/ui/buttonStyles'
@@ -60,16 +63,9 @@ function chipCls(active: boolean, activeClass: string): string {
   return `${CHIP_BASE} ${active ? activeClass : CHIP_OFF}`
 }
 
-// ─── Statuts ──────────────────────────────────────────────────────────────────
-
-const STATUS_ORDER: ActionItemStatus[] = ['Planned', 'InProgress', 'Blocked', 'Done']
-
-const STATUS_CONFIG: Record<ActionItemStatus, { label: string; classes: string }> = {
-  Planned:    { label: 'Planifié',  classes: 'border-border bg-bg text-text-muted hover:border-border-strong' },
-  InProgress: { label: 'En cours',  classes: 'border-blue-maat/40 bg-blue-maat/10 text-blue-maat-text hover:bg-blue-maat/15' },
-  Blocked:    { label: 'Bloqué',    classes: 'border-orange/40 bg-orange/10 text-orange hover:bg-orange/15' },
-  Done:       { label: 'Terminé',   classes: 'border-green-maat/40 bg-green-maat/10 text-green-maat-text hover:bg-green-maat/15' },
-}
+const FIELD_LABEL = 'mb-1 block text-[11px] font-semibold uppercase tracking-[0.07em] text-text-muted'
+const FIELD_INPUT =
+  'w-full rounded-lg border border-border bg-bg px-3 py-2 text-[13px] text-text outline-none placeholder:text-text-muted focus:border-blue-maat focus:ring-1 focus:ring-blue-maat/20'
 
 // ─── Carte d'action expandable ────────────────────────────────────────────────
 
@@ -83,75 +79,92 @@ export type ActionItemMode = 'full' | 'check' | 'readonly'
 interface ActionItemCardProps {
   item: ActionItemWithProgress
   mode: ActionItemMode
+  diagnosticId: string
+  // Professional, tous rôles (recommandations.md, section 4 bis).
+  canViewHistory: boolean
   onSave: (payload: UpsertPayload) => Promise<void>
   onToggle: (isCompleted: boolean) => Promise<void>
 }
 
-function ActionItemCardComponent({ item, mode, onSave, onToggle }: ActionItemCardProps) {
+function ActionItemCardComponent({ item, mode, diagnosticId, canViewHistory, onSave, onToggle }: ActionItemCardProps) {
   const canEdit = mode === 'full'
   const [isOpen, setIsOpen] = useState(false)
-  const [localNotes, setLocalNotes] = useState(item.notes ?? '')
-  const [localAssignedTo, setLocalAssignedTo] = useState(item.assignedTo ?? '')
-  const [localDueDate, setLocalDueDate] = useState(
-    item.dueDate ? item.dueDate.slice(0, 10) : ''
-  )
+
+  // Valeurs enregistrées, et leur copie modifiable dans le formulaire.
+  const savedAssignedTo = item.assignedTo ?? ''
+  const savedDueDate = item.dueDate ? item.dueDate.slice(0, 10) : ''
+  const savedNotes = item.notes ?? ''
+
+  const [localAssignedTo, setLocalAssignedTo] = useState(savedAssignedTo)
+  const [localDueDate, setLocalDueDate] = useState(savedDueDate)
+  const [localNotes, setLocalNotes] = useState(savedNotes)
   const [isSaving, setIsSaving] = useState(false)
-  const notesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Ref pour éviter les closures périmées dans le debounce des notes.
-  const itemRef = useRef(item)
+  const [saveState, setSaveState] = useState<'idle' | 'saved' | 'error'>('idle')
+  const [statusError, setStatusError] = useState(false)
 
+  // Resynchronise le formulaire quand la valeur enregistrée change (réponse du serveur).
+  // Dépend des valeurs, pas de l'objet item : un changement de statut ne doit pas effacer
+  // une saisie en cours dans le formulaire.
   useEffect(() => {
-    itemRef.current = item
-    setLocalNotes(item.notes ?? '')
-    setLocalAssignedTo(item.assignedTo ?? '')
-    setLocalDueDate(item.dueDate ? item.dueDate.slice(0, 10) : '')
-  }, [item])
+    setLocalAssignedTo(savedAssignedTo)
+    setLocalDueDate(savedDueDate)
+    setLocalNotes(savedNotes)
+  }, [savedAssignedTo, savedDueDate, savedNotes])
 
-  async function doSave(payload: UpsertPayload) {
+  // docs/specs/recommandations.md, section 4 bis : chaque enregistrement est un acte volontaire,
+  // qui laisse une ligne d'historique par champ réellement modifié.
+  // - Statut : choisi dans le menu de l'étiquette, enregistré aussitôt, seul — les autres
+  //   champs partent avec leur valeur enregistrée, jamais une saisie en cours.
+  // - Responsable, échéance, notes : sur « Enregistrer ». L'enregistrement automatique
+  //   écrivait les états intermédiaires : une échéance en « an 2 », « an 20 », « an 200 »
+  //   pendant qu'on tapait 2003.
+  const isDirty = localAssignedTo.trim() !== savedAssignedTo || localDueDate !== savedDueDate || localNotes !== savedNotes
+
+  async function handleStatusChange(status: ActionItemStatus) {
     setIsSaving(true)
+    setStatusError(false)
     try {
-      await onSave(payload)
+      await onSave({ status, assignedTo: item.assignedTo, dueDate: item.dueDate, notes: item.notes })
+    } catch {
+      setStatusError(true)
     } finally {
       setIsSaving(false)
     }
   }
 
-  function handleStatusCycle() {
-    const idx = STATUS_ORDER.indexOf(item.status)
-    const next = STATUS_ORDER[(idx + 1) % STATUS_ORDER.length]!
-    void doSave({
-      status: next,
-      assignedTo: item.assignedTo,
-      dueDate: item.dueDate,
-      notes: item.notes,
-    })
-  }
-
-  function handleNotesChange(value: string) {
-    setLocalNotes(value)
-    if (notesTimerRef.current) clearTimeout(notesTimerRef.current)
-    notesTimerRef.current = setTimeout(() => {
-      const cur = itemRef.current
-      void doSave({ status: cur.status, assignedTo: cur.assignedTo, dueDate: cur.dueDate, notes: value })
-    }, 1200)
-  }
-
-  function handleAssignedToBlur() {
-    const cur = itemRef.current
-    if (localAssignedTo !== (cur.assignedTo ?? '')) {
-      void doSave({
-        status: cur.status,
-        assignedTo: localAssignedTo || null,
-        dueDate: cur.dueDate,
-        notes: cur.notes,
+  async function handleDetailsSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!isDirty) return
+    setIsSaving(true)
+    try {
+      await onSave({
+        status: item.status,
+        assignedTo: localAssignedTo.trim() || null,
+        dueDate: localDueDate || null,
+        notes: localNotes || null,
       })
+      setSaveState('saved')
+    } catch {
+      setSaveState('error')
+    } finally {
+      setIsSaving(false)
     }
   }
 
-  function handleDueDateChange(value: string) {
-    setLocalDueDate(value)
-    const cur = itemRef.current
-    void doSave({ status: cur.status, assignedTo: cur.assignedTo, dueDate: value || null, notes: cur.notes })
+  function handleDetailsReset(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setLocalAssignedTo(savedAssignedTo)
+    setLocalDueDate(savedDueDate)
+    setLocalNotes(savedNotes)
+    setSaveState('idle')
+  }
+
+  // Toute saisie efface le « Enregistré » de l'enregistrement précédent.
+  function edit<T>(setter: (value: T) => void) {
+    return (value: T) => {
+      setter(value)
+      setSaveState('idle')
+    }
   }
 
   async function handleToggle(isCompleted: boolean) {
@@ -164,8 +177,6 @@ function ActionItemCardComponent({ item, mode, onSave, onToggle }: ActionItemCar
   }
 
   const isDone = mode === 'check' ? item.isCompleted : item.status === 'Done'
-  const { label: statusLabel, classes: statusClasses } = STATUS_CONFIG[item.status]
-  const nextStatus = STATUS_ORDER[(STATUS_ORDER.indexOf(item.status) + 1) % STATUS_ORDER.length]!
 
   return (
     <li
@@ -185,16 +196,14 @@ function ActionItemCardComponent({ item, mode, onSave, onToggle }: ActionItemCar
             className="mt-1 h-4 w-4 shrink-0 accent-blue-maat"
           />
         ) : (
-          /* Badge de statut actionnable */
-          <button
-            type="button"
-            disabled={!canEdit || isSaving}
-            onClick={handleStatusCycle}
-            className={`mt-0.5 shrink-0 rounded-full border px-2.5 py-[3px] text-[11.5px] font-semibold transition-colors disabled:cursor-default disabled:opacity-50 ${statusClasses}`}
-            aria-label={`Statut : ${statusLabel}. Cliquer pour passer à ${STATUS_CONFIG[nextStatus].label}`}
-          >
-            {statusLabel}
-          </button>
+          <div className="mt-0.5 shrink-0">
+            <ActionStatusMenu
+              status={item.status}
+              canEdit={canEdit}
+              disabled={isSaving}
+              onChange={(status) => void handleStatusChange(status)}
+            />
+          </div>
         )}
 
         {/* Texte + badges */}
@@ -226,10 +235,16 @@ function ActionItemCardComponent({ item, mode, onSave, onToggle }: ActionItemCar
               Terminée le {formatDate(item.completedAt)}
             </p>
           )}
+
+          {statusError && (
+            <p role="alert" className="mt-1 text-[11.5px] text-red">
+              Le statut n&apos;a pas pu être enregistré. Réessayez.
+            </p>
+          )}
         </div>
 
         {/* Bouton d'expansion */}
-        {(canEdit || item.detailText || item.assignedTo || item.dueDate || item.notes) && (
+        {(canEdit || canViewHistory || item.detailText || item.assignedTo || item.dueDate || item.notes) && (
           <button
             type="button"
             onClick={() => setIsOpen(!isOpen)}
@@ -275,70 +290,76 @@ function ActionItemCardComponent({ item, mode, onSave, onToggle }: ActionItemCar
           )}
 
           {canEdit && (
-          <>
+          <form onSubmit={(e) => void handleDetailsSubmit(e)} onReset={handleDetailsReset}>
           <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {/* Responsable */}
             <div>
-              <label
-                htmlFor={`assigned-${item.code}`}
-                className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.07em] text-text-muted"
-              >
+              <label htmlFor={`assigned-${item.code}`} className={FIELD_LABEL}>
                 Responsable
               </label>
               <input
                 id={`assigned-${item.code}`}
                 type="text"
                 value={localAssignedTo}
-                onChange={(e) => setLocalAssignedTo(e.target.value)}
-                onBlur={handleAssignedToBlur}
+                onChange={(e) => edit(setLocalAssignedTo)(e.target.value)}
                 placeholder="Nom ou poste"
-                className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-[13px] text-text outline-none placeholder:text-text-muted focus:border-blue-maat focus:ring-1 focus:ring-blue-maat/20"
+                className={FIELD_INPUT}
               />
             </div>
 
             {/* Échéance */}
             <div>
-              <label
-                htmlFor={`due-${item.code}`}
-                className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.07em] text-text-muted"
-              >
+              <label htmlFor={`due-${item.code}`} className={FIELD_LABEL}>
                 Échéance
               </label>
               <input
                 id={`due-${item.code}`}
                 type="date"
                 value={localDueDate}
-                onChange={(e) => void handleDueDateChange(e.target.value)}
-                className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-[13px] text-text outline-none focus:border-blue-maat focus:ring-1 focus:ring-blue-maat/20"
+                onChange={(e) => edit(setLocalDueDate)(e.target.value)}
+                className={FIELD_INPUT}
               />
             </div>
           </div>
 
-          {/* Notes auto-sauvegardées */}
           <div>
-            <div className="mb-1 flex items-center justify-between">
-              <label
-                htmlFor={`notes-${item.code}`}
-                className="block text-[11px] font-semibold uppercase tracking-[0.07em] text-text-muted"
-              >
-                Notes de suivi
-              </label>
-              {isSaving && (
-                <span className="text-[10.5px] text-text-muted" aria-live="polite">
-                  Sauvegarde…
-                </span>
-              )}
-            </div>
+            <label htmlFor={`notes-${item.code}`} className={FIELD_LABEL}>
+              Notes de suivi
+            </label>
             <textarea
               id={`notes-${item.code}`}
               value={localNotes}
-              onChange={(e) => handleNotesChange(e.target.value)}
+              onChange={(e) => edit(setLocalNotes)(e.target.value)}
               rows={3}
               placeholder="Obstacles rencontrés, contexte, ressources utiles…"
-              className="w-full resize-y rounded-lg border border-border bg-bg px-3 py-2 text-[13px] leading-relaxed text-text outline-none placeholder:text-text-muted focus:border-blue-maat focus:ring-1 focus:ring-blue-maat/20"
+              className={`${FIELD_INPUT} resize-y leading-relaxed`}
             />
           </div>
-          </>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button type="submit" size="sm" isLoading={isSaving} disabled={!isDirty || isSaving}>
+              Enregistrer
+            </Button>
+            {isDirty && !isSaving && (
+              <Button type="reset" size="sm" variant="ghost">
+                Annuler
+              </Button>
+            )}
+            {saveState === 'error' ? (
+              <span role="alert" className="text-[11.5px] text-red">
+                L&apos;enregistrement a échoué. Réessayez.
+              </span>
+            ) : (
+              <span role="status" className="text-[11.5px] text-text-muted">
+                {isDirty ? 'Modifications non enregistrées' : saveState === 'saved' ? 'Enregistré' : ''}
+              </span>
+            )}
+          </div>
+          </form>
+          )}
+
+          {canViewHistory && (
+            <ActionItemHistory diagnosticId={diagnosticId} code={item.code} refreshKey={item.progressUpdatedAt} />
           )}
         </div>
       )}
@@ -351,7 +372,7 @@ const ActionItemCard = memo(ActionItemCardComponent)
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 // docs/specs/recommandations.md, section 4 : outil de travail RSE au quotidien.
-// Statut (4 états), responsable, échéance et notes auto-sauvegardées.
+// Statut (4 états, menu de l'étiquette), responsable, échéance et notes (« Enregistrer »).
 export function PlanActionsPage() {
   const dashboardLoadStatus = useDashboardStore((s) => s.loadStatus)
   const hasCompletedDiagnostic = useDashboardStore((s) => s.hasCompletedDiagnostic)
@@ -742,6 +763,8 @@ export function PlanActionsPage() {
                 key={item.code}
                 item={item}
                 mode={mode}
+                diagnosticId={latestDiagnosticId}
+                canViewHistory={entitlements.canViewActionHistory}
                 onSave={(payload) => handleSave(item.code, payload)}
                 onToggle={(isCompleted) => handleToggle(item.code, isCompleted)}
               />

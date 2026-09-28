@@ -2,6 +2,7 @@ using MAAT.Application.Interfaces;
 using MAAT.Application.UseCases;
 using MAAT.Domain.Entities;
 using MAAT.Domain.Enums;
+using MAAT.Domain.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,6 +22,7 @@ public sealed record UpsertProgressRequest(
 public class ActionPlanController(
     IActionItemProgressRepository progressRepository,
     DiagnosticService diagnosticService,
+    ActionItemHistoryService historyService,
     CurrentPlanService currentPlan) : ControllerBase
 {
     // docs/specs/recommandations.md, section 4 : retourne les recommandations du diagnostic
@@ -79,6 +81,12 @@ public class ActionPlanController(
 
         var progress = await progressRepository.GetByDiagnosticAndCodeAsync(diagnosticId, code, ct);
 
+        // recommandations.md, section 4 bis : état avant modification, pour l'historique.
+        // Sans suivi existant, l'action part de l'état initial (planifiée, rien de renseigné).
+        var before = progress is null
+            ? ActionItemHistory.InitialState
+            : new ActionItemState(progress.Status, progress.AssignedTo, progress.DueDate, progress.Notes);
+
         if (progress is null)
         {
             progress = ActionItemProgress.Create(diagnosticId, code);
@@ -86,6 +94,11 @@ public class ActionPlanController(
         }
 
         progress.Update(request.Status, request.AssignedTo, request.DueDate, request.Notes);
+
+        // Même SaveChanges que le suivi : la trace et la modification sont enregistrées
+        // ensemble ou pas du tout.
+        historyService.Record(
+            diagnosticId, code, before, new ActionItemState(progress.Status, progress.AssignedTo, progress.DueDate, progress.Notes));
         await progressRepository.SaveAsync(ct);
 
         return Ok(new
@@ -99,5 +112,23 @@ public class ActionPlanController(
             progressUpdatedAt = progress.UpdatedAt,
             completedAt = entry.CompletedAt,
         });
+    }
+
+    // docs/specs/recommandations.md, section 4 bis : historique du suivi d'une action, du plus
+    // récent au plus ancien. Tous les rôles, offre Professional (403 plan_required sinon).
+    [HttpGet("{code}/history")]
+    public async Task<IActionResult> GetHistory(Guid diagnosticId, string code, CancellationToken ct)
+    {
+        var history = await historyService.GetAsync(diagnosticId, code, ct);
+        if (history is null) return NotFound();
+
+        return Ok(history.Select(h => new
+        {
+            field = h.Field.ToString(),
+            oldValue = h.OldValue,
+            newValue = h.NewValue,
+            changedAt = h.ChangedAt,
+            changedBy = h.ChangedBy,
+        }));
     }
 }

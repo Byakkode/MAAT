@@ -34,6 +34,8 @@ export interface Entitlements {
   fullReport: boolean
   // Logo de l'entreprise sur la page de garde du rapport (rapport-pdf.md, section 7).
   canCustomizeReportLogo: boolean
+  // Historique du suivi des actions (recommandations.md, section 4 bis).
+  canViewActionHistory: boolean
 }
 
 const API_PLANS: Record<PlanId, ApiPlan> = {

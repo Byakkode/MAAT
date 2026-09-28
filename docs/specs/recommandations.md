@@ -121,6 +121,57 @@ Retourner une liste vide et laisser le frontend afficher un message de félicita
 
 ---
 
+## 4 bis. Historique du suivi des actions
+
+Offre Professional (`abonnement.md`, section 8). Chaque modification du plan d'actions
+enrichi (`PATCH /api/diagnostics/{id}/action-plan/{code}`) laisse une trace par champ
+modifié : statut, responsable, échéance, notes. Une ligne porte le champ, l'ancienne et
+la nouvelle valeur, la date et l'auteur. Un enregistrement qui ne change rien n'en laisse
+aucune. La trace est écrite dans la même transaction que le suivi : l'un sans l'autre
+n'existe jamais.
+
+**Notes : « notes modifiées », jamais leur contenu.** Les notes sont internes à
+l'entreprise et peuvent contenir n'importe quoi ; l'historique dit seulement qu'elles ont
+changé.
+
+**Rien ne s'enregistre à la frappe.** Chaque ligne d'historique correspond à une action
+volontaire de l'utilisateur, ce qui rend tout regroupement inutile :
+
+- **Statut** : un clic sur l'étiquette ouvre un menu des quatre statuts (Radix Dropdown
+  Menu, clavier et lecteurs d'écran compris) ; le statut choisi s'enregistre aussitôt, seul.
+  Aller de Planifié à Terminé donne une ligne — l'ancien clic cyclique passait par En cours
+  et Bloqué, et en laissait trois.
+- **Responsable, échéance, notes** : formulaire du détail de l'action, enregistré par
+  « Enregistrer » (désactivé tant que rien n'a changé), « Annuler » revenant aux valeurs
+  enregistrées. L'ancien enregistrement automatique écrivait les états intermédiaires : une
+  échéance en « an 2 », « an 20 », « an 200 » pendant qu'on tapait 2003, ou une ligne de
+  notes par pause de frappe.
+
+Changer le statut n'envoie jamais une saisie en cours du formulaire : les autres champs
+partent avec leur valeur enregistrée.
+
+**Ce qui n'est pas tracé.** La case « terminée » cochée depuis le tableau de bord
+(section 5, offre Essential) : elle n'est pas une modification du suivi enrichi.
+
+**Échéance.** Un jour du calendrier, conservé tel que choisi à minuit UTC
+(`ActionItemProgress.Update`). L'écran envoie `2026-11-15` ; sur un serveur réglé sur
+Paris, la valeur arrivait à `+01:00`, que PostgreSQL refuse (`timestamptz` n'accepte
+qu'un décalage nul), et une conversion en UTC l'aurait ramenée au 14.
+
+**Lecture.** `GET /api/diagnostics/{id}/action-plan/{code}/history`, du plus récent au
+plus ancien ; à date égale, dans l'ordre statut, responsable, échéance, notes. Tous les
+rôles, `Viewer` compris ; `403 plan_required` hors Professional ; `404` pour le
+diagnostic d'une autre entreprise. L'écran charge l'historique d'une action à la
+demande (« Voir l'historique » dans son détail), jamais les quarante-cinq à l'affichage
+de la page, et le recharge après chaque enregistrement tant qu'il est ouvert.
+
+**Effacement** (`auth-securite-rgpd.md`, section 6). L'historique part avec le diagnostic,
+donc avec l'entreprise. Un compte supprimé seul laisse ses lignes, sans auteur (« Compte
+supprimé ») : l'historique de l'entreprise reste lisible sans garder l'identité de
+quelqu'un qui a exercé son droit à l'effacement.
+
+---
+
 ## 5. Suivi d'avancement
 
 `PATCH /api/diagnostics/{id}/recommendations/{recommendationCode}`
@@ -224,6 +275,21 @@ soutenance.
 
 22. Chaque `Question` active est référencée par au moins une `Recommendation` active.
 23. Avertissement listant les recommandations dont `impact_points` dépasse le gain maximal théorique de leur question déclencheuse.
+
+**Historique (section 4 bis)**
+
+24. Chaque champ modifié donne une ligne, avec ancienne et nouvelle valeur et auteur ;
+    lecture du plus récent au plus ancien.
+25. Enregistrement sans changement → aucune ligne.
+26. Notes : une ligne par enregistrement qui les modifie, jamais leur texte (ni en base ni
+    dans la réponse). Écran : aucun envoi pendant la saisie ; un seul envoi sur
+    « Enregistrer » ; le menu de statut va directement au statut choisi, en un envoi, sans
+    emporter la saisie en cours du formulaire.
+27. Lecture en Starter ou Essential → `403 plan_required` ; `Viewer` en Professional →
+    200 ; diagnostic d'une autre entreprise → 404.
+28. Compte supprimé → lignes conservées, auteur absent ; entreprise supprimée → historique
+    supprimé.
+29. Échéance reçue avec un décalage horaire → conservée au jour choisi, à minuit UTC.
 
 Les cas 9 et 11 sont ceux qui garantissent la régénération à l'identique du
 rapport PDF. Le cas 20 est celui qui protège la crédibilité du score.

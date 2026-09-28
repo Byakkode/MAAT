@@ -479,6 +479,31 @@ et aucun fichier n'est servi hors d'un endpoint authentifié (CLAUDE.md, héberg
 
 ---
 
+## ActionItemChange
+
+Historique du suivi des actions (`recommandations.md`, section 4 bis) : une ligne par champ
+modifié du plan d'actions enrichi.
+
+| Colonne | Type | Contraintes |
+| --- | --- | --- |
+| `id` | uuid | PK |
+| `diagnostic_id` | uuid | FK → Diagnostic, requis, `ON DELETE CASCADE` |
+| `recommendation_code` | varchar(50) | requis |
+| `field` | enum | requis |
+| `old_value` | varchar(200) | nullable |
+| `new_value` | varchar(200) | nullable |
+| `changed_by_user_id` | uuid | FK → User, nullable, `ON DELETE SET NULL` |
+| `changed_at` | timestamptz | requis |
+
+`field` ∈ { `Status`, `AssignedTo`, `DueDate`, `Notes` }. Valeurs brutes : nom de statut,
+texte du responsable, date `aaaa-mm-jj` ; toujours `null` pour `Notes`, dont le contenu
+n'est jamais retenu. Index sur (`diagnostic_id`, `recommendation_code`, `changed_at`).
+
+`changed_by_user_id` passe à `null` quand le compte de l'auteur est supprimé : la ligne
+reste, anonyme.
+
+---
+
 ## Seed des données de référence
 
 `Question`, `Recommendation` et `SectorWeight` sont des tables de référence : leur contenu
