@@ -6,9 +6,9 @@ using MAAT.Domain.Services;
 
 namespace MAAT.Application.UseCases;
 
-// docs/specs/recommandations.md, section 4 bis : historique du suivi d'une action. Les règles
-// (champs modifiés, regroupement des notes) vivent dans ActionItemHistory (Domain) ; ce
-// service ne fait que les appliquer et persister.
+// docs/specs/recommandations.md, section 4 bis : historique du suivi d'une action. La règle
+// (quels champs ont changé) vit dans ActionItemHistory (Domain) ; ce service ne fait que
+// l'appliquer et persister.
 public class ActionItemHistoryService(
     IActionItemChangeRepository changeRepository,
     IDiagnosticRepository diagnosticRepository,
@@ -21,25 +21,13 @@ public class ActionItemHistoryService(
     // SaveChanges — un suivi modifié sans sa trace, ou l'inverse, n'existe jamais.
     // Aucun contrôle d'offre ici : seule la modification du suivi enrichi (Professional)
     // appelle cette méthode.
-    public async Task RecordAsync(Guid diagnosticId, string code, ActionItemState before, ActionItemState after, CancellationToken ct)
+    // Une ligne par champ modifié, toutes à la même date.
+    public void Record(Guid diagnosticId, string code, ActionItemState before, ActionItemState after)
     {
-        var changes = ActionItemHistory.Diff(before, after);
-        if (changes.Count == 0)
-        {
-            return;
-        }
-
         var now = timeProvider.GetUtcNow();
-        var latest = await changeRepository.FindLatestAsync(diagnosticId, code, ct);
 
-        foreach (var change in changes)
+        foreach (var change in ActionItemHistory.Diff(before, after))
         {
-            if (ActionItemHistory.ExtendsPreviousNotesChange(latest, change.Field, currentUser.UserId, now))
-            {
-                latest!.ExtendTo(now);
-                continue;
-            }
-
             changeRepository.Add(new ActionItemChange(diagnosticId, code, change, currentUser.UserId, now));
         }
     }

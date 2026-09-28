@@ -1,5 +1,4 @@
 using System.Globalization;
-using MAAT.Domain.Entities;
 using MAAT.Domain.Enums;
 
 namespace MAAT.Domain.Services;
@@ -10,16 +9,12 @@ public sealed record ActionItemState(ActionItemStatus Status, string? AssignedTo
 
 public sealed record ActionItemFieldChange(ActionItemField Field, string? OldValue, string? NewValue);
 
-// docs/specs/recommandations.md, section 4 bis. Règles pures de l'historique du suivi : quels
-// champs ont changé, et quand une modification de notes prolonge la ligne précédente. Sans
-// I/O, testées dans MAAT.Domain.Tests.
+// docs/specs/recommandations.md, section 4 bis. Règle pure de l'historique du suivi : quels
+// champs ont changé entre deux états. Sans I/O, testée dans MAAT.Domain.Tests.
+// Pas de regroupement : l'écran n'enregistre que sur une action volontaire (menu de statut,
+// bouton « Enregistrer »), jamais à la frappe — chaque enregistrement mérite sa ligne.
 public static class ActionItemHistory
 {
-    // Les notes s'enregistrent automatiquement pendant la frappe : sans regroupement, chaque
-    // pause de plus d'une seconde écrirait une ligne « notes modifiées ». Dix minutes couvrent
-    // une séance de rédaction sans fusionner deux séances distinctes de la même journée.
-    public static readonly TimeSpan NotesMergeWindow = TimeSpan.FromMinutes(10);
-
     public static ActionItemState InitialState { get; } = new(ActionItemStatus.Planned, null, null, null);
 
     // Ordre fixe (statut, responsable, échéance, notes) : l'historique d'une modification
@@ -54,15 +49,6 @@ public static class ActionItemHistory
 
         return changes;
     }
-
-    // Vrai quand une modification de notes suit, sans rien entre les deux, une modification de
-    // notes de la même personne sur la même action, il y a moins de NotesMergeWindow : on avance
-    // alors la date de la ligne existante au lieu d'en créer une.
-    public static bool ExtendsPreviousNotesChange(ActionItemChange? latest, ActionItemField field, Guid userId, DateTimeOffset now) =>
-        field == ActionItemField.Notes
-        && latest is { Field: ActionItemField.Notes }
-        && latest.ChangedByUserId == userId
-        && now - latest.ChangedAt <= NotesMergeWindow;
 
     private static string? Normalize(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();

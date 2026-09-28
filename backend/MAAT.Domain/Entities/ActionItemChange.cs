@@ -4,8 +4,7 @@ using MAAT.Domain.Services;
 namespace MAAT.Domain.Entities;
 
 // docs/specs/recommandations.md, section 4 bis : une ligne de l'historique du suivi d'une
-// action. Jamais modifiée après coup, sauf sa date quand une rédaction de notes se prolonge
-// (ActionItemHistory.ExtendsPreviousNotesChange).
+// action. Jamais modifiée après coup.
 // OldValue/NewValue : valeurs brutes (nom de statut, texte du responsable, date aaaa-mm-jj),
 // mises en forme par l'écran. Toujours null pour les notes, dont le contenu n'est pas retenu.
 // ChangedByUserId : null une fois le compte supprimé — la ligne reste, anonyme.
@@ -35,6 +34,4 @@ public class ActionItemChange
         ChangedByUserId = changedByUserId;
         ChangedAt = changedAt;
     }
-
-    public void ExtendTo(DateTimeOffset changedAt) => ChangedAt = changedAt;
 }

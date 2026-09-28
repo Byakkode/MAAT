@@ -132,11 +132,23 @@ n'existe jamais.
 
 **Notes : « notes modifiées », jamais leur contenu.** Les notes sont internes à
 l'entreprise et peuvent contenir n'importe quoi ; l'historique dit seulement qu'elles ont
-changé. Elles s'enregistrent automatiquement pendant la frappe (1,2 s après chaque pause) :
-pour ne pas écrire une ligne par pause, une modification de notes **prolonge** la ligne
-précédente — dont la date avance — quand celle-ci est aussi une modification de notes, de
-la même personne, sur la même action, datée de dix minutes au plus. Un autre changement
-entre deux séances de rédaction les sépare.
+changé.
+
+**Rien ne s'enregistre à la frappe.** Chaque ligne d'historique correspond à une action
+volontaire de l'utilisateur, ce qui rend tout regroupement inutile :
+
+- **Statut** : un clic sur l'étiquette ouvre un menu des quatre statuts (Radix Dropdown
+  Menu, clavier et lecteurs d'écran compris) ; le statut choisi s'enregistre aussitôt, seul.
+  Aller de Planifié à Terminé donne une ligne — l'ancien clic cyclique passait par En cours
+  et Bloqué, et en laissait trois.
+- **Responsable, échéance, notes** : formulaire du détail de l'action, enregistré par
+  « Enregistrer » (désactivé tant que rien n'a changé), « Annuler » revenant aux valeurs
+  enregistrées. L'ancien enregistrement automatique écrivait les états intermédiaires : une
+  échéance en « an 2 », « an 20 », « an 200 » pendant qu'on tapait 2003, ou une ligne de
+  notes par pause de frappe.
+
+Changer le statut n'envoie jamais une saisie en cours du formulaire : les autres champs
+partent avec leur valeur enregistrée.
 
 **Ce qui n'est pas tracé.** La case « terminée » cochée depuis le tableau de bord
 (section 5, offre Essential) : elle n'est pas une modification du suivi enrichi.
@@ -269,9 +281,10 @@ soutenance.
 24. Chaque champ modifié donne une ligne, avec ancienne et nouvelle valeur et auteur ;
     lecture du plus récent au plus ancien.
 25. Enregistrement sans changement → aucune ligne.
-26. Notes : une ligne pour une rédaction continue, jamais leur texte (ni en base ni dans
-    la réponse) ; séparées par un autre changement → deux lignes ; au-delà de dix minutes
-    ou par une autre personne → nouvelle ligne.
+26. Notes : une ligne par enregistrement qui les modifie, jamais leur texte (ni en base ni
+    dans la réponse). Écran : aucun envoi pendant la saisie ; un seul envoi sur
+    « Enregistrer » ; le menu de statut va directement au statut choisi, en un envoi, sans
+    emporter la saisie en cours du formulaire.
 27. Lecture en Starter ou Essential → `403 plan_required` ; `Viewer` en Professional →
     200 ; diagnostic d'une autre entreprise → 404.
 28. Compte supprimé → lignes conservées, auteur absent ; entreprise supprimée → historique

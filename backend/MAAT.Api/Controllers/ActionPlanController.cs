@@ -97,8 +97,8 @@ public class ActionPlanController(
 
         // Même SaveChanges que le suivi : la trace et la modification sont enregistrées
         // ensemble ou pas du tout.
-        await historyService.RecordAsync(
-            diagnosticId, code, before, new ActionItemState(progress.Status, progress.AssignedTo, progress.DueDate, progress.Notes), ct);
+        historyService.Record(
+            diagnosticId, code, before, new ActionItemState(progress.Status, progress.AssignedTo, progress.DueDate, progress.Notes));
         await progressRepository.SaveAsync(ct);
 
         return Ok(new

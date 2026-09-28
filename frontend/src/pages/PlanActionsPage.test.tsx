@@ -99,7 +99,7 @@ describe('PlanActionsPage', () => {
 
     renderPage()
 
-    const statusBtns = await screen.findAllByRole('button', { name: /Statut/i })
+    const statusBtns = await screen.findAllByRole('button', { name: /^Statut/ })
     expect(statusBtns).toHaveLength(2)
     expect(screen.getByText('Action prioritaire')).toBeDefined()
     expect(screen.getByText('Action secondaire')).toBeDefined()
@@ -109,7 +109,42 @@ describe('PlanActionsPage', () => {
     expect(screen.getByText((_, el) => el?.tagName === 'P' && /1\s*\/\s*2 actions/.test(el.textContent ?? ''))).toBeDefined()
   })
 
-  it('Admin/User peuvent changer le statut d’une action', async () => {
+  // docs/specs/recommandations.md, section 4 bis : le statut choisi dans le menu de l'étiquette
+  // part seul et aussitôt, avec les autres champs à leur valeur enregistrée.
+  it('Admin/User passent une action de Planifié à Terminé en un seul changement', async () => {
+    dashboardApi.getDashboard.mockResolvedValue(
+      makeDashboardView({ hasCompletedDiagnostic: true, latestDiagnostic: makeLatestDiagnostic({ id: 'diag-1' }) }),
+    )
+    actionPlanApiMock.getActionPlan.mockResolvedValue([
+      makeActionItemWithProgress({ code: 'REC-ENV-01', status: 'Planned', assignedTo: 'Paul', dueDate: null, notes: null }),
+    ])
+    actionPlanApiMock.upsertActionItemProgress.mockResolvedValue({
+      diagnosticId: 'diag-1',
+      code: 'REC-ENV-01',
+      status: 'Done',
+      assignedTo: 'Paul',
+      dueDate: null,
+      notes: null,
+      progressUpdatedAt: '2026-09-21T10:00:00Z',
+      completedAt: '2026-09-21T10:00:00Z',
+    })
+
+    renderPage()
+    await userEvent.click(await screen.findByRole('button', { name: /Statut : Planifié/ }))
+    await userEvent.click(await screen.findByRole('menuitemradio', { name: 'Terminé' }))
+
+    await waitFor(() => expect(actionPlanApiMock.upsertActionItemProgress).toHaveBeenCalledOnce())
+    expect(actionPlanApiMock.upsertActionItemProgress).toHaveBeenCalledWith('diag-1', 'REC-ENV-01', {
+      status: 'Done',
+      assignedTo: 'Paul',
+      dueDate: null,
+      notes: null,
+    })
+    await screen.findByRole('button', { name: /Statut : Terminé/ })
+  })
+
+  // Un changement de statut n'emporte jamais une saisie en cours dans le formulaire.
+  it('changer le statut n’envoie ni n’efface la saisie non enregistrée du formulaire', async () => {
     dashboardApi.getDashboard.mockResolvedValue(
       makeDashboardView({ hasCompletedDiagnostic: true, latestDiagnostic: makeLatestDiagnostic({ id: 'diag-1' }) }),
     )
@@ -124,34 +159,120 @@ describe('PlanActionsPage', () => {
       dueDate: null,
       notes: null,
       progressUpdatedAt: '2026-09-21T10:00:00Z',
+      completedAt: null,
     })
 
     renderPage()
-
-    const statusBtn = await screen.findByRole('button', { name: /Statut : Planifié/i })
-    await userEvent.click(statusBtn)
+    await userEvent.click(await screen.findByRole('button', { name: 'Modifier les détails' }))
+    await userEvent.type(screen.getByLabelText('Responsable'), 'Claire')
+    await userEvent.click(screen.getByRole('button', { name: /Statut : Planifié/ }))
+    await userEvent.click(await screen.findByRole('menuitemradio', { name: 'En cours' }))
 
     await waitFor(() =>
-      expect(actionPlanApiMock.upsertActionItemProgress).toHaveBeenCalledWith(
-        'diag-1',
-        'REC-ENV-01',
-        { status: 'InProgress', assignedTo: null, dueDate: null, notes: null },
-      )
+      expect(actionPlanApiMock.upsertActionItemProgress).toHaveBeenCalledWith('diag-1', 'REC-ENV-01', {
+        status: 'InProgress',
+        assignedTo: null,
+        dueDate: null,
+        notes: null,
+      }),
     )
-    await screen.findByRole('button', { name: /Statut : En cours/i })
+    await screen.findByRole('button', { name: /Statut : En cours/ })
+    expect((screen.getByLabelText('Responsable') as HTMLInputElement).value).toBe('Claire')
+    expect(screen.getByText('Modifications non enregistrées')).toBeDefined()
   })
 
-  it('Viewer voit des boutons de statut désactivés, jamais actionnables', async () => {
+  // Responsable, échéance et notes : un seul envoi, sur « Enregistrer », jamais à la frappe.
+  it('responsable, échéance et notes s’enregistrent ensemble sur « Enregistrer »', async () => {
+    dashboardApi.getDashboard.mockResolvedValue(
+      makeDashboardView({ hasCompletedDiagnostic: true, latestDiagnostic: makeLatestDiagnostic({ id: 'diag-1' }) }),
+    )
+    actionPlanApiMock.getActionPlan.mockResolvedValue([
+      makeActionItemWithProgress({ code: 'REC-ENV-01', status: 'InProgress', assignedTo: null, dueDate: null, notes: null }),
+    ])
+    actionPlanApiMock.upsertActionItemProgress.mockResolvedValue({
+      diagnosticId: 'diag-1',
+      code: 'REC-ENV-01',
+      status: 'InProgress',
+      assignedTo: 'Claire Martin',
+      dueDate: '2026-11-15T00:00:00+00:00',
+      notes: 'Devis signé',
+      progressUpdatedAt: '2026-09-21T10:00:00Z',
+      completedAt: null,
+    })
+
+    renderPage()
+    await userEvent.click(await screen.findByRole('button', { name: 'Modifier les détails' }))
+
+    const save = screen.getByRole('button', { name: 'Enregistrer' }) as HTMLButtonElement
+    expect(save.disabled).toBe(true)
+
+    await userEvent.type(screen.getByLabelText('Responsable'), 'Claire Martin')
+    await userEvent.type(screen.getByLabelText('Échéance'), '2026-11-15')
+    await userEvent.type(screen.getByLabelText('Notes de suivi'), 'Devis signé')
+
+    expect(actionPlanApiMock.upsertActionItemProgress).not.toHaveBeenCalled()
+    expect(screen.getByText('Modifications non enregistrées')).toBeDefined()
+
+    await userEvent.click(save)
+
+    await waitFor(() => expect(actionPlanApiMock.upsertActionItemProgress).toHaveBeenCalledOnce())
+    expect(actionPlanApiMock.upsertActionItemProgress).toHaveBeenCalledWith('diag-1', 'REC-ENV-01', {
+      status: 'InProgress',
+      assignedTo: 'Claire Martin',
+      dueDate: '2026-11-15',
+      notes: 'Devis signé',
+    })
+    expect(await screen.findByText('Enregistré')).toBeDefined()
+    expect((screen.getByRole('button', { name: 'Enregistrer' }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('Annuler revient aux valeurs enregistrées, sans rien envoyer', async () => {
+    dashboardApi.getDashboard.mockResolvedValue(
+      makeDashboardView({ hasCompletedDiagnostic: true, latestDiagnostic: makeLatestDiagnostic({ id: 'diag-1' }) }),
+    )
+    actionPlanApiMock.getActionPlan.mockResolvedValue([makeActionItemWithProgress({ assignedTo: 'Paul' })])
+
+    renderPage()
+    await userEvent.click(await screen.findByRole('button', { name: 'Modifier les détails' }))
+    await userEvent.clear(screen.getByLabelText('Responsable'))
+    await userEvent.type(screen.getByLabelText('Responsable'), 'Claire')
+    await userEvent.click(screen.getByRole('button', { name: 'Annuler' }))
+
+    expect((screen.getByLabelText('Responsable') as HTMLInputElement).value).toBe('Paul')
+    expect(screen.queryByRole('button', { name: 'Annuler' })).toBeNull()
+    expect(actionPlanApiMock.upsertActionItemProgress).not.toHaveBeenCalled()
+  })
+
+  it('un échec d’enregistrement est signalé et la saisie conservée', async () => {
+    dashboardApi.getDashboard.mockResolvedValue(
+      makeDashboardView({ hasCompletedDiagnostic: true, latestDiagnostic: makeLatestDiagnostic({ id: 'diag-1' }) }),
+    )
+    actionPlanApiMock.getActionPlan.mockResolvedValue([makeActionItemWithProgress({ assignedTo: null })])
+    actionPlanApiMock.upsertActionItemProgress.mockRejectedValue(new Error('réseau'))
+
+    renderPage()
+    await userEvent.click(await screen.findByRole('button', { name: 'Modifier les détails' }))
+    await userEvent.type(screen.getByLabelText('Responsable'), 'Claire')
+    await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+
+    expect((await screen.findByRole('alert')).textContent).toMatch(/enregistrement a échoué/)
+    expect((screen.getByLabelText('Responsable') as HTMLInputElement).value).toBe('Claire')
+  })
+
+  it('Viewer voit le statut sans pouvoir le changer, et le suivi en lecture', async () => {
     useAuthStore.setState({ status: 'authenticated', user: { userId: 'u-1', companyId: 'c-1', role: 'Viewer' }, error: null })
     dashboardApi.getDashboard.mockResolvedValue(
       makeDashboardView({ hasCompletedDiagnostic: true, latestDiagnostic: makeLatestDiagnostic({ id: 'diag-1' }) }),
     )
-    actionPlanApiMock.getActionPlan.mockResolvedValue([makeActionItemWithProgress()])
+    actionPlanApiMock.getActionPlan.mockResolvedValue([makeActionItemWithProgress({ status: 'Planned', assignedTo: 'Paul' })])
 
     renderPage()
+    await userEvent.click(await screen.findByRole('button', { name: 'Voir les détails' }))
 
-    const statusBtn = await screen.findByRole('button', { name: /Statut/i })
-    expect(statusBtn.hasAttribute('disabled')).toBe(true)
+    expect(screen.getByText('Planifié')).toBeDefined()
+    expect(screen.queryByRole('button', { name: /^Statut/ })).toBeNull()
+    expect(screen.getByText('Paul')).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Enregistrer' })).toBeNull()
   })
 
   // docs/specs/recommandations.md, section 4 bis : historique dans le détail de chaque action,

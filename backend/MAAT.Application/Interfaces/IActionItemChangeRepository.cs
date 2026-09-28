@@ -8,9 +8,6 @@ namespace MAAT.Application.Interfaces;
 // appel : ce dépôt ne filtre que par diagnostic et code.
 public interface IActionItemChangeRepository
 {
-    // La dernière ligne de cette action, pour le regroupement des notes.
-    Task<ActionItemChange?> FindLatestAsync(Guid diagnosticId, string recommendationCode, CancellationToken ct);
-
     void Add(ActionItemChange change);
 
     // Du plus récent au plus ancien, avec l'adresse de l'auteur (null si le compte a été

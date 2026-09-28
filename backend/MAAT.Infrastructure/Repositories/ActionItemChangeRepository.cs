@@ -8,12 +8,6 @@ namespace MAAT.Infrastructure.Repositories;
 
 public class ActionItemChangeRepository(MaatDbContext context) : IActionItemChangeRepository
 {
-    public Task<ActionItemChange?> FindLatestAsync(Guid diagnosticId, string recommendationCode, CancellationToken ct) =>
-        context.ActionItemChanges
-            .Where(c => c.DiagnosticId == diagnosticId && c.RecommendationCode == recommendationCode)
-            .OrderByDescending(c => c.ChangedAt)
-            .FirstOrDefaultAsync(ct);
-
     public void Add(ActionItemChange change) => context.ActionItemChanges.Add(change);
 
     // Jointure externe : l'auteur peut avoir supprimé son compte depuis (ChangedBy null).

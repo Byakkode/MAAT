@@ -135,13 +135,13 @@ describe('Limites par offre', () => {
 
     const list = await screen.findByRole('list')
     const checkbox = within(list).queryByRole('checkbox')
-    const statusButton = within(list).queryByRole('button', { name: /^Statut/ })
+    // Menu de statut (recommandations.md, section 4 bis) : actionnable en Professional
+    // seulement ; ailleurs, l'étiquette seule (readonly) ou la case à cocher (check).
+    const statusMenu = within(list).queryByRole('button', { name: /^Statut/ })
 
     expect(checkbox !== null).toBe(mode === 'check')
-    expect(statusButton !== null).toBe(mode !== 'check')
-    if (statusButton) {
-      expect((statusButton as HTMLButtonElement).disabled).toBe(mode === 'readonly')
-    }
+    expect(statusMenu !== null).toBe(mode === 'full')
+    expect(within(list).queryByText('Planifié') !== null).toBe(mode !== 'check')
     expect(screen.queryByText(/offre Starter présente/) !== null).toBe(mode === 'readonly')
   })
 

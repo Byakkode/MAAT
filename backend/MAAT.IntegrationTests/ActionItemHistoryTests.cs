@@ -153,42 +153,25 @@ public class ActionItemHistoryTests(PlanLimitsApiFixture fixture)
         Assert.Equal(2, (await GetHistoryAsync(client, owner.Token, diagnosticId, code)).Count);
     }
 
-    // Enregistrement automatique pendant la frappe : plusieurs enregistrements, une seule ligne,
-    // et jamais le texte des notes, ni en base ni dans la réponse.
+    // L'écran n'enregistre que sur une action volontaire : chaque enregistrement de notes est une
+    // ligne, et le texte des notes n'apparaît jamais, ni en base ni dans la réponse.
     [Fact]
-    public async Task Notes_une_seule_ligne_pour_une_redaction_et_jamais_leur_texte()
+    public async Task Notes_une_ligne_par_enregistrement_et_jamais_leur_texte()
     {
         var client = fixture.CreateClient();
         var owner = await RegisterAsync(client, SubscriptionPlan.Professional);
         var (diagnosticId, code) = await CompleteDiagnosticAsync(client, owner.Token);
 
-        await PatchAsync(client, owner.Token, diagnosticId, code, notes: "Devis");
         await PatchAsync(client, owner.Token, diagnosticId, code, notes: "Devis demandé");
-        await PatchAsync(client, owner.Token, diagnosticId, code, notes: "Devis demandé au fournisseur confidentiel");
+        await PatchAsync(client, owner.Token, diagnosticId, code, "Blocked", notes: "Devis demandé");
+        await PatchAsync(client, owner.Token, diagnosticId, code, "Blocked", notes: "Devis demandé au fournisseur confidentiel");
 
         var history = await GetHistoryAsync(client, owner.Token, diagnosticId, code);
-        Assert.Equal(["Notes:∅->∅"], history.Select(Describe));
-        Assert.DoesNotContain("Devis", history[0].GetRawText());
+        Assert.Equal(["Notes:∅->∅", "Status:Planned->Blocked", "Notes:∅->∅"], history.Select(Describe));
+        Assert.All(history, line => Assert.DoesNotContain("Devis", line.GetRawText()));
 
         await using var context = fixture.CreateDbContext();
         Assert.False(await context.ActionItemChanges.AnyAsync(c => (c.OldValue ?? "").Contains("Devis") || (c.NewValue ?? "").Contains("Devis")));
-    }
-
-    // Un changement de statut entre deux rédactions les sépare.
-    [Fact]
-    public async Task Notes_separees_par_un_autre_changement_donnent_deux_lignes()
-    {
-        var client = fixture.CreateClient();
-        var owner = await RegisterAsync(client, SubscriptionPlan.Professional);
-        var (diagnosticId, code) = await CompleteDiagnosticAsync(client, owner.Token);
-
-        await PatchAsync(client, owner.Token, diagnosticId, code, notes: "a");
-        await PatchAsync(client, owner.Token, diagnosticId, code, "Blocked", notes: "a");
-        await PatchAsync(client, owner.Token, diagnosticId, code, "Blocked", notes: "a b");
-
-        Assert.Equal(
-            ["Notes:∅->∅", "Status:Planned->Blocked", "Notes:∅->∅"],
-            (await GetHistoryAsync(client, owner.Token, diagnosticId, code)).Select(Describe));
     }
 
     [Theory]
