@@ -14,7 +14,7 @@ source: Service Public Entreprendre, « Les critères environnementaux des march
 source: Code civil, article 1833 | https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000038589931
 ---
 
-La réglementation RSE a beaucoup évolué entre 2024 et 2026. Voici où en sont les principaux textes, pour savoir en quelques minutes ce qui vous concerne. Chaque sujet a vocation à être détaillé dans la rubrique *Réglementation*.
+La réglementation RSE a beaucoup évolué entre 2024 et 2026. Voici où en sont les principaux textes, pour savoir en quelques minutes ce qui vous concerne. Chaque sujet est détaillé dans la rubrique *Réglementation*, qui commence par un [panorama des obligations selon la taille de l'entreprise](/documentation/panorama-des-obligations-rse).
 
 > Cet article donne des repères, pas un avis juridique. En cas de doute sur votre situation, rapprochez-vous de votre expert-comptable ou de votre conseil.
 
@@ -52,7 +52,7 @@ Depuis 2019, l'article 1833 du Code civil prévoit que toute société est gér�
 
 ## D'autres obligations selon votre taille et votre activité
 
-Au-delà du reporting, de nombreuses obligations RSE dépendent de votre effectif, de votre secteur ou de vos locaux : bilan des émissions de gaz à effet de serre, index de l'égalité professionnelle, tri des déchets, réduction de la consommation d'énergie des bâtiments tertiaires, prévention de la corruption… Elles seront détaillées une à une dans la rubrique *Réglementation*, avec leurs seuils.
+Au-delà du reporting, de nombreuses obligations RSE dépendent de votre effectif ou de vos locaux : [index de l'égalité professionnelle](/documentation/index-egalite-professionnelle) et [dispositif d'alerte](/documentation/dispositif-d-alerte) dès 50 salariés, [bilan des émissions de gaz à effet de serre](/documentation/bilan-ges-beges) dès 500, [décret tertiaire](/documentation/decret-tertiaire) pour les bâtiments d'au moins 1 000 m²… Le [panorama des obligations](/documentation/panorama-des-obligations-rse) les réunit avec leurs seuils.
 
 ## Récapitulatif
 
