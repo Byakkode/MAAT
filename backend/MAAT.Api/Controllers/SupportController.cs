@@ -90,7 +90,7 @@ public class SupportController(
         if (!Guid.TryParse(subClaim, out var userId) || !Guid.TryParse(companyIdClaim, out var companyId))
             return Unauthorized();
 
-        var fullDescription = $"{request.Description}\n\n---\n*Soumis via MAAT Support — utilisateur : {userId} / entreprise : {companyId}*";
+        var fullDescription = $"{request.Description}\n\n---\n*Soumis via MAAT Support · utilisateur : {userId} / entreprise : {companyId}*";
 
         try
         {

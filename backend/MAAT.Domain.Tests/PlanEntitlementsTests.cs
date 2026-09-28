@@ -53,6 +53,7 @@ public class PlanEntitlementsTests
         Assert.False(starter.FullReport);
         Assert.False(starter.CanCustomizeReportLogo);
         Assert.False(starter.CanViewActionHistory);
+        Assert.False(starter.CanReadDocumentation);
     }
 
     [Fact]
@@ -71,6 +72,7 @@ public class PlanEntitlementsTests
         Assert.True(essential.FullReport);
         Assert.True(essential.CanCustomizeReportLogo);
         Assert.False(essential.CanViewActionHistory);
+        Assert.True(essential.CanReadDocumentation);
     }
 
     [Fact]
@@ -89,6 +91,7 @@ public class PlanEntitlementsTests
         Assert.True(professional.FullReport);
         Assert.True(professional.CanCustomizeReportLogo);
         Assert.True(professional.CanViewActionHistory);
+        Assert.True(professional.CanReadDocumentation);
     }
 
     [Fact]

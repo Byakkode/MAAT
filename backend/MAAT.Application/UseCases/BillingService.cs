@@ -136,7 +136,8 @@ public class BillingService(
             entitlements.CanOpenSupportTickets,
             entitlements.FullReport,
             entitlements.CanCustomizeReportLogo,
-            entitlements.CanViewActionHistory);
+            entitlements.CanViewActionHistory,
+            entitlements.CanReadDocumentation);
 
         return new SubscriptionView(
             subscription?.Plan,

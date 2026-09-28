@@ -27,8 +27,8 @@ describe('ActionItemHistory', () => {
 
   it('décrit chaque modification en français, notes sans leur contenu', () => {
     expect(describeChange(change({}))).toBe('Statut : Planifié → En cours')
-    expect(describeChange(change({ field: 'AssignedTo', oldValue: null, newValue: 'Claire Martin' }))).toBe('Responsable : — → Claire Martin')
-    expect(describeChange(change({ field: 'DueDate', oldValue: '2026-11-15', newValue: null }))).toBe('Échéance : 15 novembre 2026 → —')
+    expect(describeChange(change({ field: 'AssignedTo', oldValue: null, newValue: 'Claire Martin' }))).toBe('Responsable : non renseigné → Claire Martin')
+    expect(describeChange(change({ field: 'DueDate', oldValue: '2026-11-15', newValue: null }))).toBe('Échéance : 15 novembre 2026 → aucune')
     expect(describeChange(change({ field: 'Notes', oldValue: null, newValue: null }))).toBe('Notes modifiées')
   })
 

@@ -25,7 +25,10 @@ public sealed record PlanEntitlements(
     // Logo de l'entreprise sur la page de garde du rapport (rapport-pdf.md, section 7).
     bool CanCustomizeReportLogo,
     // Historique du suivi des actions (recommandations.md, section 4 bis).
-    bool CanViewActionHistory)
+    bool CanViewActionHistory,
+    // Lire les articles de la base documentaire (documentation.md) ; le sommaire et la
+    // recherche restent ouverts à tous.
+    bool CanReadDocumentation)
 {
     private static readonly PlanEntitlements Starter = new(
         SubscriptionPlan.Starter,
@@ -39,7 +42,8 @@ public sealed record PlanEntitlements(
         CanOpenSupportTickets: false,
         FullReport: false,
         CanCustomizeReportLogo: false,
-        CanViewActionHistory: false);
+        CanViewActionHistory: false,
+        CanReadDocumentation: false);
 
     private static readonly PlanEntitlements Essential = new(
         SubscriptionPlan.Essential,
@@ -53,7 +57,8 @@ public sealed record PlanEntitlements(
         CanOpenSupportTickets: true,
         FullReport: true,
         CanCustomizeReportLogo: true,
-        CanViewActionHistory: false);
+        CanViewActionHistory: false,
+        CanReadDocumentation: true);
 
     private static readonly PlanEntitlements Professional = Essential with
     {

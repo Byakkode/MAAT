@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { motion } from 'framer-motion'
-import { BarChart2, CheckCircle, ClipboardList, FileText, LifeBuoy, Settings, TrendingUp, X } from 'lucide-react'
+import { BarChart2, BookOpen, CheckCircle, ClipboardList, FileText, LifeBuoy, Settings, TrendingUp, X } from 'lucide-react'
 import { Link, NavLink } from 'react-router-dom'
 import { Tooltip } from '../ui/Tooltip'
 import { useDashboardStore } from '../../store/dashboardStore'
@@ -24,6 +24,12 @@ const NAV_SECTIONS: Array<{ label: string; items: NavItem[] }> = [
       { to: '/plan-actions', label: "Plan d'actions", icon: CheckCircle },
       { to: '/rapport', label: 'Rapports', icon: FileText },
     ],
+  },
+  {
+    // docs/specs/documentation.md : base documentaire RSE. Section à part : c'est une
+    // ressource de lecture, ni une analyse de l'entreprise ni un outil de pilotage.
+    label: 'Ressources',
+    items: [{ to: '/documentation', label: 'Documentation', icon: BookOpen }],
   },
   {
     label: 'Compte',

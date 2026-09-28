@@ -28,7 +28,8 @@ public sealed record EntitlementsView(
     bool CanOpenSupportTickets,
     bool FullReport,
     bool CanCustomizeReportLogo,
-    bool CanViewActionHistory);
+    bool CanViewActionHistory,
+    bool CanReadDocumentation);
 
 public sealed record StartCheckoutRequest(SubscriptionPlan Plan, BillingPeriod BillingPeriod);
 
