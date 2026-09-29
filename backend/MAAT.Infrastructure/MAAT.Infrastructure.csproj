@@ -23,6 +23,8 @@
     <!-- Logo MAAT blanc de la page de garde (ReportAssets.cs), copie de
          frontend/src/assets/maat-logo-blanc.png : ReportAssetsConsistencyTests compare les deux. -->
     <EmbeddedResource Include="Pdf\Assets\*.png" />
+    <!-- Articles de la base documentaire (EmbeddedKnowledgeBase, docs/specs/documentation.md). -->
+    <EmbeddedResource Include="Knowledge\Articles\*.md" />
   </ItemGroup>
 
   <ItemGroup>

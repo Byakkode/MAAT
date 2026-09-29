@@ -5,6 +5,8 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { SubscriptionGate } from './components/SubscriptionGate'
 import { AccountPage } from './pages/AccountPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { DocumentationArticlePage } from './pages/DocumentationArticlePage'
+import { DocumentationPage } from './pages/DocumentationPage'
 import { LoginPage } from './pages/LoginPage'
 import { PlanActionsPage } from './pages/PlanActionsPage'
 import { QuestionnairePage } from './pages/QuestionnairePage'
@@ -52,6 +54,8 @@ function App() {
               <Route path="/indicateurs" element={<IndicatorsPage />} />
               <Route path="/compte" element={<AccountPage />} />
               <Route path="/support" element={<SupportPage />} />
+              <Route path="/documentation" element={<DocumentationPage />} />
+              <Route path="/documentation/:slug" element={<DocumentationArticlePage />} />
             </Route>
           </Route>
         </Route>

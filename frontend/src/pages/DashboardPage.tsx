@@ -166,7 +166,7 @@ export function DashboardPage() {
         ) : (
           <KpiCard
             title="Benchmark sectoriel"
-            value="—"
+            value="Non inclus"
             subtitle="Inclus dans l'offre Professional"
             accent="neutral"
             delay={0.08}

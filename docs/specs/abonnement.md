@@ -279,6 +279,7 @@ autre mécanisme. Enterprise, pas encore commercialisée, a les droits de Profes
 | Cocher une action (`is_completed`) | ❌ | ✅ | ✅ |
 | Plan d'actions enrichi : modifier statut, responsable, échéance, notes | ❌ | ❌ | ✅ |
 | Historique du suivi des actions (`recommandations.md`, section 4 bis) | ❌ | ❌ | ✅ |
+| Base documentaire : lire les articles (sommaire et recherche ouverts à tous, `documentation.md`) | ❌ | ✅ | ✅ |
 | Indicateurs RSE : saisie | ❌ | ❌ | ✅ |
 | Benchmark sectoriel | ❌ | ❌ | ✅ |
 | Support : ouvrir un ticket | ❌ | ✅ | ✅ |
@@ -342,7 +343,7 @@ que l'écran distingue un manque de droit d'offre d'un manque de rôle :
 l'offre, l'offre effective et ses droits (`canViewDomainScores`,
 `visibleRecommendations` (`null` : toutes), `canTrackActions`, `canEditActionPlan`,
 `canEditIndicators`, `canViewBenchmark`, `canOpenSupportTickets`, `fullReport`,
-`canCustomizeReportLogo`, `canViewActionHistory`, et
+`canCustomizeReportLogo`, `canViewActionHistory`, `canReadDocumentation`, et
 `canStartDiagnostic`, calculé avec le nombre de diagnostics complétés). L'écran s'en
 sert pour masquer, désactiver et proposer l'offre supérieure ; il ne décide jamais seul.
 Les règles ne sont pas recopiées dans le frontend.
@@ -351,7 +352,7 @@ Les règles ne sont pas recopiées dans le frontend.
 
 Les fonctionnalités annoncées mais pas encore construites restent dans le comparatif
 (`frontend/src/billing/plans.ts`) avec la mention « Bientôt » : générateur VSME,
-préparation EcoVadis et B Corp, base documentaire, module CSRD, reporting
+préparation EcoVadis et B Corp, module CSRD, reporting
 multi-référentiels, CDP et SFDR, alertes de conformité, collecte collaborative, API d'intégration, et toutes les options propres à Enterprise. Une fonctionnalité perd cette mention dans
 le commit qui la livre.
 

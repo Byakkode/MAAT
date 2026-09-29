@@ -187,7 +187,7 @@ export const FEATURE_GROUPS: { title: string; features: Feature[] }[] = [
     title: 'Accompagnement',
     features: [
       { label: 'Support par ticket, réponse sous 48 h', cells: { starter: false, essential: true, professional: true, enterprise: true } },
-      { label: 'Base documentaire RSE', cells: { starter: false, essential: true, professional: true, enterprise: true }, comingSoon: true },
+      { label: 'Base documentaire RSE', cells: { starter: false, essential: true, professional: true, enterprise: true } },
       { label: 'Support prioritaire sous 24 h et onboarding dédié de 2 h', cells: { starter: false, essential: false, professional: true, enterprise: true } },
       { label: 'Disponibilité garantie 99,9 % et responsable de compte dédié', cells: { starter: false, essential: false, professional: false, enterprise: true } },
       { label: 'Formation des équipes RSE', cells: { starter: false, essential: false, professional: false, enterprise: { note: '3 sessions par an' } } },

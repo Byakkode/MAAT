@@ -481,7 +481,7 @@ function NewTicketForm({ onSuccess }: { onSuccess: () => void }) {
           <div
             role="button"
             tabIndex={files.length >= MAX_FILES ? -1 : 0}
-            aria-label="Zone de dépôt de fichiers — cliquer ou glisser-déposer"
+            aria-label="Zone de dépôt de fichiers : cliquer ou glisser-déposer"
             aria-disabled={files.length >= MAX_FILES}
             onClick={() => files.length < MAX_FILES && fileInputRef.current?.click()}
             onKeyDown={(e) => {

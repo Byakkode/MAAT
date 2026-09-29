@@ -64,14 +64,19 @@ connexion. Après connexion, l'utilisateur arrive sur `/tableau-de-bord`.
 | --- | --- | --- |
 | Tableau de bord | `/tableau-de-bord` | tous |
 | Diagnostic | questionnaire en cours, ou démarrage | tous |
+| Indicateurs | indicateurs RSE chiffrés | tous |
 | Plan d'actions | liste complète des recommandations | tous |
 | Rapports | génération et historique | tous |
+| Documentation | base documentaire RSE (`documentation.md`) | tous |
 | Mon compte | espace du compte | tous |
+| Support | tickets de support | tous |
 
 Les icônes viennent de Lucide, comme prévu par la charte : `BarChart2`,
-`FileText`, `CheckCircle`, `Settings`.
+`ClipboardList`, `TrendingUp`, `CheckCircle`, `FileText`, `BookOpen`, `Settings`,
+`LifeBuoy`. Les entrées sont groupées en sections : Analyse, Pilotage, Ressources,
+Compte.
 
-**Aucune entrée n'est masquée selon le rôle.** Un `Viewer` voit les cinq, et ce
+**Aucune entrée n'est masquée selon le rôle.** Un `Viewer` les voit toutes, et ce
 sont les actions à l'intérieur des écrans qui sont désactivées — pas les écrans
 eux-mêmes. Masquer une entrée laisse croire à un dysfonctionnement ; une action
 désactivée avec un motif explicite enseigne le modèle de droits. C'est la même

@@ -36,6 +36,8 @@ export interface Entitlements {
   canCustomizeReportLogo: boolean
   // Historique du suivi des actions (recommandations.md, section 4 bis).
   canViewActionHistory: boolean
+  // Lire les articles de la base documentaire (documentation.md) ; le sommaire reste ouvert.
+  canReadDocumentation: boolean
 }
 
 const API_PLANS: Record<PlanId, ApiPlan> = {

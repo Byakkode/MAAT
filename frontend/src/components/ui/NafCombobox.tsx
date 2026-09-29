@@ -13,7 +13,7 @@ const MAX_RESULTS = 60
 
 function formatSelected(code: string): string {
   const entry = NAF_CODES.find((n) => n.code === code)
-  return entry ? `${entry.code} — ${entry.label}` : code
+  return entry ? `${entry.code} · ${entry.label}` : code
 }
 
 function filterCodes(query: string) {

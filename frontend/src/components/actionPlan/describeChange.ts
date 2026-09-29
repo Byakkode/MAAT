@@ -1,14 +1,20 @@
 import type { ActionItemChange, ActionItemStatus } from '../../api/actionPlanApi'
 import { ACTION_STATUS_LABELS } from '../../constants/actionStatusLabels'
 
-const EMPTY = '—'
-
 // Échéance : un jour du calendrier, stocké à minuit UTC — affiché en UTC pour ne jamais
 // glisser d'un jour selon le fuseau du navigateur.
 const dueDateFormat = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
 
+// Valeur absente écrite en toutes lettres, accordée au champ (règle du site : pas de tiret).
+const EMPTY: Record<ActionItemChange['field'], string> = {
+  Status: 'non renseigné',
+  AssignedTo: 'non renseigné',
+  DueDate: 'aucune',
+  Notes: 'non renseignées',
+}
+
 function formatValue(field: ActionItemChange['field'], value: string | null): string {
-  if (value === null) return EMPTY
+  if (value === null) return EMPTY[field]
   if (field === 'Status') return ACTION_STATUS_LABELS[value as ActionItemStatus] ?? value
   if (field === 'DueDate') return dueDateFormat.format(new Date(`${value}T00:00:00Z`))
   return value

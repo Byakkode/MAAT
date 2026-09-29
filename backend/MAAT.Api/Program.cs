@@ -9,6 +9,7 @@ using MAAT.Infrastructure.Billing;
 using MAAT.Infrastructure.Email;
 using MAAT.Infrastructure.GitHub;
 using MAAT.Infrastructure.Jobs;
+using MAAT.Infrastructure.Knowledge;
 using MAAT.Infrastructure.Pdf;
 using MAAT.Infrastructure.Persistence;
 using MAAT.Infrastructure.Repositories;
@@ -96,6 +97,10 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<IReportGenerator, QuestPdfReportGenerator>();
 builder.Services.AddSingleton<ILogoImageProcessor, SkiaLogoImageProcessor>();
 
+// docs/specs/documentation.md : articles chargés ici, au démarrage, depuis les fichiers
+// Markdown embarqués — un article mal formé fait échouer le démarrage avec le nom du fichier.
+builder.Services.AddSingleton<IKnowledgeBase>(EmbeddedKnowledgeBase.Load());
+
 // Jeu de données de démonstration (commande "seed", drapeau demo, Development uniquement) :
 // voir DemoDataSeeder. Jamais invoqué au démarrage, contrairement à ReferenceDataSeeder
 // ci-dessus.
@@ -108,6 +113,7 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<CompanyLogoService>();
 builder.Services.AddScoped<ActionItemHistoryService>();
+builder.Services.AddScoped<DocumentationService>();
 
 // LoggingEmailSender journalise les adresses e-mail (donnée personnelle), ce que
 // la section 5 de la spec interdit en dehors du poste de développement. Aucun

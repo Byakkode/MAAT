@@ -28,7 +28,7 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
         "un organisme tiers indépendant.";
 
     private const string FooterDisclaimer =
-        "Auto-évaluation déclarative — ne constitue ni une certification, ni un audit.";
+        "Auto-évaluation déclarative : ne constitue ni une certification, ni un audit.";
 
     // Identifiants des sections : cibles des liens du sommaire et source des numéros de page
     // qu'il affiche (BeginPageNumberOfSection).
@@ -78,7 +78,7 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
         // des métadonnées différentes). Dates fixées sur data.GeneratedAt, la seule horloge que
         // ce générateur connaît.
         var metadata = DocumentMetadata.Default;
-        metadata.Title = $"Rapport RSE MAAT — {data.CompanyName}";
+        metadata.Title = $"Rapport RSE MAAT · {data.CompanyName}";
         metadata.Author = "MAAT";
         metadata.Creator = "MAAT";
         metadata.CreationDate = data.GeneratedAt;
@@ -329,13 +329,13 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
             if (view.Best is { } best)
             {
                 row.RelativeItem().Element(c => KpiCard(c, T.Green, T.KpiGreen, "Point fort",
-                    RseDomainLabels.For(best.Domain), $"{FrenchFormat.Score(best.Score)} / 100 — {ScoreLabel.For(FrenchFormat.Round(best.Score))}"));
+                    RseDomainLabels.For(best.Domain), $"{FrenchFormat.Score(best.Score)} / 100 · {ScoreLabel.For(FrenchFormat.Round(best.Score))}"));
             }
 
             if (view.Worst is { } worst)
             {
                 row.RelativeItem().Element(c => KpiCard(c, T.Orange, T.KpiAmber, "Priorité de progrès",
-                    RseDomainLabels.For(worst.Domain), $"{FrenchFormat.Score(worst.Score)} / 100 — {ScoreLabel.For(FrenchFormat.Round(worst.Score))}"));
+                    RseDomainLabels.For(worst.Domain), $"{FrenchFormat.Score(worst.Score)} / 100 · {ScoreLabel.For(FrenchFormat.Round(worst.Score))}"));
             }
 
             var summary = data.ActionStatusSummary;
@@ -544,7 +544,7 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
                     .Column(label =>
                     {
                         var name = label.Item().Text(T.DomainShortLabel(axis.Domain)).FontSize(8).FontColor(T.InkMuted);
-                        var value = label.Item().Text(hasScore ? FrenchFormat.Score(score) : "—")
+                        var value = label.Item().Text(hasScore ? FrenchFormat.Score(score) : "non évalué")
                             .FontFamily(FontFamilies.PoppinsSemiBold).FontSize(9.5f).FontColor(T.Ink);
                         switch (side)
                         {
@@ -716,8 +716,13 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
                                 var previous = data.PreviousDomainScores?.GetValueOrDefault(domainScore.Domain);
                                 line.ConstantItem(52).AlignRight().Text(text =>
                                 {
-                                    text.Span(previous is null ? "—" : FrenchFormat.Score(previous.Value)).FontSize(8.5f).FontColor(T.InkMuted);
-                                    text.Span(" → ").FontSize(8.5f).FontColor(T.InkMuted);
+                                    // Sans score précédent pour ce domaine : le score actuel seul, sans flèche.
+                                    if (previous is { } previousScore)
+                                    {
+                                        text.Span(FrenchFormat.Score(previousScore)).FontSize(8.5f).FontColor(T.InkMuted);
+                                        text.Span(" → ").FontSize(8.5f).FontColor(T.InkMuted);
+                                    }
+
                                     text.Span(FrenchFormat.Score(domainScore.Score)).FontFamily(FontFamilies.PoppinsSemiBold).FontSize(8.5f);
                                 });
                                 line.ConstantItem(40).AlignRight().AlignMiddle().Element(c =>
@@ -983,8 +988,8 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
         container.Column(column =>
         {
             column.Item().Element(c => SectionHeader(c, "indicateurs", indicators is null
-                ? "Les données chiffrées de l'entreprise — énergie, émissions, eau, déchets, effectifs, santé-sécurité, formation — telles que les demande le module de base du standard VSME."
-                : $"Les données chiffrées déclarées par l'entreprise pour l'année {indicators.Year} — énergie, émissions, eau, déchets, effectifs, santé-sécurité, formation — telles que les demande le module de base du standard VSME."));
+                ? "Les données chiffrées de l'entreprise (énergie, émissions, eau, déchets, effectifs, santé-sécurité, formation), telles que les demande le module de base du standard VSME."
+                : $"Les données chiffrées déclarées par l'entreprise pour l'année {indicators.Year} (énergie, émissions, eau, déchets, effectifs, santé-sécurité, formation), telles que les demande le module de base du standard VSME."));
 
             if (indicators is null)
             {
