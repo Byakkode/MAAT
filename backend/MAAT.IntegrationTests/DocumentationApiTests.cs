@@ -134,7 +134,8 @@ public class DocumentationApiTests(PlanLimitsApiFixture fixture)
         Assert.Equal("Qu'est-ce que la RSE ?", article.GetProperty("title").GetString());
         Assert.Contains("ISO 26000", article.GetProperty("body").GetString());
         Assert.NotEmpty(article.GetProperty("sources").EnumerateArray());
-        Assert.Equal("2026-09-28", article.GetProperty("updatedOn").GetString());
+        // Date seule (AAAA-MM-JJ), sans heure : la valeur change à chaque mise à jour de l'article.
+        Assert.Matches(@"^\d{4}-\d{2}-\d{2}$", article.GetProperty("updatedOn").GetString());
     }
 
     // Une adresse erronée répond 404, jamais une invitation à changer d'offre.
