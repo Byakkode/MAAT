@@ -37,7 +37,7 @@ Pour les risques de corruption, l'Agence française anticorruption recommande de
 
 ## Ne pas submerger ses fournisseurs
 
-Un questionnaire trop long pour un petit fournisseur n'obtient pas de réponse, ou des réponses de façade. Depuis la directive Omnibus de 2026, les grandes entreprises soumises à la CSRD ne peuvent d'ailleurs pas exiger d'un fournisseur de moins de 1 000 salariés des informations qui dépassent la **norme volontaire VSME** (règle à transposer en droit français au plus tard le 19 mars 2027). S'aligner sur la VSME, c'est poser des questions auxquelles une PME peut répondre. Voir [La norme VSME](/documentation/norme-vsme).
+Un questionnaire trop long pour un petit fournisseur n'obtient pas de réponse, ou des réponses de façade. Depuis la directive Omnibus de 2026, les grandes entreprises soumises à la CSRD ne peuvent d'ailleurs pas exiger d'un fournisseur de 1 000 salariés au plus des informations qui dépassent la **norme volontaire VSME** (règle applicable aux exercices ouverts à compter du 1er janvier 2027, et à transposer en droit français au plus tard le 19 mars 2027). S'aligner sur la VSME, c'est poser des questions auxquelles une PME peut répondre. Voir [La norme VSME](/documentation/norme-vsme).
 
 ## Accompagner plutôt qu'exclure
 

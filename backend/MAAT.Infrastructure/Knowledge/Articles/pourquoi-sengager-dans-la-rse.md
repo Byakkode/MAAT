@@ -6,10 +6,11 @@ category: GettingStarted
 level: Essentials
 order: 2
 tags: enjeux, donneurs d'ordres, marchés publics, financement, recrutement, chaîne de valeur, VSME
-updated: 2026-09-28
+updated: 2026-09-29
 source: Service Public Entreprendre, « Les critères environnementaux des marchés publics évoluent le 21 août » (18 août 2026) | https://entreprendre.service-public.gouv.fr/actualites/A19042?lang=fr
 source: Portail RSE (ministère de l'Économie), fiche « Norme volontaire de durabilité (VSME) » | https://portail-rse.beta.gouv.fr/fiches-reglementaires/norme-volontaire-de-durabilite-vsme/
 source: Portail RSE, « Seuils CSRD et directive Omnibus » | https://portail-rse.beta.gouv.fr/csrd/seuils-csrd-omnibus-criteres-d-application/
+source: Règlement délégué (UE) 2026/1560 de la Commission du 3 juillet 2026 (norme volontaire, plafond de la chaîne de valeur), EUR-Lex | https://eur-lex.europa.eu/eli/reg_del/2026/1560/oj
 source: Cabinet Deloitte Société d'Avocats, « La directive Omnibus CSRD/CS3D est publiée » | https://blog.avocats.deloitte.fr/la-directive-omnibus-csrd-cs3d-est-publiee/
 ---
 
@@ -19,9 +20,9 @@ La plupart des PME ne sont soumises à **aucune obligation de rapport de durabil
 
 Les grandes entreprises doivent rendre compte des impacts de toute leur **chaîne de valeur**, y compris ceux de leurs fournisseurs. Elles envoient donc des questionnaires à leurs sous-traitants : bilan carbone, politique sociale, lutte contre la corruption.
 
-La réglementation européenne a encadré ces demandes. Depuis la directive dite « Omnibus » publiée en février 2026, une grande entreprise soumise à la CSRD **ne peut pas exiger d'un fournisseur de moins de 1 000 salariés des informations allant au-delà de la norme volontaire VSME**. Autrement dit : une PME qui sait répondre selon la VSME a de quoi répondre à ses grands clients. (Cette règle doit encore être transposée en droit français, au plus tard le 19 mars 2027.)
+La réglementation européenne a encadré ces demandes. Depuis la directive dite « Omnibus » publiée en février 2026, une grande entreprise soumise à la CSRD **ne peut pas exiger d'un fournisseur de 1 000 salariés au plus des informations allant au-delà de la norme volontaire VSME**. Autrement dit : une PME qui sait répondre selon la VSME a de quoi répondre à ses grands clients. (Cette règle doit encore être transposée en droit français, au plus tard le 19 mars 2027.)
 
-La **VSME** est un référentiel européen d'indicateurs de durabilité conçu pour les TPE et PME, approuvé par la Commission européenne le 30 juillet 2025. C'est la norme sur laquelle s'appuie le rapport MAAT.
+La **VSME** est un référentiel européen d'indicateurs de durabilité conçu pour les TPE et PME, approuvé par la Commission européenne le 30 juillet 2025 puis repris, en septembre 2026, dans un règlement européen qui en fait la norme volontaire officielle. C'est la norme sur laquelle s'appuie le rapport MAAT.
 
 ## 2. Les marchés publics l'exigent désormais
 

@@ -6,11 +6,12 @@ category: GettingStarted
 level: Essentials
 order: 6
 tags: glossaire, définitions, sigles, vocabulaire, CSRD, ESRS, VSME, EFRAG, ISO 26000
-updated: 2026-09-28
+updated: 2026-09-29
 source: Commission européenne, communication COM(2011) 681 | https://eur-lex.europa.eu/legal-content/FR/TXT/HTML/?uri=CELEX:52011DC0681
 source: Ministère de la Transition écologique, « La responsabilité sociétale des entreprises » | https://www.ecologie.gouv.fr/politiques-publiques/responsabilite-societale-entreprises
 source: Portail RSE (ministère de l'Économie), « Seuils CSRD et directive Omnibus » | https://portail-rse.beta.gouv.fr/csrd/seuils-csrd-omnibus-criteres-d-application/
 source: Portail RSE, fiche « Norme volontaire de durabilité (VSME) » | https://portail-rse.beta.gouv.fr/fiches-reglementaires/norme-volontaire-de-durabilite-vsme/
+source: Règlement délégué (UE) 2026/1560 de la Commission du 3 juillet 2026 (norme volontaire, plafond de la chaîne de valeur), EUR-Lex | https://eur-lex.europa.eu/eli/reg_del/2026/1560/oj
 source: Code civil, article 1833 | https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000038589931
 source: ADEME, Base Carbone et Bilans GES, catégories d'émissions (scopes 1, 2 et 3) | https://bilans-ges.ademe.fr/fr/accueil/contenu/index/page/categorie/sigras/0
 ---
@@ -39,7 +40,7 @@ Les définitions ci-dessous sont volontairement courtes. Les sujets les plus imp
 
 **Omnibus.** Directive européenne de simplification, adoptée le 24 février 2026 et publiée le 26 février 2026, qui a relevé les seuils de la CSRD et de la directive sur le devoir de vigilance. Sa transposition en droit français doit intervenir au plus tard le 19 mars 2027 pour la partie CSRD.
 
-**VSME (Voluntary Standard for non-listed Micro-, Small- and Medium-sized Enterprises).** Norme **volontaire** de reporting de durabilité pour les TPE et PME non cotées, élaborée par l'EFRAG et approuvée par la Commission européenne le 30 juillet 2025. Elle sert aussi de plafond : une grande entreprise ne peut pas exiger d'un fournisseur de moins de 1 000 salariés des informations qui la dépassent.
+**VSME (Voluntary Standard for non-listed Micro-, Small- and Medium-sized Enterprises).** Norme **volontaire** de reporting de durabilité pour les TPE et PME, élaborée par l'EFRAG et approuvée par la Commission européenne le 30 juillet 2025. Elle est devenue la **norme volontaire** du règlement délégué (UE) 2026/1560, en vigueur depuis septembre 2026. Elle sert aussi de plafond : une grande entreprise ne peut pas exiger d'un fournisseur de 1 000 salariés au plus des informations qui la dépassent.
 
 **EFRAG (European Financial Reporting Advisory Group).** Organisme européen chargé de préparer les normes de reporting de durabilité (ESRS et VSME).
 
