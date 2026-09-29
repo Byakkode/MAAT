@@ -97,7 +97,8 @@ describe('DocumentationArticlePage', () => {
     expect(internal.getAttribute('href')).toBe('/documentation/demarrer-sa-demarche-rse')
     expect(internal.getAttribute('target')).toBeNull()
 
-    const external = screen.getByRole('link', { name: 'la norme' })
+    // Le nom accessible annonce l'ouverture d'un nouvel onglet (jsdom n'y conserve pas l'espace).
+    const external = screen.getByRole('link', { name: /^la norme\s*\(nouvel onglet\)$/ })
     expect(external.getAttribute('target')).toBe('_blank')
     expect(external.getAttribute('rel')).toBe('noopener noreferrer')
   })

@@ -14,6 +14,9 @@ public partial class KnowledgeBaseTests
     [GeneratedRegex(@"\]\(/documentation/([^)#\s]+)")]
     private static partial Regex InternalLink();
 
+    [GeneratedRegex(@"\]\(([^)\s]+)\)")]
+    private static partial Regex AnyLink();
+
     private const string ValidHeader = """
         ---
         slug: exemple
@@ -86,6 +89,24 @@ public partial class KnowledgeBaseTests
             foreach (Match link in InternalLink().Matches(article.Body))
             {
                 Assert.True(slugs.Contains(link.Groups[1].Value), $"{article.Slug} : lien vers « {link.Groups[1].Value} », article inexistant.");
+            }
+        });
+    }
+
+    // Les liens vers des organismes extérieurs (guichets d'aide, sites publics) suivent la même
+    // règle que les sources : https uniquement. Un lien est donc soit un autre article, soit
+    // une adresse https, jamais http, mailto ou une adresse relative ambiguë.
+    [Fact]
+    public void Les_liens_du_corps_visent_un_article_ou_une_adresse_https()
+    {
+        Assert.All(Articles, article =>
+        {
+            foreach (Match link in AnyLink().Matches(article.Body))
+            {
+                var target = link.Groups[1].Value;
+                Assert.True(
+                    target.StartsWith("/documentation/", StringComparison.Ordinal) || target.StartsWith("https://", StringComparison.Ordinal),
+                    $"{article.Slug} : lien « {target} », ni article ni adresse https.");
             }
         });
     }
