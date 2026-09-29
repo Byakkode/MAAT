@@ -1,3 +1,4 @@
+import { ExternalLink } from 'lucide-react'
 import { Children, isValidElement, type ReactNode } from 'react'
 import Markdown, { type Components } from 'react-markdown'
 import { Link } from 'react-router-dom'
@@ -29,8 +30,10 @@ const COMPONENTS: Components = {
     <blockquote className="mb-4 rounded-lg border-l-4 border-blue-maat bg-kpi-blue px-4 py-3 text-text [&>p]:mb-0">{children}</blockquote>
   ),
   code: ({ children }) => <code className="rounded bg-bg px-1.5 py-0.5 text-[13px]">{children}</code>,
-  // Lien vers un autre article : navigation interne, sans recharger la page. Lien externe :
-  // nouvel onglet, sans transmettre l'adresse de la page ni un accès à la fenêtre d'origine.
+  // Lien vers un autre article : navigation interne, sans recharger la page. Lien externe
+  // (organisme public, guichet d'aide) : nouvel onglet, sans transmettre l'adresse de la page
+  // ni un accès à la fenêtre d'origine, signalé par une icône et annoncé aux lecteurs d'écran,
+  // comme les sources en bas d'article.
   a: ({ href, children }) =>
     href?.startsWith('/') ? (
       <Link to={href} className="font-medium text-blue-maat-text underline hover:no-underline">
@@ -39,6 +42,8 @@ const COMPONENTS: Components = {
     ) : (
       <a href={href} target="_blank" rel="noopener noreferrer" className="font-medium text-blue-maat-text underline hover:no-underline">
         {children}
+        <ExternalLink size={12} className="ml-0.5 inline-block align-baseline" aria-hidden />
+        <span className="sr-only"> (nouvel onglet)</span>
       </a>
     ),
   // Tableau défilant horizontalement sur petit écran plutôt que de déborder de la page.

@@ -6,9 +6,10 @@ category: GettingStarted
 level: Essentials
 order: 3
 tags: CSRD, VSME, Omnibus, obligations, seuils, loi PACTE, marchés publics
-updated: 2026-09-28
+updated: 2026-09-29
 source: Portail RSE (ministère de l'Économie), « Seuils CSRD et directive Omnibus » | https://portail-rse.beta.gouv.fr/csrd/seuils-csrd-omnibus-criteres-d-application/
 source: Portail RSE, fiche « Norme volontaire de durabilité (VSME) » | https://portail-rse.beta.gouv.fr/fiches-reglementaires/norme-volontaire-de-durabilite-vsme/
+source: Règlement délégué (UE) 2026/1560 de la Commission du 3 juillet 2026 (norme volontaire, plafond de la chaîne de valeur), EUR-Lex | https://eur-lex.europa.eu/eli/reg_del/2026/1560/oj
 source: Cabinet Deloitte Société d'Avocats, « La directive Omnibus CSRD/CS3D est publiée » | https://blog.avocats.deloitte.fr/la-directive-omnibus-csrd-cs3d-est-publiee/
 source: Service Public Entreprendre, « Les critères environnementaux des marchés publics évoluent le 21 août » (18 août 2026) | https://entreprendre.service-public.gouv.fr/actualites/A19042?lang=fr
 source: Code civil, article 1833 | https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000038589931
@@ -33,14 +34,14 @@ Les **PME cotées sont définitivement exclues**. Selon le Portail RSE, ce relè
 
 ## La VSME : volontaire, mais c'est la référence pour les PME
 
-La **VSME** est une norme **volontaire** de reporting de durabilité pour les micro, petites et moyennes entreprises non cotées, élaborée par l'EFRAG et approuvée par une recommandation de la Commission européenne du **30 juillet 2025**. Elle ne prévoit **aucune sanction** : c'est une démarche volontaire.
+La **VSME** est une norme **volontaire** de reporting de durabilité pour les micro, petites et moyennes entreprises non cotées, élaborée par l'EFRAG et approuvée par une recommandation de la Commission européenne du **30 juillet 2025**. Depuis le **24 septembre 2026**, elle est reprise dans le règlement délégué (UE) 2026/1560 comme **norme volontaire** officielle. Elle ne prévoit **aucune sanction** : c'est une démarche volontaire.
 
 Elle comporte deux modules :
 
 - un **module de base**, dans lequel l'entreprise ne publie que ce qui la concerne ;
 - un **module complet**, pour répondre aux demandes plus poussées de banques, d'investisseurs ou de grands clients.
 
-Pourquoi s'y intéresser malgré tout : depuis la directive Omnibus, une entreprise soumise à la CSRD **ne peut pas exiger d'un fournisseur de moins de 1 000 salariés des informations qui dépassent la VSME**. La VSME devient le plafond des questions qu'on peut vous poser, et donc le bon format pour y répondre.
+Pourquoi s'y intéresser malgré tout : depuis la directive Omnibus, une entreprise soumise à la CSRD **ne peut pas exiger d'un fournisseur de 1 000 salariés au plus des informations qui dépassent la VSME**. La VSME devient le plafond des questions qu'on peut vous poser, et donc le bon format pour y répondre.
 
 ## Les marchés publics : un critère environnemental obligatoire
 

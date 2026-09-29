@@ -6,7 +6,7 @@ category: GettingStarted
 level: Essentials
 order: 1
 tags: définition, responsabilité sociétale, ISO 26000, développement durable, parties prenantes
-updated: 2026-09-28
+updated: 2026-09-29
 source: Commission européenne, communication COM(2011) 681 sur la responsabilité sociale des entreprises | https://eur-lex.europa.eu/legal-content/FR/TXT/HTML/?uri=CELEX:52011DC0681
 source: Ministère de la Transition écologique, « La responsabilité sociétale des entreprises » | https://www.ecologie.gouv.fr/politiques-publiques/responsabilite-societale-entreprises
 source: Code civil, article 1833 (rédaction issue de la loi PACTE du 22 mai 2019) | https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000038589931
@@ -28,7 +28,7 @@ La norme internationale **ISO 26000**, publiée en 2010, sert de référence pou
 6. **Les questions relatives aux consommateurs** : information honnête, sécurité des produits, protection des données.
 7. **Les communautés et le développement local** : emploi local, partenariats, ancrage dans le territoire.
 
-L'ISO 26000 est un **guide de lignes directrices**, pas une norme certifiable : aucun organisme ne délivre de « certificat ISO 26000 ». Elle dit quoi regarder, pas quel niveau atteindre.
+L'ISO 26000 est un **guide de lignes directrices**, pas une norme certifiable : aucun organisme ne délivre de « certificat ISO 26000 ». Elle dit quoi regarder, pas quel niveau atteindre. Voir [La norme ISO 26000 sur la responsabilité sociétale](/documentation/norme-iso-26000).
 
 ## Ce que la RSE n'est pas
 

@@ -77,6 +77,9 @@ jamais en silence.
 - Le titre n'est pas répété dans le corps (pas de `# Titre`) : l'écran l'affiche en h1.
 - Les liens vers un autre article prennent la forme `/documentation/<slug>` et doivent viser
   un article existant (vérifié par les tests).
+- Les liens externes du corps (organismes publics, guichets d'aide) sont admis, en `https`
+  uniquement, comme les sources : tout lien du corps vise soit un article, soit une adresse
+  `https://` (vérifié par les tests).
 - Deux articles d'une même rubrique n'ont jamais le même rang de lecture (vérifié par les
   tests).
 - Aucun HTML dans le Markdown : il ne serait pas interprété (section 5).
@@ -139,7 +142,8 @@ noreferrer`) ; mention que le contenu ne constitue pas un avis juridique.
 Le Markdown est rendu par `react-markdown` (tableaux par `remark-gfm`) en composants React
 stylés selon la charte, **sans jamais interpréter de HTML brut** : le contenu ne peut pas
 injecter de script. Liens internes par le routeur (sans rechargement), liens externes dans
-un nouvel onglet.
+un nouvel onglet (`noopener noreferrer`), signalés par une icône et annoncés aux lecteurs
+d'écran (« nouvel onglet »), comme les sources.
 
 **Offre Starter** (`abonnement.md`, section 8) : sommaire et recherche visibles, avec une
 invitation compacte à l'offre Essential ; l'ouverture d'un article affiche l'invitation à
@@ -163,8 +167,9 @@ la place du contenu.
 
 7. Tous les articles embarqués se chargent ; slugs uniques.
 8. Chaque article a au moins une source en `https`, un résumé et des mots-clés.
-9. Les liens internes visent des articles existants ; pas de titre de niveau 1 dans le corps ;
-   rangs de lecture uniques dans chaque rubrique.
+9. Les liens internes visent des articles existants ; les autres liens du corps sont en
+   `https` ; pas de titre de niveau 1 dans le corps ; rangs de lecture uniques dans chaque
+   rubrique.
 10. En-tête invalide (source absente ou en `http`, slug différent du fichier ou mal formé,
     rubrique ou niveau inconnus, rang de lecture non entier positif, date mal formée, champ
     inconnu ou manquant, corps vide) →
@@ -183,7 +188,8 @@ la place du contenu.
 
 16. Liste, recherche après la frappe, filtres, aucun résultat, erreur, invitation Starter,
     accessibilité.
-17. Article : Markdown rendu (titres ancrés, tableaux), liens internes et externes, aucun
+17. Article : Markdown rendu (titres ancrés, tableaux), liens internes et externes (nouvel
+    onglet annoncé dans le nom accessible), aucun
     HTML brut interprété, invitation Starter, article inconnu, accessibilité.
 18. E2E : compte Starter → entrée Documentation → recherche sans accents → article →
     invitation à Essential.

@@ -6,9 +6,10 @@ category: Regulation
 level: Expert
 order: 2
 tags: CSRD, ESRS, rapport de durabilité, Omnibus, double matérialité, seuils, chaîne de valeur, reporting
-updated: 2026-09-28
+updated: 2026-09-29
 source: Portail RSE (ministère de l'Économie), fiche « Rapport de durabilité (CSRD) » | https://portail-rse.beta.gouv.fr/fiches-reglementaires/rapport-de-durabilite-csrd/
 source: Portail RSE, « Seuils CSRD et directive Omnibus » | https://portail-rse.beta.gouv.fr/csrd/seuils-csrd-omnibus-criteres-d-application/
+source: Règlement délégué (UE) 2026/1560 de la Commission du 3 juillet 2026 (norme volontaire, plafond de la chaîne de valeur), EUR-Lex | https://eur-lex.europa.eu/eli/reg_del/2026/1560/oj
 source: Cabinet Deloitte Société d'Avocats, « La directive Omnibus CSRD/CS3D est publiée » | https://blog.avocats.deloitte.fr/la-directive-omnibus-csrd-cs3d-est-publiee/
 ---
 
@@ -52,4 +53,4 @@ Le rapport de durabilité doit être **certifié par un tiers indépendant**. C'
 
 ## Ce que cela change pour les PME
 
-Une PME n'est pas soumise à la CSRD. Mais ses clients qui le sont doivent rendre compte des impacts de leur **chaîne de valeur**, et l'interrogent donc sur ses pratiques. La directive Omnibus encadre ces demandes : une entreprise soumise à la CSRD **ne peut pas exiger d'un fournisseur de moins de 1 000 salariés des informations qui dépassent la norme volontaire VSME**. Voir [La norme VSME](/documentation/norme-vsme).
+Une PME n'est pas soumise à la CSRD. Mais ses clients qui le sont doivent rendre compte des impacts de leur **chaîne de valeur**, et l'interrogent donc sur ses pratiques. La directive Omnibus encadre ces demandes : une entreprise soumise à la CSRD **ne peut pas exiger d'un fournisseur de 1 000 salariés au plus des informations qui dépassent la norme volontaire VSME**, devenue le règlement délégué (UE) 2026/1560. Ce plafond s'applique aux exercices ouverts à compter du 1er janvier 2027. Voir [La norme VSME](/documentation/norme-vsme).
