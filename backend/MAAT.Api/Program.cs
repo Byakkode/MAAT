@@ -7,6 +7,7 @@ using MAAT.Application.UseCases;
 using MAAT.Domain.Services;
 using MAAT.Infrastructure.Billing;
 using MAAT.Infrastructure.Email;
+using MAAT.Infrastructure.Geocoding;
 using MAAT.Infrastructure.GitHub;
 using MAAT.Infrastructure.Jobs;
 using MAAT.Infrastructure.Knowledge;
@@ -73,6 +74,8 @@ builder.Services.AddScoped<ISupportTicketRepository, SupportTicketRepository>();
 builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
 builder.Services.AddScoped<ICompanyLogoRepository, CompanyLogoRepository>();
 builder.Services.AddScoped<IActionItemChangeRepository, ActionItemChangeRepository>();
+builder.Services.AddScoped<IVsmeStatementRepository, VsmeStatementRepository>();
+builder.Services.AddScoped<ICompanySiteRepository, CompanySiteRepository>();
 
 // Charge Question, Recommendation et SectorWeight depuis MAAT.Infrastructure/Seed/*.csv
 // (docs/specs/modele-donnees.md) — jamais depuis les migrations, qui ne portent que le
@@ -114,6 +117,7 @@ builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<CompanyLogoService>();
 builder.Services.AddScoped<ActionItemHistoryService>();
 builder.Services.AddScoped<DocumentationService>();
+builder.Services.AddScoped<VsmeService>();
 
 // LoggingEmailSender journalise les adresses e-mail (donnée personnelle), ce que
 // la section 5 de la spec interdit en dehors du poste de développement. Aucun
@@ -164,6 +168,18 @@ builder.Services.AddHttpClient<IGitHubIssueService, GitHubIssueService>(client =
     client.BaseAddress = new Uri("https://api.github.com/");
     // GitHub API impose un User-Agent identifiable (RFC 2616) — l'absence bloque la requête.
     client.DefaultRequestHeaders.UserAgent.ParseAdd("MAAT-Support/1.0 (https://github.com/Byakkode/MAAT)");
+});
+
+// Géocodage des sites (docs/adr/0013) : service public de l'IGN, sans clé. Options lues à la
+// création du client, jamais au niveau du script (CLAUDE.md, Program.cs). Remplacé par un
+// double en test : aucun test ne dépend du réseau.
+builder.Services.AddOptions<GeocodingOptions>().BindConfiguration(GeocodingOptions.Section);
+builder.Services.AddHttpClient<IGeocoder, GeoplateformeGeocoder>((sp, client) =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<GeocodingOptions>>().Value;
+    client.BaseAddress = new Uri(options.BaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("MAAT/1.0 (https://github.com/Byakkode/MAAT)");
 });
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

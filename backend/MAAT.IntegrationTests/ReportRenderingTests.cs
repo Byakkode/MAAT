@@ -1,5 +1,7 @@
 using System.Text;
 using MAAT.Application.DTOs;
+using MAAT.Application.UseCases;
+using MAAT.Domain.Entities;
 using MAAT.Domain.Enums;
 using MAAT.Infrastructure.Pdf;
 
@@ -38,6 +40,91 @@ public class ReportRenderingTests
             i == 2 ? "Claire Martin" : null,
             i == 2 ? CompletedAt.AddMonths(2) : null))];
 
+    // Section 04 construite comme en production, par ReportSustainabilityBuilder, à partir
+    // d'entités du Domain : ce que le générateur reçoit réellement.
+    private static ReportSustainability Sustainability(
+        bool complete,
+        int siteCount = 2,
+        VsmeDisclosure[]? omitted = null,
+        bool micro = false,
+        string? longText = null)
+    {
+        var now = new DateTimeOffset(2026, 9, 1, 0, 0, 0, TimeSpan.Zero);
+        var company = new Company("Menuiserie Dupont & Fils", "1623Z", micro ? CompanySizeRange.Micro : CompanySizeRange.Medium, "Île-de-France");
+
+        var statement = new VsmeStatement(company.Id, 2025, now);
+        statement.Update(new VsmeStatementValues
+        {
+            ReportingBasis = ReportingBasis.Consolidated,
+            LegalForm = "SAS",
+            TotalAssetsEur = complete ? 12_800_000 : null,
+            PrimaryCountry = "France",
+            EmployeeCountUnit = EmployeeCountUnit.Headcount,
+            OmittedDisclosures = omitted ?? [],
+            Subsidiaries = [new VsmeSubsidiary("Dupont Agencement", "4 allée des Artisans 77100 Meaux")],
+            Certifications = [new VsmeCertification("PEFC chaîne de contrôle", "PEFC France", new DateOnly(2024, 5, 14), null)],
+            HasPractices = true,
+            HasPolicies = true,
+            PoliciesPublic = true,
+            HasFutureInitiatives = true,
+            HasTargets = complete ? true : null,
+            PracticesDescription = longText ?? "Tri des chutes de bois, chaudière biomasse alimentée par les copeaux, plan de formation annuel.",
+            CoveredTopics = [SustainabilityTopic.ClimateChange, SustainabilityTopic.CircularEconomy, SustainabilityTopic.Workforce],
+            PollutionReportingApplicable = true,
+            PollutionReportUrl = "https://www.georisques.gouv.fr/",
+            Pollutants = [new VsmePollutant("Composés organiques volatils", PollutionMedium.Air, 1.24, "t")],
+            CircularEconomyApplied = true,
+            CircularEconomyDescription = longText ?? "Réemploi des chutes en petits objets, reprise des palettes par le fournisseur.",
+            MaterialFlowsDescription = "Bois massif 820 t, panneaux 310 t.",
+            MinimumWageMet = true,
+            CorruptionConvictions = 0,
+        }, now);
+
+        var indicators = new RseIndicators(company.Id, 2025);
+        indicators.Update(new RseIndicatorValues
+        {
+            RevenueEur = 18_400_000,
+            ElectricityRenewableMwh = 120,
+            ElectricityNonRenewableMwh = 310,
+            FuelsRenewableMwh = 540,
+            FuelsNonRenewableMwh = 95,
+            Scope1Tco2e = 64.2,
+            Scope2LocationTco2e = complete ? 21.5 : null,
+            WaterWithdrawalM3 = 1_450,
+            HazardousWasteTons = 2.4,
+            NonHazardousWasteTons = 188,
+            RecyclingRatePct = 71,
+            PermanentEmployees = micro ? 7 : 112,
+            TemporaryEmployees = micro ? 1 : 9,
+            FemaleEmployees = micro ? 3 : 34,
+            MaleEmployees = micro ? 5 : 87,
+            RecordableAccidents = 3,
+            HoursWorked = 182_000,
+            WorkFatalities = 0,
+            CollectiveBargainingPct = 100,
+            TrainingHoursPerEmployee = 16.5,
+            GenderEqualityIndex = 86,
+            LocalSuppliersPct = 42,
+        });
+
+        var previous = new RseIndicators(company.Id, 2024);
+        previous.Update(new RseIndicatorValues { RevenueEur = 17_100_000, Scope1Tco2e = 71, RecyclingRatePct = 64, GenderEqualityIndex = 84 });
+
+        var sites = Enumerable.Range(1, siteCount).Select(i =>
+        {
+            var site = new CompanySite(company.Id, new CompanySiteDetails(
+                i == 1 ? "Atelier principal" : $"Dépôt {i}",
+                $"{i} rue des Scieries 77100 Meaux",
+                i == 1 ? SiteTenure.Owned : SiteTenure.Leased,
+                InOrNearSensitiveArea: i == 1,
+                SensitiveAreaName: i == 1 ? "Natura 2000 « Boucles de la Marne »" : null), now.AddMinutes(i));
+            site.Locate(48.96 + (i / 1000.0), 2.88 + (i / 1000.0), $"{i} Rue des Scieries 77100 Meaux");
+            return site;
+        }).ToList();
+
+        return ReportSustainabilityBuilder.Build(new ReportSustainabilityBuilder.Input(2025, company, statement, indicators, null, previous, sites));
+    }
+
     private static ReportData Rich() => new(
         "Menuiserie Dupont & Fils",
         "6201Z",
@@ -57,15 +144,7 @@ public class ReportRenderingTests
             new(CompletedAt, 50.19m),
         ],
         new Dictionary<RseDomain, decimal> { [RseDomain.Environmental] = 30m, [RseDomain.Social] = 60m },
-        new ReportIndicators(2025, 2024,
-        [
-            new("Environnement", "Émissions CO₂", "tCO₂eq/an", 182.4, 205.0, false),
-            new("Environnement", "Consommation eau", "m³/an", null, null, false),
-            new("Social", "Taux d'accidents du travail", "‰", 2.1, 1.8, false),
-            new("Social", "Index égalité F/H", "/100", 86, 84, true),
-            new("Achats responsables", "Fournisseurs locaux (< 100 km)", "%", 42, 40, true),
-            new("Économique", "Chiffre d'affaires", "€", 18_400_000, 0, null),
-        ]),
+        Sustainability(complete: true),
         GeneratedAt,
         "1.0");
 
@@ -90,7 +169,7 @@ public class ReportRenderingTests
         {
             History = [new(CompletedAt, 50.19m)],
             PreviousDomainScores = null,
-            Indicators = null,
+            Sustainability = null,
             Recommendations = Recommendations(3),
             TotalRecommendationCount = 3,
             ActionStatusSummary = new ReportActionStatusSummary(2, 0, 0, 1),
@@ -172,7 +251,7 @@ public class ReportRenderingTests
             TotalRecommendationCount = 0,
             ActionStatusSummary = new ReportActionStatusSummary(0, 0, 0, 0),
             PreviousDomainScores = null,
-            Indicators = null,
+            Sustainability = null,
             FullReport = false,
         };
         var generator = new QuestPdfReportGenerator();
@@ -207,5 +286,84 @@ public class ReportRenderingTests
         AssertValidPdf(bytes);
         Assert.True(bytes.Length > generator.Generate(withLogo with { CompanyLogoPng = null }).Length);
         Assert.Equal(bytes, generator.Generate(withLogo with { CompanyLogoPng = [.. logo] }));
+    }
+
+    // docs/specs/norme-volontaire.md, section 6 et cas 15 : chaque variante de la section 04 se
+    // met en page sans lever (rapport conforme ou partiel, information omise, micro-entreprise,
+    // cinquante sites, descriptions longues) et reste déterministe.
+    [Theory]
+    [InlineData("conforme")]
+    [InlineData("partiel")]
+    [InlineData("omise")]
+    [InlineData("micro")]
+    [InlineData("cinquante-sites")]
+    [InlineData("textes-longs")]
+    public void Section_04_norme_volontaire_se_met_en_page(string scenario)
+    {
+        var sustainability = scenario switch
+        {
+            "conforme" => Sustainability(complete: true),
+            "partiel" => Sustainability(complete: false),
+            "omise" => Sustainability(complete: true, omitted: [VsmeDisclosure.B3, VsmeDisclosure.B11]),
+            "micro" => Sustainability(complete: false, micro: true),
+            "cinquante-sites" => Sustainability(complete: true, siteCount: 50),
+            "textes-longs" => Sustainability(complete: true, longText: string.Concat(Enumerable.Repeat("Description détaillée de la démarche de l'entreprise, étape par étape. ", 28))),
+            _ => throw new ArgumentOutOfRangeException(nameof(scenario)),
+        };
+        var data = Rich() with { Sustainability = sustainability };
+        var generator = new QuestPdfReportGenerator();
+
+        var bytes = generator.Generate(data);
+
+        AssertValidPdf(bytes);
+        Assert.Equal(bytes, generator.Generate(data));
+    }
+
+    [Fact]
+    public void Conformite_declaree_seulement_quand_le_module_est_complet()
+    {
+        var complete = Sustainability(complete: true);
+        var partial = Sustainability(complete: false);
+
+        Assert.True(complete.IsCompliant);
+        Assert.False(partial.IsCompliant);
+        Assert.Contains(partial.Disclosures, d => d.Code == VsmeDisclosure.B3 && d.Missing.Contains("Émissions Scope 2"));
+        Assert.Equal(
+            "Ce rapport de durabilité est établi selon le module de base (option A) de la norme volontaire européenne, règlement délégué (UE) 2026/1560.",
+            QuestPdfReportGenerator.ComplianceStatement);
+        Assert.StartsWith("3 informations sur 11 restent à compléter", QuestPdfReportGenerator.PartialReportLine(3, 11));
+        Assert.StartsWith("1 information sur 11 reste à compléter", QuestPdfReportGenerator.PartialReportLine(1, 11));
+    }
+
+    // Le rapport ne laisse jamais une case blanche : chaque absence dit pourquoi.
+    [Fact]
+    public void Donnee_absente_nommee_selon_sa_nature()
+    {
+        Assert.Equal("Non renseigné", QuestPdfReportGenerator.AbsenceLabel(new ReportDatapoint("x", Absence: DatapointAbsence.NotProvided)));
+        Assert.Equal("Facultatif (10 salariés ou moins)", QuestPdfReportGenerator.AbsenceLabel(new ReportDatapoint("x", Absence: DatapointAbsence.OptionalForMicro)));
+        Assert.Equal(
+            "Non applicable : pas d'obligation légale de publication",
+            QuestPdfReportGenerator.AbsenceLabel(new ReportDatapoint("x", Absence: DatapointAbsence.NotApplicable, AbsenceNote: "pas d'obligation légale de publication")));
+
+        var micro = Sustainability(complete: false, micro: true);
+        var b3 = micro.Disclosures.Single(d => d.Code == VsmeDisclosure.B3);
+        Assert.Equal(DatapointAbsence.OptionalForMicro, b3.Datapoints.Single(d => d.Label == "Émissions brutes Scope 2 (localisation)").Absence);
+    }
+
+    // B1 : code NACE dérivé du NAF, taux d'accidents pour 200 000 heures (cas 9 et 10), valeur
+    // de l'exercice précédent (§14).
+    [Fact]
+    public void Donnees_derivees_de_la_section_04()
+    {
+        var sustainability = Sustainability(complete: true);
+        var b1 = sustainability.Disclosures.Single(d => d.Code == VsmeDisclosure.B1);
+        var b9 = sustainability.Disclosures.Single(d => d.Code == VsmeDisclosure.B9);
+        var b3 = sustainability.Disclosures.Single(d => d.Code == VsmeDisclosure.B3);
+
+        Assert.Equal("16.23 (NAF 1623Z)", b1.Datapoints.Single(d => d.Label == "Code NACE").Text);
+        Assert.Equal(17_100_000, b1.Datapoints.Single(d => d.Label == "Chiffre d'affaires").PreviousValue);
+        Assert.Equal(3.0 / 182_000 * 200_000, b9.Datapoints.Single(d => d.Label == "Taux d'accidents").Value);
+        Assert.Equal(1_065, b3.Datapoints.Single(d => d.Label == "Consommation totale d'énergie").Value);
+        Assert.Equal(2024, sustainability.PreviousYear);
     }
 }

@@ -66,7 +66,8 @@ Une entreprise dont le code NAF n'a pas d'entrée dans `SectorWeight` utilise la
 pondération par défaut — cas à gérer explicitement, pas à laisser planter.
 
 Relations : `1 Company → N Users`, `1 Company → N Diagnostics`,
-`1 Company → 0..1 Subscription`, `1 Company → 0..1 CompanyLogo`.
+`1 Company → 0..1 Subscription`, `1 Company → 0..1 CompanyLogo`,
+`1 Company → N VsmeStatements` (une par exercice), `1 Company → N CompanySites`.
 
 ---
 
@@ -501,6 +502,93 @@ n'est jamais retenu. Index sur (`diagnostic_id`, `recommendation_code`, `changed
 
 `changed_by_user_id` passe à `null` quand le compte de l'auteur est supprimé : la ligne
 reste, anonyme.
+
+---
+
+## RseIndicators
+
+Indicateurs chiffrés d'un exercice, saisis à l'écran Indicateurs : une ligne par entreprise
+et par année (index unique `company_id`, `year`). Toutes les valeurs sont facultatives
+(`double precision` ou `integer`, nullables).
+
+Aux colonnes historiques (émissions, énergie, eau, déchets, effectif, achats responsables,
+économique) s'ajoutent celles du module de base de la norme volontaire
+(`norme-volontaire.md`, section 2) : `electricity_renewable_mwh`,
+`electricity_non_renewable_mwh`, `fuels_renewable_mwh`, `fuels_non_renewable_mwh`,
+`scope1_tco2e`, `scope2_location_tco2e`, `water_withdrawal_m3`,
+`water_consumption_stress_m3`, `hazardous_waste_tons`, `non_hazardous_waste_tons`,
+`permanent_employees`, `temporary_employees`, `female_employees`, `male_employees`,
+`other_gender_employees`, `recordable_accidents`, `hours_worked`, `work_fatalities`,
+`gender_pay_gap_pct`, `collective_bargaining_pct`.
+
+Règles de cohérence (dans l'entité) : quand toutes les parties d'un total sont saisies,
+le total en devient la somme (`energy_consumption_kwh`, `co2_emissions_tons`,
+`waste_tons`). Le tableau de bord, qui lit les totaux, reste juste.
+
+---
+
+## VsmeStatement
+
+Déclarations d'un exercice pour la norme volontaire (`norme-volontaire.md`) : tout ce qui
+n'est ni un indicateur chiffré ni un site. Table `vsme_statements`.
+
+| Colonne | Type | Contraintes |
+| --- | --- | --- |
+| `id` | uuid | PK |
+| `company_id` | uuid | FK → Company, requis, `ON DELETE CASCADE` |
+| `year` | integer | requis ; unique avec `company_id` |
+| `reporting_basis` | enum | nullable : `Individual`, `Consolidated` |
+| `legal_form` | varchar(200) | nullable |
+| `total_assets_eur` | double precision | nullable |
+| `primary_country` | varchar(200) | nullable |
+| `employee_count_unit` | enum | nullable : `Headcount`, `FullTimeEquivalent` |
+| `omitted_disclosures` | text[] | requis (vide par défaut) : codes `B2` à `B11`, jamais `B1` |
+| `subsidiaries` | jsonb | nom, adresse du siège ; seulement si consolidé |
+| `certifications` | jsonb | label, organisme, date, note |
+| `has_practices`, `has_policies`, `policies_public`, `has_future_initiatives`, `has_targets` | boolean | nullables : `null` = pas encore répondu |
+| `practices_description` | varchar(2000) | nullable |
+| `covered_topics` | text[] | requis : thèmes de l'annexe B |
+| `pollution_reporting_applicable` | boolean | nullable |
+| `pollution_report_url` | varchar(200) | nullable, `http(s)` |
+| `pollutants` | jsonb | nom, milieu (`Air`, `Water`, `Soil`), quantité, unité |
+| `circular_economy_applied` | boolean | nullable |
+| `circular_economy_description`, `material_flows_description` | varchar(2000) | nullables |
+| `employees_by_country` | jsonb | pays, effectif |
+| `minimum_wage_met` | boolean | nullable |
+| `corruption_convictions` | integer | nullable : `null` = aucune condamnation |
+| `corruption_fines_eur` | double precision | nullable |
+| `created_at`, `updated_at` | timestamptz | requis |
+
+Les listes sont en `jsonb` plutôt qu'en tables filles : elles n'existent qu'à travers la
+déclaration de l'exercice, ne sont jamais interrogées seules, et sont réécrites en entier à
+chaque enregistrement. Les listes d'énumérations (`text[]`) sont dédoublonnées et triées à
+l'écriture : le rapport doit être identique à données identiques (`rapport-pdf.md`,
+section 3).
+
+---
+
+## CompanySite
+
+Site détenu, loué ou géré par l'entreprise (`norme-volontaire.md`, B1 et B5). Table
+`company_sites`, rattachée à l'entreprise et non à un exercice.
+
+| Colonne | Type | Contraintes |
+| --- | --- | --- |
+| `id` | uuid | PK |
+| `company_id` | uuid | FK → Company, requis, `ON DELETE CASCADE`, indexé |
+| `name` | varchar(120) | requis |
+| `address` | varchar(300) | requis |
+| `tenure` | enum | requis : `Owned`, `Leased`, `Managed` |
+| `latitude`, `longitude` | double precision | nullables : géocodage (ADR 0013) |
+| `geocoded_label` | varchar(300) | nullable : adresse normalisée par le géocodeur |
+| `in_or_near_sensitive_area` | boolean | nullable : `null` = pas encore répondu |
+| `sensitive_area_name` | varchar(200) | nullable, seulement si zone sensible |
+| `created_at`, `updated_at` | timestamptz | requis |
+
+Cinquante sites au plus par entreprise. Un changement d'adresse efface les coordonnées
+avant un nouveau géocodage : un site ne garde jamais la position d'une adresse qu'il n'a
+plus. Ordre de lecture stable (`created_at`, puis `id`) : les sites figurent dans le
+rapport.
 
 ---
 

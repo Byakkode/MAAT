@@ -29,6 +29,28 @@ public class RseIndicatorsConfiguration : IEntityTypeConfiguration<RseIndicators
         builder.Property(r => r.GenderEqualityIndex).HasColumnName("gender_equality_index");
         builder.Property(r => r.PermanentContractPct).HasColumnName("permanent_contract_pct");
 
+        // docs/specs/norme-volontaire.md, section 2 : données du module de base.
+        builder.Property(r => r.ElectricityRenewableMwh).HasColumnName("electricity_renewable_mwh");
+        builder.Property(r => r.ElectricityNonRenewableMwh).HasColumnName("electricity_non_renewable_mwh");
+        builder.Property(r => r.FuelsRenewableMwh).HasColumnName("fuels_renewable_mwh");
+        builder.Property(r => r.FuelsNonRenewableMwh).HasColumnName("fuels_non_renewable_mwh");
+        builder.Property(r => r.Scope1Tco2e).HasColumnName("scope1_tco2e");
+        builder.Property(r => r.Scope2LocationTco2e).HasColumnName("scope2_location_tco2e");
+        builder.Property(r => r.WaterWithdrawalM3).HasColumnName("water_withdrawal_m3");
+        builder.Property(r => r.WaterConsumptionStressM3).HasColumnName("water_consumption_stress_m3");
+        builder.Property(r => r.HazardousWasteTons).HasColumnName("hazardous_waste_tons");
+        builder.Property(r => r.NonHazardousWasteTons).HasColumnName("non_hazardous_waste_tons");
+        builder.Property(r => r.PermanentEmployees).HasColumnName("permanent_employees");
+        builder.Property(r => r.TemporaryEmployees).HasColumnName("temporary_employees");
+        builder.Property(r => r.FemaleEmployees).HasColumnName("female_employees");
+        builder.Property(r => r.MaleEmployees).HasColumnName("male_employees");
+        builder.Property(r => r.OtherGenderEmployees).HasColumnName("other_gender_employees");
+        builder.Property(r => r.RecordableAccidents).HasColumnName("recordable_accidents");
+        builder.Property(r => r.HoursWorked).HasColumnName("hours_worked");
+        builder.Property(r => r.WorkFatalities).HasColumnName("work_fatalities");
+        builder.Property(r => r.GenderPayGapPct).HasColumnName("gender_pay_gap_pct");
+        builder.Property(r => r.CollectiveBargainingPct).HasColumnName("collective_bargaining_pct");
+
         builder.Property(r => r.LocalSuppliersPct).HasColumnName("local_suppliers_pct");
         builder.Property(r => r.RseAssessedSuppliersPct).HasColumnName("rse_assessed_suppliers_pct");
         builder.Property(r => r.ActiveSuppliersCount).HasColumnName("active_suppliers_count");

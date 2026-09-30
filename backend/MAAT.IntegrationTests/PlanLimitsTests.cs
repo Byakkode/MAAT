@@ -233,7 +233,7 @@ public class PlanLimitsTests(PlanLimitsApiFixture fixture)
     }
 
     [Fact]
-    public async Task Cas24_PlanDActionsEnrichiEtIndicateurs_ReservesAProfessional()
+    public async Task Cas24_PlanDActionsEnrichi_ReserveAProfessional_IndicateursOuvertsAEssential()
     {
         var client = fixture.CreateClient();
         var (companyId, _, token) = await RegisterAsync(client, SubscriptionPlan.Essential);
@@ -245,8 +245,9 @@ public class PlanLimitsTests(PlanLimitsApiFixture fixture)
 
         await AssertPlanRequiredAsync(
             await client.SendAsync(Authorized(HttpMethod.Patch, actionPlanUrl, token, progress)), "Professional");
-        await AssertPlanRequiredAsync(
-            await client.SendAsync(Authorized(HttpMethod.Put, "/api/indicators/2025", token, indicators)), "Professional");
+        // norme-volontaire.md, cas 12 : la saisie des indicateurs est ouverte dès Essential.
+        Assert.Equal(HttpStatusCode.OK,
+            (await client.SendAsync(Authorized(HttpMethod.Put, "/api/indicators/2025", token, indicators))).StatusCode);
 
         await SetPlanAsync(companyId, SubscriptionPlan.Professional);
         Assert.Equal(HttpStatusCode.OK,
@@ -407,7 +408,7 @@ public class PlanLimitsTests(PlanLimitsApiFixture fixture)
         Assert.False(starter.FullReport);
         Assert.Empty(starter.DomainScores);
         Assert.Empty(starter.Recommendations);
-        Assert.Null(starter.Indicators);
+        Assert.Null(starter.Sustainability);
         Assert.Null(starter.PreviousDomainScores);
 
         await SetPlanAsync(companyId, SubscriptionPlan.Professional);

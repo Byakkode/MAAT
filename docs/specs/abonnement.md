@@ -280,11 +280,12 @@ autre mécanisme. Enterprise, pas encore commercialisée, a les droits de Profes
 | Plan d'actions enrichi : modifier statut, responsable, échéance, notes | ❌ | ❌ | ✅ |
 | Historique du suivi des actions (`recommandations.md`, section 4 bis) | ❌ | ❌ | ✅ |
 | Base documentaire : lire les articles (sommaire et recherche ouverts à tous, `documentation.md`) | ❌ | ✅ | ✅ |
-| Indicateurs RSE : saisie | ❌ | ❌ | ✅ |
+| Indicateurs et informations de durabilité (norme volontaire, B1 à B11) : saisie (`norme-volontaire.md`) | ❌ | ✅ | ✅ |
 | Benchmark sectoriel | ❌ | ❌ | ✅ |
 | Support : ouvrir un ticket | ❌ | ✅ | ✅ |
 | Rapport PDF | page de garde réduite | complet | complet |
 | Logo de l'entreprise sur le rapport (`rapport-pdf.md`, section 7) | ❌ | ✅ | ✅ |
+| Rapport selon la norme volontaire (ex-VSME) : section 04 du rapport, B1 à B11 | ❌ | ✅ | ✅ |
 
 Ces droits s'ajoutent aux rôles, ils ne les remplacent pas : un `Viewer` reste en
 lecture seule quelle que soit l'offre (`auth-securite-rgpd.md`).
@@ -351,7 +352,7 @@ Les règles ne sont pas recopiées dans le frontend.
 ### Comparatif
 
 Les fonctionnalités annoncées mais pas encore construites restent dans le comparatif
-(`frontend/src/billing/plans.ts`) avec la mention « Bientôt » : générateur VSME,
+(`frontend/src/billing/plans.ts`) avec la mention « Bientôt » :
 préparation EcoVadis et B Corp, module CSRD, reporting
 multi-référentiels, CDP et SFDR, alertes de conformité, collecte collaborative, API d'intégration, et toutes les options propres à Enterprise. Une fonctionnalité perd cette mention dans
 le commit qui la livre.
@@ -405,8 +406,8 @@ Intégration (`PlanLimitsTests`, section 8) :
 22. Essential : écriture sur une recommandation hors des 12 visibles → `404` ;
     Professional : acceptée.
 23. Starter : cocher une action → `403` ; Essential → accepté.
-24. Essential : modifier le plan d'actions enrichi ou saisir des indicateurs → `403` ;
-    Professional → accepté.
+24. Essential : modifier le plan d'actions enrichi → `403`, Professional → accepté ;
+    saisir des indicateurs → accepté dès Essential (`norme-volontaire.md`, cas 12).
 25. Starter : scores par domaine absents du tableau de bord, `domain-scores` → `403`.
 26. Benchmark absent en Starter et Essential, présent en Professional.
 27. Starter : ouvrir un ticket de support → `403` ; lecture des tickets existants

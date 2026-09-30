@@ -52,7 +52,9 @@ public sealed record PlanEntitlements(
         VisibleRecommendations: 12,
         CanTrackActions: true,
         CanEditActionPlan: false,
-        CanEditIndicators: false,
+        // docs/specs/norme-volontaire.md : le rapport selon la norme volontaire, promis dès
+        // Essential, se construit à partir de ces données.
+        CanEditIndicators: true,
         CanViewBenchmark: false,
         CanOpenSupportTickets: true,
         FullReport: true,
@@ -65,7 +67,6 @@ public sealed record PlanEntitlements(
         EffectivePlan = SubscriptionPlan.Professional,
         VisibleRecommendations = null,
         CanEditActionPlan = true,
-        CanEditIndicators = true,
         CanViewBenchmark = true,
         CanViewActionHistory = true,
     };
