@@ -7,8 +7,8 @@ const QUESTIONS = [
     a: "Non. Les questions portent sur des pratiques concrètes (relevés d’énergie, accueil sécurité, choix des fournisseurs) et chacune explique ce qui est attendu. Un dirigeant ou un responsable administratif peut répondre seul.",
   },
   {
-    q: "Qu’est-ce que le standard VSME ?",
-    a: "Le Voluntary SME Standard est le cadre européen de reporting de durabilité destiné aux PME non soumises à la CSRD. Il permet de répondre avec un seul document aux demandes de vos clients, banques et donneurs d’ordre.",
+    q: "Qu’est-ce que la norme volontaire (ex-VSME) ?",
+    a: "Issue du Voluntary SME Standard (VSME), la norme volontaire européenne est, depuis le règlement délégué (UE) 2026/1560, le cadre officiel de reporting de durabilité des PME non soumises à la CSRD. Elle permet de répondre avec un seul document aux demandes de vos clients, banques et donneurs d’ordre, qui ne peuvent pas vous en demander davantage.",
   },
   {
     q: 'Comment le score est-il calculé ?',

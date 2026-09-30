@@ -8,6 +8,27 @@ export interface RseIndicators {
   waterConsumptionM3: number | null
   wasteTons: number | null
   recyclingRatePct: number | null
+  // docs/specs/norme-volontaire.md, section 2 : données du module de base.
+  electricityRenewableMwh: number | null
+  electricityNonRenewableMwh: number | null
+  fuelsRenewableMwh: number | null
+  fuelsNonRenewableMwh: number | null
+  scope1Tco2e: number | null
+  scope2LocationTco2e: number | null
+  waterWithdrawalM3: number | null
+  waterConsumptionStressM3: number | null
+  hazardousWasteTons: number | null
+  nonHazardousWasteTons: number | null
+  permanentEmployees: number | null
+  temporaryEmployees: number | null
+  femaleEmployees: number | null
+  maleEmployees: number | null
+  otherGenderEmployees: number | null
+  recordableAccidents: number | null
+  hoursWorked: number | null
+  workFatalities: number | null
+  genderPayGapPct: number | null
+  collectiveBargainingPct: number | null
   employeeCountFte: number | null
   turnoverRatePct: number | null
   trainingHoursPerEmployee: number | null
@@ -29,6 +50,26 @@ export const EMPTY_INDICATORS: RseIndicators = {
   waterConsumptionM3: null,
   wasteTons: null,
   recyclingRatePct: null,
+  electricityRenewableMwh: null,
+  electricityNonRenewableMwh: null,
+  fuelsRenewableMwh: null,
+  fuelsNonRenewableMwh: null,
+  scope1Tco2e: null,
+  scope2LocationTco2e: null,
+  waterWithdrawalM3: null,
+  waterConsumptionStressM3: null,
+  hazardousWasteTons: null,
+  nonHazardousWasteTons: null,
+  permanentEmployees: null,
+  temporaryEmployees: null,
+  femaleEmployees: null,
+  maleEmployees: null,
+  otherGenderEmployees: null,
+  recordableAccidents: null,
+  hoursWorked: null,
+  workFatalities: null,
+  genderPayGapPct: null,
+  collectiveBargainingPct: null,
   employeeCountFte: null,
   turnoverRatePct: null,
   trainingHoursPerEmployee: null,

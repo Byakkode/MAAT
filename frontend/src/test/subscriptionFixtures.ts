@@ -23,7 +23,8 @@ export const ESSENTIAL_ENTITLEMENTS: Entitlements = {
   visibleRecommendations: 12,
   canTrackActions: true,
   canEditActionPlan: false,
-  canEditIndicators: false,
+  // docs/specs/norme-volontaire.md : le rapport selon la norme volontaire en dépend.
+  canEditIndicators: true,
   canViewBenchmark: false,
   canOpenSupportTickets: true,
   fullReport: true,
@@ -36,7 +37,6 @@ export const PROFESSIONAL_ENTITLEMENTS: Entitlements = {
   ...ESSENTIAL_ENTITLEMENTS,
   visibleRecommendations: null,
   canEditActionPlan: true,
-  canEditIndicators: true,
   canViewBenchmark: true,
   canViewActionHistory: true,
 }

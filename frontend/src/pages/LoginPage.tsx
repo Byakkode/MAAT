@@ -65,7 +65,7 @@ const RETURN_TITLE = (
 const RETURN_ITEMS: AuthPanelItem[] = [
   { icon: BarChart2, title: 'Votre tableau de bord', text: 'Votre score et son évolution d’un diagnostic à l’autre.' },
   { icon: CheckCircle, title: 'Votre plan d’actions', text: 'Les actions en cours, leurs responsables et leurs échéances.' },
-  { icon: FileText, title: 'Vos rapports', text: 'Le rapport VSME, toujours à jour de vos dernières réponses.' },
+  { icon: FileText, title: 'Vos rapports', text: 'Le rapport selon la norme volontaire (ex-VSME), toujours à jour de vos dernières réponses.' },
 ]
 
 // ── Page ─────────────────────────────────────────────────────────────────────

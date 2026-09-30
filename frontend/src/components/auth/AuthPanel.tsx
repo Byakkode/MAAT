@@ -20,7 +20,7 @@ export interface AuthPanelItem {
 const STEPS: AuthPanelItem[] = [
   { title: 'Créez votre espace', text: 'Un compte par entreprise, rattaché à votre secteur NAF.' },
   { title: 'Répondez à 45 questions', text: 'Environ trente minutes, enregistrement automatique.' },
-  { title: 'Pilotez votre démarche', text: "Score pondéré, plan d’actions priorisé, rapport VSME." },
+  { title: 'Pilotez votre démarche', text: "Score pondéré, plan d’actions priorisé, rapport selon la norme volontaire (ex-VSME)." },
 ]
 
 interface AuthPanelProps {

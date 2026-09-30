@@ -19,7 +19,7 @@ const STEPS = [
   {
     title: 'Piloter et rendre compte',
     body: "Les recommandations retenues deviennent un plan d’actions : responsable, échéance, statut, notes. Les diagnostics suivants mesurent le chemin parcouru, et le rapport PDF se génère en un clic.",
-    meta: 'Rapport PDF · standard VSME',
+    meta: 'Rapport PDF · norme volontaire (ex-VSME)',
   },
 ]
 

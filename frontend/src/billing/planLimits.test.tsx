@@ -159,8 +159,11 @@ describe('Limites par offre', () => {
   it('comparatif : les fonctionnalités pas encore construites sont marquées « Bientôt »', () => {
     renderAt(<PlanComparisonTable period="monthly" renderAction={() => null} />)
 
-    const vsmeRow = screen.getByRole('rowheader', { name: /Générateur de rapport VSME/ })
-    expect(within(vsmeRow).getByText('Bientôt')).toBeDefined()
+    const ecovadisRow = screen.getByRole('rowheader', { name: /EcoVadis et B Corp/ })
+    expect(within(ecovadisRow).getByText('Bientôt')).toBeDefined()
+    // norme-volontaire.md : livré, la mention disparaît.
+    const vsmeRow = screen.getByRole('rowheader', { name: /Rapport selon la norme volontaire/ })
+    expect(within(vsmeRow).queryByText('Bientôt')).toBeNull()
     const scoreRow = screen.getByRole('rowheader', { name: /Score RSE global/ })
     expect(within(scoreRow).queryByText('Bientôt')).toBeNull()
   })
