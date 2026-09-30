@@ -43,25 +43,24 @@ test('compte Starter → l’écran Indicateurs présente B1 à B11 en lecture s
   const completeness = page.waitForResponse((resp) => /\/api\/vsme\/\d+\/completeness$/.test(resp.url()))
   await page.getByRole('link', { name: 'Indicateurs', exact: true }).click()
   expect((await completeness).status()).toBe(200)
-  await expect(page.getByRole('heading', { name: 'Informations de durabilité (norme volontaire)' })).toBeVisible()
+  await expect(page.getByRole('tab', { name: /^Général/ })).toHaveAttribute('aria-selected', 'true')
 
   // Rien de saisi, et l'inscription déclare par défaut une micro-entreprise : B4 (pas
   // d'obligation de déclaration) et B11 (aucune condamnation) sont complètes par le principe
   // « si applicable », B3, B6 et B7 parce qu'elles sont facultatives jusqu'à 10 salariés (§8).
   const year = new Date().getFullYear()
-  const banner = page.getByRole('status').filter({ hasText: 'informations sur 11' })
-  await expect(banner.getByText(`5 informations sur 11 complètes pour ${year}`)).toBeVisible()
-  await expect(banner.getByText(/sont facultatifs/)).toBeVisible()
-  await expect(banner.getByRole('link')).toHaveText([
-    "B1 · Base d'établissement du rapport",
-    'B2 · Pratiques, politiques et initiatives futures pour une économie plus durable',
-    'B5 · Biodiversité',
-    'B8 · Effectifs : caractéristiques générales',
-    'B9 · Effectifs : santé et sécurité',
-    'B10 · Effectifs : rémunération, négociation collective et formation',
-  ])
-  await expect(page.getByRole('heading', { level: 3 })).toHaveCount(11 + 4)
+  await expect(page.getByRole('status').filter({ hasText: `Complétude ${year}` })).toContainText(`5 informations sur 11 complètes pour ${year}`)
+  await expect(page.getByText(/sont facultatifs/)).toBeVisible()
+  const nav = page.getByRole('navigation', { name: 'Informations de la norme' })
+  await expect(nav.getByRole('button', { name: /à compléter/ })).toHaveCount(6)
+  await expect(page.getByRole('tab')).toHaveText(['Général0/2', 'Environnement4/5', 'Social0/3', 'Gouvernance', 'Compléments'])
+
+  // Le sommaire ouvre l'onglet de l'information choisie.
+  await nav.getByRole('button', { name: /B11/ }).click()
+  await expect(page.getByRole('tab', { name: /^Gouvernance/ })).toHaveAttribute('aria-selected', 'true')
   await expect(page.getByRole('heading', { name: 'Condamnations et amendes pour corruption' })).toBeVisible()
+  await page.getByRole('tab', { name: /^Général/ }).click()
+  await expect(page.getByRole('heading', { level: 3 })).toHaveCount(2)
 
   await expect(page.getByText(/Inclus à partir de l.offre Essential/)).toBeVisible()
   await expect(page.getByLabel('Forme juridique')).toHaveJSProperty('readOnly', true)

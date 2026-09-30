@@ -155,20 +155,28 @@ jamais le nom de l'entreprise ni une donnée personnelle.
 
 ## 5. Écran Indicateurs
 
-L'écran garde son nom et sa route. Il s'organise en deux parties, pour l'année choisie :
+L'écran garde son nom et sa route. Pour l'exercice choisi :
 
-1. **Informations de durabilité (norme volontaire)** : une carte par information, de B1 à
-   B11, dans l'ordre de la norme, chacune avec sa pastille de complétude. B1 porte la
-   liste des sites. Les données ⓥ sont signalées « facultatif jusqu'à 10 salariés ».
-2. **Compléments** : les indicateurs de MAAT que la norme ne demande pas (achats
-   responsables, investissements RSE, part export, taux de rotation, index Egapro, taux de
-   fréquence français, part de CDI). §13 autorise ces compléments ; ils figurent en fin de
-   section 04 du rapport.
-
-Un bandeau en tête reprend la complétude (section 3) et nomme les informations à
-compléter avant de pouvoir déclarer le rapport conforme.
-
----
+- **Un sommaire**, à gauche et fixe sur grand écran : la complétude (anneau « 5/11 », même
+  calcul que le rapport, renvoyé par l'API) et la liste des onze informations, chacune
+  avec son état (complète, à compléter, omise). Un clic ouvre l'onglet de l'information
+  et l'amène à l'écran. Pour une entreprise de 10 salariés au plus, un rappel des données
+  facultatives.
+- **Cinq onglets**, qui suivent les groupes de la norme : Général (B1, B2), Environnement
+  (B3 à B7), Social (B8 à B10), Gouvernance (B11), puis Compléments (les indicateurs de
+  MAAT que la norme ne demande pas : achats responsables, investissements RSE, part
+  export, taux de rotation, index Egapro, taux de fréquence français, part de CDI ; §13
+  les autorise, ils figurent en fin de section 04 du rapport). Chaque onglet affiche son
+  avancement (« 2/5 »). Motif ARIA « tabs » : flèches, Début et Fin au clavier.
+- **Une carte par information** : numéro, intitulé de la norme, état, et en une ligne ce
+  qui manque encore. Champs sur deux colonnes, libellé au-dessus, unité dans le champ,
+  valeur de l'exercice précédent en dessous ; oui/non en contrôle segmenté ; choix
+  multiples en pastilles ; mention « facultatif ≤ 10 salariés » à côté du libellé.
+- **Les sites** (dans B1) en tuiles : adresse normalisée par le géocodeur, « Localisé » ou
+  « Adresse non localisée », zone sensible. Chaque site s'enregistre à part, tout de suite.
+- **Une barre d'enregistrement** fixe en bas de l'écran, qui signale les modifications non
+  enregistrées ; elle enregistre indicateurs et déclarations en une fois, puis relit la
+  complétude.
 
 ## 6. Section 04 du rapport PDF
 

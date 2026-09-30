@@ -53,6 +53,8 @@ function renderPage() {
 // docs/specs/norme-volontaire.md, section 5.
 describe('IndicatorsPage', () => {
   beforeEach(() => {
+    // jsdom n'implémente pas le défilement ; le sommaire s'en sert pour amener l'information choisie.
+    Element.prototype.scrollIntoView = vi.fn()
     Object.values(indicatorsApiMock).forEach((fn) => fn.mockReset())
     Object.values(vsmeApiMock).forEach((fn) => fn.mockReset())
     indicatorsApiMock.getIndicators.mockResolvedValue(null)
@@ -70,30 +72,48 @@ describe('IndicatorsPage', () => {
     useSubscriptionStore.setState({ status: 'idle', subscription: null })
   })
 
-  it('présente les onze informations dans l’ordre de la norme, avec la complétude du serveur', async () => {
+  it('présente les onze informations en onglets suivant les groupes de la norme, avec la complétude du serveur', async () => {
+    const user = userEvent.setup()
     renderPage()
 
-    const banner = await screen.findByText('9 informations sur 11 complètes pour ' + new Date().getFullYear())
-    expect(banner).toBeDefined()
-    const status = screen.getByRole('status')
-    expect(within(status).getByRole('link', { name: /B1 · Base d'établissement du rapport/ })).toBeDefined()
-    expect(within(status).getByRole('link', { name: /B3 · Énergie/ })).toBeDefined()
+    expect(await screen.findByText('9 informations sur 11 complètes pour ' + new Date().getFullYear())).toBeDefined()
+    const nav = screen.getByRole('navigation', { name: 'Informations de la norme' })
+    expect(within(nav).getByRole('button', { name: /B1\s*Base du rapport, à compléter/ })).toBeDefined()
+    expect(within(nav).getByRole('button', { name: /B4\s*Pollution, complète/ })).toBeDefined()
 
-    const headings = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)
-    expect(headings.slice(0, 11)).toEqual([
-      "Base d'établissement du rapport",
-      'Pratiques, politiques et initiatives futures pour une économie plus durable',
-      'Énergie et émissions de gaz à effet de serre',
-      "Pollution de l'air, de l'eau et du sol",
-      'Biodiversité',
-      'Eau',
-      'Ressources, économie circulaire et gestion des déchets',
-      'Effectifs : caractéristiques générales',
-      'Effectifs : santé et sécurité',
-      'Effectifs : rémunération, négociation collective et formation',
-      'Condamnations et amendes pour corruption',
-    ])
-    expect(screen.getByText('À compléter : Émissions Scope 2')).toBeDefined()
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Général1/2', 'Environnement4/5', 'Social', 'Gouvernance', 'Compléments'])
+
+    const headingsByTab: Record<string, string[]> = {
+      Général: ["Base d'établissement du rapport", 'Pratiques, politiques et initiatives futures pour une économie plus durable'],
+      Environnement: [
+        'Énergie et émissions de gaz à effet de serre',
+        "Pollution de l'air, de l'eau et du sol",
+        'Biodiversité',
+        'Eau',
+        'Ressources, économie circulaire et gestion des déchets',
+      ],
+      Social: ['Effectifs : caractéristiques générales', 'Effectifs : santé et sécurité', 'Effectifs : rémunération, négociation collective et formation'],
+      Gouvernance: ['Condamnations et amendes pour corruption'],
+    }
+    for (const [tab, headings] of Object.entries(headingsByTab)) {
+      await user.click(screen.getByRole('tab', { name: new RegExp(`^${tab}`) }))
+      expect(screen.getByRole('tab', { name: new RegExp(`^${tab}`) }).getAttribute('aria-selected')).toBe('true')
+      expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual(headings)
+    }
+
+    await user.click(screen.getByRole('tab', { name: /^Environnement/ }))
+    expect(screen.getByText('Émissions Scope 2')).toBeDefined()
+  })
+
+  it('le sommaire ouvre l’onglet de l’information choisie', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    const nav = await screen.findByRole('navigation', { name: 'Informations de la norme' })
+    await user.click(within(nav).getByRole('button', { name: /B9\s*Santé et sécurité/ }))
+
+    expect(screen.getByRole('tab', { name: /^Social/ }).getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByRole('heading', { name: 'Effectifs : santé et sécurité' })).toBeDefined()
   })
 
   it('Essential peut saisir : l’enregistrement envoie indicateurs et déclarations, puis relit la complétude', async () => {
@@ -102,13 +122,15 @@ describe('IndicatorsPage', () => {
     vsmeApiMock.saveStatement.mockImplementation((_year: number, data: unknown) => Promise.resolve(data))
     renderPage()
 
-    await user.type(await screen.findByLabelText('Émissions brutes Scope 2'), '6.5')
-    await user.type(screen.getByLabelText('Forme juridique'), 'SAS')
+    await user.type(await screen.findByLabelText('Forme juridique'), 'SAS')
     const b2 = screen.getByRole('region', { name: /Pratiques, politiques/ })
-    await user.click(within(within(b2).getByRole('group', { name: /Avez-vous des pratiques/ })).getByLabelText('Oui'))
+    await user.click(within(within(b2).getByRole('radiogroup', { name: /Avez-vous des pratiques/ })).getByRole('radio', { name: 'Oui' }))
+    await user.click(screen.getByRole('tab', { name: /^Environnement/ }))
+    await user.type(screen.getByLabelText('Émissions brutes Scope 2'), '6.5')
+    expect(screen.getByText('Modifications non enregistrées')).toBeDefined()
 
     vsmeApiMock.getCompleteness.mockResolvedValue(completeness({ B1: ['Au moins un site'] }))
-    await user.click(screen.getAllByRole('button', { name: 'Enregistrer' })[0])
+    await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
 
     await waitFor(() => expect(vsmeApiMock.saveStatement).toHaveBeenCalledTimes(1))
     const year = new Date().getFullYear()
@@ -164,9 +186,11 @@ describe('IndicatorsPage', () => {
 
     renderPage()
 
+    const user = userEvent.setup()
     expect(await screen.findByText(/l’énergie, les émissions, l’eau et les déchets sont facultatifs/)).toBeDefined()
-    expect(screen.getAllByText('Facultatif jusqu’à 10 salariés').length).toBeGreaterThan(3)
-    expect(screen.getByText(/déclarera sa conformité/)).toBeDefined()
+    expect(screen.getByText(/Conformité au module de base déclarée/)).toBeDefined()
+    await user.click(screen.getByRole('tab', { name: /^Environnement/ }))
+    expect(screen.getAllByText('facultatif ≤ 10 salariés').length).toBeGreaterThan(3)
   })
 
   it('n’a pas de violation d’accessibilité détectable', async () => {
