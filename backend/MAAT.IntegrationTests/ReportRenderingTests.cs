@@ -3,6 +3,7 @@ using MAAT.Application.DTOs;
 using MAAT.Application.UseCases;
 using MAAT.Domain.Entities;
 using MAAT.Domain.Enums;
+using MAAT.Domain.Services;
 using MAAT.Infrastructure.Pdf;
 
 namespace MAAT.IntegrationTests;
@@ -348,6 +349,27 @@ public class ReportRenderingTests
         var micro = Sustainability(complete: false, micro: true);
         var b3 = micro.Disclosures.Single(d => d.Code == VsmeDisclosure.B3);
         Assert.Equal(DatapointAbsence.OptionalForMicro, b3.Datapoints.Single(d => d.Label == "Émissions brutes Scope 2 (localisation)").Absence);
+    }
+
+    // ADR 0014 : une zone sensible trouvée par la détection est annoncée comme telle dans B5,
+    // avec la méthode ; le PDF se met en page.
+    [Fact]
+    public void B5_annonce_l_origine_detectee_et_la_methode()
+    {
+        var now = new DateTimeOffset(2026, 9, 1, 0, 0, 0, TimeSpan.Zero);
+        var company = new Company("Scierie du Gâtinais", "1610A", CompanySizeRange.Small, "Île-de-France");
+        var site = new CompanySite(company.Id, new CompanySiteDetails("Scierie", "Route de la Plaine 77300 Fontainebleau", SiteTenure.Owned, null, null), now);
+        site.Locate(48.425, 2.64, "Route de la Plaine 77300 Fontainebleau");
+        site.RecordSensitiveAreaCheck("Massif de Fontainebleau (Natura 2000 Habitats, ZNIEFF 1)", now);
+
+        var sustainability = ReportSustainabilityBuilder.Build(new ReportSustainabilityBuilder.Input(2025, company, null, null, null, null, [site]));
+        var b5 = sustainability.Disclosures.Single(d => d.Code == VsmeDisclosure.B5);
+
+        Assert.Equal(DisclosureState.Complete, b5.State);
+        Assert.Equal(ReportSustainabilityBuilder.SensitiveAreaMethod, b5.Datapoints.Single(d => d.Label == "Méthode").Text);
+        var row = Assert.Single(b5.Tables.Single().Rows);
+        Assert.Equal(["Scierie", "Massif de Fontainebleau (Natura 2000 Habitats, ZNIEFF 1)", "Détection automatique"], row.Select(c => c.Text));
+        AssertValidPdf(new QuestPdfReportGenerator().Generate(Rich() with { Sustainability = sustainability }));
     }
 
     // B1 : code NACE dérivé du NAF, taux d'accidents pour 200 000 heures (cas 9 et 10), valeur

@@ -16,6 +16,7 @@ public class VsmeService(
     IRseIndicatorsRepository indicatorsRepository,
     ICompanyRepository companyRepository,
     IGeocoder geocoder,
+    ISensitiveAreaLocator sensitiveAreaLocator,
     CurrentPlanService currentPlan,
     ICurrentUserContext currentUser,
     IUnitOfWork unitOfWork,
@@ -95,11 +96,16 @@ public class VsmeService(
             return null;
         }
 
-        // Nouvelle tentative aussi quand l'adresse n'a pas changé mais n'avait pas été localisée :
-        // le service était peut-être indisponible lors de l'enregistrement précédent.
+        // Nouvelle tentative aussi quand l'adresse n'a pas changé mais n'avait pas été localisée,
+        // ou que la recherche de zones sensibles n'avait pas abouti : un service était peut-être
+        // indisponible lors de l'enregistrement précédent.
         if (site.Update(details, timeProvider.GetUtcNow()) || !site.IsGeolocated)
         {
             await LocateAsync(site, ct);
+        }
+        else if (!site.IsCheckedForSensitiveAreas)
+        {
+            await CheckSensitiveAreasAsync(site, ct);
         }
 
         await unitOfWork.SaveChangesAsync(ct);
@@ -130,6 +136,24 @@ public class VsmeService(
         }
 
         site.Locate(result.Latitude, result.Longitude, result.Label);
+        await CheckSensitiveAreasAsync(site, ct);
+    }
+
+    // ADR 0014 : zones sensibles autour du site, pour répondre à B5 quand l'utilisateur ne l'a
+    // pas fait. Toujours effectuée, même s'il a répondu : sa réponse prime, mais l'écran peut
+    // lui montrer ce que la base publique indique.
+    private async Task CheckSensitiveAreasAsync(CompanySite site, CancellationToken ct)
+    {
+        if (site.Latitude is not { } latitude || site.Longitude is not { } longitude)
+        {
+            return;
+        }
+
+        var areas = await sensitiveAreaLocator.FindNearAsync(latitude, longitude, ct);
+        if (areas is not null)
+        {
+            site.RecordSensitiveAreaCheck(SensitiveAreaSummary.Format(areas), timeProvider.GetUtcNow());
+        }
     }
 
     private static void ValidateYear(int year)

@@ -123,12 +123,24 @@ export interface CompanySiteInput {
   sensitiveAreaName: string | null
 }
 
+// ADR 0014 : NotChecked (jamais vérifié ou service indisponible), None (aucune zone à 500 m),
+// Found (zones dans detectedSensitiveAreas).
+export type SensitiveAreaDetection = 'NotChecked' | 'None' | 'Found'
+
+// inOrNearSensitiveArea et sensitiveAreaName (hérités de CompanySiteInput) : la réponse de
+// l'utilisateur. effective* : celle que retiennent la complétude et le rapport, la sienne, sinon
+// la détection automatique.
 export interface CompanySite extends CompanySiteInput {
   id: string
   geocoded: boolean
   latitude: number | null
   longitude: number | null
   geocodedLabel: string | null
+  sensitiveAreaDetection: SensitiveAreaDetection
+  detectedSensitiveAreas: string | null
+  effectiveInOrNearSensitiveArea: boolean | null
+  effectiveSensitiveAreaName: string | null
+  sensitiveAreaFromDetection: boolean
 }
 
 async function readErrorMessage(response: Response, fallback: string): Promise<string> {

@@ -7,8 +7,9 @@ import { SITE_TENURE_LABELS } from '../../constants/vsme'
 import { INPUT_CLASS, YesNoField } from './VsmeFields'
 
 // docs/specs/norme-volontaire.md : sites de l'entreprise (B1 géolocalisation, B5 zones
-// sensibles). Chaque site s'enregistre à part, tout de suite : le serveur le géocode (ADR 0013)
-// et dit s'il a trouvé l'adresse, ce que la tuile affiche aussitôt.
+// sensibles). Chaque site s'enregistre à part, tout de suite : le serveur le géocode (ADR 0013),
+// cherche les zones sensibles à moins de 500 m (ADR 0014) et renvoie le résultat, que la tuile
+// affiche aussitôt. La réponse de l'utilisateur, facultative, prime sur la détection.
 
 const EMPTY_SITE: CompanySiteInput = {
   name: '',
@@ -18,12 +19,44 @@ const EMPTY_SITE: CompanySiteInput = {
   sensitiveAreaName: null,
 }
 
+// Ce que la détection a trouvé pour ce site, ou ce qu'elle fera à l'enregistrement.
+function DetectionNotice({ site }: { site: CompanySite | null }) {
+  if (site?.sensitiveAreaDetection === 'Found') {
+    return (
+      <p className="flex items-start gap-2 rounded-lg bg-green-maat/10 px-3 py-2 text-[12.5px] text-green-maat-text sm:col-span-2">
+        <Leaf className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+        <span>
+          <span className="font-semibold">Détecté à moins de 500 m :</span> {site.detectedSensitiveAreas}
+        </span>
+      </p>
+    )
+  }
+
+  if (site?.sensitiveAreaDetection === 'None') {
+    return (
+      <p className="flex items-start gap-2 rounded-lg bg-bg px-3 py-2 text-[12.5px] text-text-muted sm:col-span-2">
+        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-green-maat" aria-hidden />
+        Aucune zone sensible détectée à moins de 500 m.
+      </p>
+    )
+  }
+
+  return (
+    <p className="rounded-lg bg-bg px-3 py-2 text-[12.5px] text-text-muted sm:col-span-2">
+      À l’enregistrement, MAAT recherche les zones Natura 2000, réserves naturelles, parcs nationaux et ZNIEFF situées à
+      moins de 500 m, dans les bases publiques de l’INPN. Vous n’avez rien à répondre si le résultat vous convient.
+    </p>
+  )
+}
+
 function SiteForm({
   initial,
+  current,
   onSubmit,
   onCancel,
 }: {
   initial: CompanySiteInput
+  current: CompanySite | null
   onSubmit: (input: CompanySiteInput) => Promise<void>
   onCancel: () => void
 }) {
@@ -70,14 +103,24 @@ function SiteForm({
           className={`${INPUT_CLASS} mt-1.5`}
         />
       </label>
+      <DetectionNotice site={current} />
       <YesNoField
         name="site-sensitive"
         label="Dans ou près d’une zone sensible pour la biodiversité ?"
-        hint="Natura 2000, ZNIEFF, réserve naturelle, site Ramsar…"
+        hint="Facultatif : sans réponse de votre part, la détection automatique est retenue."
         value={site.inOrNearSensitiveArea}
         onChange={(value) => setSite({ ...site, inOrNearSensitiveArea: value, sensitiveAreaName: value ? site.sensitiveAreaName : null })}
         readOnly={false}
       />
+      {site.inOrNearSensitiveArea !== null && (
+        <button
+          type="button"
+          onClick={() => setSite({ ...site, inOrNearSensitiveArea: null, sensitiveAreaName: null })}
+          className="justify-self-start text-[12.5px] font-medium text-blue-maat-text hover:underline sm:col-span-2"
+        >
+          Laisser la détection automatique répondre
+        </button>
+      )}
       {site.inOrNearSensitiveArea === true && (
         <label className="block text-[13px] font-medium text-text sm:col-span-2">
           Nom de la zone sensible
@@ -85,6 +128,7 @@ function SiteForm({
             value={site.sensitiveAreaName ?? ''}
             onChange={(e) => setSite({ ...site, sensitiveAreaName: e.target.value || null })}
             maxLength={200}
+            placeholder={current?.detectedSensitiveAreas ?? 'Natura 2000 « … »'}
             className={`${INPUT_CLASS} mt-1.5`}
           />
         </label>
@@ -155,14 +199,20 @@ function SiteTile({
             Adresse non localisée
           </span>
         )}
-        {site.inOrNearSensitiveArea === true && (
+        {site.effectiveInOrNearSensitiveArea === true && (
           <span className="inline-flex items-center gap-1 rounded-full bg-green-maat/10 px-2 py-0.5 text-[11.5px] font-medium text-green-maat-text">
-            <Leaf className="h-3 w-3" aria-hidden />
-            {site.sensitiveAreaName ?? 'Zone sensible, nom à préciser'}
+            <Leaf className="h-3 w-3 shrink-0" aria-hidden />
+            {site.effectiveSensitiveAreaName ?? 'Zone sensible, nom à préciser'}
           </span>
         )}
-        {site.inOrNearSensitiveArea === null && (
+        {site.effectiveInOrNearSensitiveArea === false && (
+          <span className="rounded-full bg-border/60 px-2 py-0.5 text-[11.5px] font-medium text-text-muted">Hors zone sensible</span>
+        )}
+        {site.effectiveInOrNearSensitiveArea === null && (
           <span className="rounded-full bg-orange/15 px-2 py-0.5 text-[11.5px] font-medium text-amber">Zone sensible : à préciser</span>
+        )}
+        {site.sensitiveAreaFromDetection && (
+          <span className="rounded-full bg-blue-maat/10 px-2 py-0.5 text-[11.5px] font-medium text-blue-maat-text">Détection automatique</span>
         )}
       </div>
     </li>
@@ -237,13 +287,13 @@ export function SitesEditor({
 
       {!readOnly && editedSite && (
         <div className="mt-3">
-          <SiteForm key={editedSite.id} initial={editedSite} onSubmit={(input) => handleUpdate(editedSite.id, input)} onCancel={() => setEditing(null)} />
+          <SiteForm key={editedSite.id} initial={editedSite} current={editedSite} onSubmit={(input) => handleUpdate(editedSite.id, input)} onCancel={() => setEditing(null)} />
         </div>
       )}
 
       {!readOnly && editing === 'new' && (
         <div className="mt-3">
-          <SiteForm initial={EMPTY_SITE} onSubmit={handleCreate} onCancel={() => setEditing(null)} />
+          <SiteForm initial={EMPTY_SITE} current={null} onSubmit={handleCreate} onCancel={() => setEditing(null)} />
         </div>
       )}
 

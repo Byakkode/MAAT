@@ -581,12 +581,15 @@ Site détenu, loué ou géré par l'entreprise (`norme-volontaire.md`, B1 et B5)
 | `tenure` | enum | requis : `Owned`, `Leased`, `Managed` |
 | `latitude`, `longitude` | double precision | nullables : géocodage (ADR 0013) |
 | `geocoded_label` | varchar(300) | nullable : adresse normalisée par le géocodeur |
-| `in_or_near_sensitive_area` | boolean | nullable : `null` = pas encore répondu |
+| `in_or_near_sensitive_area` | boolean | nullable : réponse de l'utilisateur, `null` = pas de réponse |
 | `sensitive_area_name` | varchar(200) | nullable, seulement si zone sensible |
+| `sensitive_areas_checked_at` | timestamptz | nullable : date de la détection automatique (ADR 0014), `null` = pas faite |
+| `detected_sensitive_areas` | varchar(500) | nullable : zones trouvées, mises en forme ; `null` = aucune |
 | `created_at`, `updated_at` | timestamptz | requis |
 
-Cinquante sites au plus par entreprise. Un changement d'adresse efface les coordonnées
-avant un nouveau géocodage : un site ne garde jamais la position d'une adresse qu'il n'a
+Cinquante sites au plus par entreprise. La réponse retenue pour B5 est celle de
+l'utilisateur, sinon celle de la détection. Un changement d'adresse efface les coordonnées
+et la détection avant un nouveau géocodage : un site ne garde jamais la position d'une adresse qu'il n'a
 plus. Ordre de lecture stable (`created_at`, puis `id`) : les sites figurent dans le
 rapport.
 

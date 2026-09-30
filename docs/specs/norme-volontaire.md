@@ -9,7 +9,7 @@ Offre : Essential et au-dessus (`abonnement.md`, section 8). Le rapport Starter 
 
 Dépendances : `rapport-pdf.md` (section 4, bloc 04), `modele-donnees.md` (entités
 `RseIndicators`, `VsmeStatement`, `CompanySite`), `abonnement.md` (section 8), ADR 0013
-(géocodage des sites).
+(géocodage des sites), ADR 0014 (détection des zones sensibles).
 
 ---
 
@@ -60,7 +60,7 @@ Une ligne marquée ⓥ est facultative pour une entreprise de 10 salariés au pl
 | | Ventilation électricité / combustibles × renouvelable / non renouvelable, si disponible (§32) | I `energy_*_mwh` |
 | | Émissions brutes de GES Scope 1 et Scope 2 (méthode fondée sur la localisation), en tCO₂eq (§33) | I `scope1_tco2e`, `scope2_location_tco2e` |
 | **B4** Pollution | Polluants rejetés dans l'air, l'eau et le sol que l'entreprise doit déjà déclarer (loi, système de management environnemental), ou lien vers le document public (§34) | S `b4_applicable`, `pollutants`, `pollution_report_url` |
-| **B5** Biodiversité | Sites situés dans ou près d'une zone sensible pour la biodiversité, et nom de la zone (§35) | E `CompanySite.in_or_near_sensitive_area`, `sensitive_area_name` |
+| **B5** Biodiversité | Sites situés dans ou près d'une zone sensible pour la biodiversité, et nom de la zone (§35) | E `CompanySite` : réponse de l'utilisateur (`in_or_near_sensitive_area`, `sensitive_area_name`), sinon détection automatique (`detected_sensitive_areas`, ADR 0014) |
 | **B6** Eau ⓥ | Prélèvement total (§36) | I `water_withdrawal_m3` |
 | | Si procédés fortement consommateurs d'eau : consommation, et part consommée en zone de stress hydrique (§37) | I `water_consumption_m3`, `water_consumption_stress_m3` |
 | **B7** Ressources, économie circulaire, déchets ⓥ | Applique-t-on des principes d'économie circulaire, et comment (§38) | S `circular_economy_applied`, `circular_economy_description` |
@@ -115,8 +115,9 @@ trois états : **Complète**, **À compléter** (liste des données manquantes),
   pas vrai, consommation d'eau (§37), flux de matières (§39 c), écart de rémunération
   (§42 b), répartition par pays (§40 c), B11 sans condamnation ;
 - B1 exige au moins un site, chacun localisé (coordonnées obtenues) ;
-- B2 exige une réponse (oui ou non) aux quatre questions ; B5 exige, pour chaque site, la
-  réponse à « zone sensible ? » ;
+- B2 exige une réponse (oui ou non) aux quatre questions ; B5 exige, pour chaque site, une
+  réponse à « zone sensible ? », celle de l'utilisateur ou, à défaut, celle de la détection
+  automatique (section 4) ;
 - une information omise au titre du §22 compte comme traitée.
 
 Rapport **conforme** : toutes les informations sont Complètes ou Omises. L'écran affiche
@@ -151,6 +152,17 @@ indisponible : le site est enregistré **sans** coordonnées, et la réponse le 
 jamais de la disponibilité du service externe. Seule l'adresse du site est transmise :
 jamais le nom de l'entreprise ni une donnée personnelle.
 
+**Zones sensibles (ADR 0014).** Une fois le site localisé, le serveur interroge le module
+Nature de l'API Carto (données INPN) dans un cercle de 500 m : Natura 2000 (Habitats et
+Oiseaux), réserves naturelles, parcs nationaux, réserves nationales de chasse et de faune
+sauvage, ZNIEFF de type 1. Il enregistre la date de la recherche et les zones trouvées,
+mises en forme (« Massif de Fontainebleau (Natura 2000 Habitats, ZNIEFF 1) », une zone
+protégée à plusieurs titres une seule fois). Si une couche ne répond pas, la recherche est
+tenue pour non faite et relancée au prochain enregistrement du site. La réponse de
+l'utilisateur à « zone sensible ? » reste facultative et **prime** sur la détection : la
+réponse retenue (`effective*` dans l'API) est la sienne, sinon celle de la détection.
+L'API renvoie les deux, et `sensitiveAreaDetection` (`NotChecked`, `None`, `Found`).
+
 ---
 
 ## 5. Écran Indicateurs
@@ -173,7 +185,18 @@ L'écran garde son nom et sa route. Pour l'exercice choisi :
   valeur de l'exercice précédent en dessous ; oui/non en contrôle segmenté ; choix
   multiples en pastilles ; mention « facultatif ≤ 10 salariés » à côté du libellé.
 - **Les sites** (dans B1) en tuiles : adresse normalisée par le géocodeur, « Localisé » ou
-  « Adresse non localisée », zone sensible. Chaque site s'enregistre à part, tout de suite.
+  « Adresse non localisée », zone sensible retenue et, si elle vient de la détection, la
+  mention « Détection automatique ». Chaque site s'enregistre à part, tout de suite. Le
+  formulaire de site rappelle ce que la détection a trouvé (ou ce qu'elle fera à
+  l'enregistrement) ; la question « zone sensible ? » y est facultative, et un lien rend la
+  main à la détection après une réponse.
+- **« Où trouver ? »** à droite du libellé d'une donnée chiffrée dont la source n'est pas
+  évidente (bilan, énergie, Scope 1 et 2, eau, déchets, effectifs, accidents, heures,
+  convention collective, formation, écart de rémunération) : un clic déplie, sous le champ,
+  le document où la chercher (liasse fiscale, factures, Trackdéchets, registre du
+  personnel, compte AT/MP…). Replié par défaut, jamais au survol. Pour le Scope 1 et le
+  Scope 2, il dit franchement qu'ils viennent d'un bilan carbone et qu'à défaut B3 restera à
+  compléter. La ligne grise sous le libellé garde son rôle : dire ce qu'est la donnée.
 - **Une barre d'enregistrement** fixe en bas de l'écran, qui signale les modifications non
   enregistrées ; elle enregistre indicateurs et déclarations en une fois, puis relit la
   complétude.
@@ -199,6 +222,10 @@ Titre « Informations de durabilité », sous-titre « Module de base de la norm
    - « Information omise (§22) » : information déclarée comme omise dans B1.
 3. **Compléments** : les indicateurs hors norme renseignés, avec leur tendance, comme
    l'ancien bloc « Indicateurs RSE ».
+
+   En B5, la colonne « Origine » de chaque site concerné dit « Déclaration » ou « Détection
+   automatique », et une ligne « Méthode » rappelle, dès qu'une réponse vient de la
+   détection, la recherche effectuée (500 m, bases INPN).
 
 Sans aucune donnée pour aucun exercice, l'encart d'invitation à la saisie remplace la
 section, comme auparavant.
@@ -239,3 +266,14 @@ appelle l'état vivant du document. À données d'entrée identiques, octets ide
     facultatives), et l'offre
     Essential qui ouvre la saisie. La saisie elle-même est couverte à l'écran par
     `IndicatorsPage.test.tsx`.
+18. Détection : zones mises en forme sans doublon ni dépendance à l'ordre des réponses ;
+    sans réponse de l'utilisateur, la détection répond (zone trouvée → oui et son nom ;
+    aucune → non) ; sa réponse prime ; un changement d'adresse efface la détection ; B5
+    complète grâce à la détection, incomplète si elle n'a pas pu avoir lieu.
+19. Détection à travers l'API : service indisponible → site enregistré, `NotChecked`, puis
+    vérifié au prochain enregistrement ; lecture d'une réponse réelle de l'API Carto ; cercle
+    de recherche fermé et de 500 m.
+20. Rapport : une zone détectée apparaît avec l'origine « Détection automatique » et la ligne
+    « Méthode ».
+21. « Où trouver ? » : replié par défaut, déplié sous le champ au clic (`aria-expanded`),
+    absent des totaux calculés.

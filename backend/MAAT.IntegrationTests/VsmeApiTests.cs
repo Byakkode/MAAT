@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using MAAT.Application.Interfaces;
 using MAAT.Domain.Enums;
+using MAAT.Domain.Services;
 using MAAT.Infrastructure.Geocoding;
 using Microsoft.EntityFrameworkCore;
 
@@ -321,5 +322,107 @@ public class VsmeApiTests(PlanLimitsApiFixture fixture)
         Assert.Equal(new GeocodedAddress(48.868632, 2.330831, "12 Rue de la Paix 75002 Paris"), found);
         Assert.Null(weak);
         Assert.Null(none);
+    }
+
+    // ADR 0014 : sans réponse de l'utilisateur, la détection répond à B5 ; sa réponse, dès qu'il
+    // en donne une, prime.
+    [Fact]
+    public async Task Zone_sensible_detectee_a_l_enregistrement_du_site()
+    {
+        var client = fixture.CreateClient();
+        var (_, _, _, token) = await RegisterAsync(client, SubscriptionPlan.Essential);
+        fixture.SensitiveAreas.Result =
+        [
+            new SensitiveArea("MASSIF DE FONTAINEBLEAU", SensitiveAreaKind.Znieff1),
+            new SensitiveArea("Massif de Fontainebleau", SensitiveAreaKind.NaturaHabitats),
+        ];
+
+        try
+        {
+            var detected = await ReadJsonAsync(await client.SendAsync(Authorized(HttpMethod.Post, SitesUrl, token, Site("Scierie", "Route de la Plaine 77300 Fontainebleau", sensitive: null))));
+
+            Assert.Equal("Found", detected.GetProperty("sensitiveAreaDetection").GetString());
+            Assert.Equal("Massif de Fontainebleau (Natura 2000 Habitats, ZNIEFF 1)", detected.GetProperty("detectedSensitiveAreas").GetString());
+            Assert.True(detected.GetProperty("effectiveInOrNearSensitiveArea").GetBoolean());
+            Assert.True(detected.GetProperty("sensitiveAreaFromDetection").GetBoolean());
+            Assert.Equal(JsonValueKind.Null, detected.GetProperty("inOrNearSensitiveArea").ValueKind);
+
+            var siteId = detected.GetProperty("id").GetGuid();
+            var overridden = await ReadJsonAsync(await client.SendAsync(Authorized(HttpMethod.Put, $"{SitesUrl}/{siteId}", token, Site("Scierie", "Route de la Plaine 77300 Fontainebleau", sensitive: false))));
+
+            Assert.False(overridden.GetProperty("effectiveInOrNearSensitiveArea").GetBoolean());
+            Assert.False(overridden.GetProperty("sensitiveAreaFromDetection").GetBoolean());
+            Assert.Equal("Found", overridden.GetProperty("sensitiveAreaDetection").GetString());
+        }
+        finally
+        {
+            fixture.SensitiveAreas.Result = [];
+        }
+    }
+
+    [Fact]
+    public async Task Service_des_zones_indisponible_site_enregistre_non_verifie_puis_reverifie()
+    {
+        var client = fixture.CreateClient();
+        var (_, _, _, token) = await RegisterAsync(client, SubscriptionPlan.Essential);
+        fixture.SensitiveAreas.Result = null;
+
+        try
+        {
+            var site = await ReadJsonAsync(await client.SendAsync(Authorized(HttpMethod.Post, SitesUrl, token, Site("Entrepôt", "8 rue de Lyon 69001 Lyon", sensitive: null))));
+            Assert.True(site.GetProperty("geocoded").GetBoolean());
+            Assert.Equal("NotChecked", site.GetProperty("sensitiveAreaDetection").GetString());
+            Assert.Equal(JsonValueKind.Null, site.GetProperty("effectiveInOrNearSensitiveArea").ValueKind);
+
+            // Le service revient : un nouvel enregistrement, même sans changer l'adresse, relance
+            // la recherche.
+            fixture.SensitiveAreas.Result = [];
+            var siteId = site.GetProperty("id").GetGuid();
+            var rechecked = await ReadJsonAsync(await client.SendAsync(Authorized(HttpMethod.Put, $"{SitesUrl}/{siteId}", token, Site("Entrepôt", "8 rue de Lyon 69001 Lyon", sensitive: null))));
+
+            Assert.Equal("None", rechecked.GetProperty("sensitiveAreaDetection").GetString());
+            Assert.False(rechecked.GetProperty("effectiveInOrNearSensitiveArea").GetBoolean());
+        }
+        finally
+        {
+            fixture.SensitiveAreas.Result = [];
+        }
+    }
+
+    // ADR 0014 : lecture de la réponse du module Nature de l'API Carto, sans réseau. Le nom de la
+    // zone n'est pas porté par la même propriété selon la couche.
+    [Fact]
+    public void Reponse_de_l_API_Carto_lue_couche_par_couche()
+    {
+        static IReadOnlyList<SensitiveArea>? Parse(string json, SensitiveAreaKind kind, string property) =>
+            ApiCartoSensitiveAreaLocator.ParseFeatures(JsonDocument.Parse(json).RootElement, kind, property);
+
+        var natura = Parse(
+            """{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"sitecode":"FR1110795","sitename":"Massif de Fontainebleau","url":"https://inpn.mnhn.fr/site/natura2000/FR1110795"}}],"numberMatched":1}""",
+            SensitiveAreaKind.NaturaBirds,
+            "sitename");
+        var empty = Parse("""{"type":"FeatureCollection","features":[],"numberMatched":0}""", SensitiveAreaKind.Znieff1, "nom");
+        var error = Parse("""{"code":400,"message":"Géométrie invalide"}""", SensitiveAreaKind.Znieff1, "nom");
+
+        Assert.Equal([new SensitiveArea("Massif de Fontainebleau", SensitiveAreaKind.NaturaBirds)], natura);
+        Assert.Empty(empty!);
+        Assert.Null(error);
+        Assert.Equal(
+            ["natura-habitat", "natura-oiseaux", "rnn", "rnc", "pn", "rncf", "znieff1"],
+            ApiCartoSensitiveAreaLocator.Layers.Select(l => l.Path));
+    }
+
+    [Fact]
+    public void Cercle_de_recherche_ferme_et_du_bon_rayon()
+    {
+        var geometry = JsonDocument.Parse(ApiCartoSensitiveAreaLocator.CirclePolygon(48.425, 2.64, 500)).RootElement;
+        var ring = geometry.GetProperty("coordinates")[0].EnumerateArray().Select(p => (Lon: p[0].GetDouble(), Lat: p[1].GetDouble())).ToList();
+
+        Assert.Equal("Polygon", geometry.GetProperty("type").GetString());
+        Assert.Equal(17, ring.Count);
+        Assert.Equal(ring[0], ring[^1]);
+        // Premier sommet plein nord : 500 m ≈ 0,0045° de latitude.
+        Assert.Equal(48.425 + 500 / 111_320.0, ring[0].Lat, 5);
+        Assert.Equal(2.64, ring[0].Lon, 5);
     }
 }

@@ -182,6 +182,18 @@ builder.Services.AddHttpClient<IGeocoder, GeoplateformeGeocoder>((sp, client) =>
     client.DefaultRequestHeaders.UserAgent.ParseAdd("MAAT/1.0 (https://github.com/Byakkode/MAAT)");
 });
 
+// Zones sensibles pour la biodiversité autour des sites (docs/adr/0014) : module Nature de
+// l'API Carto de l'IGN, sans clé. Même principe que le géocodage : options lues à la création
+// du client, double en test.
+builder.Services.AddOptions<SensitiveAreaOptions>().BindConfiguration(SensitiveAreaOptions.Section);
+builder.Services.AddHttpClient<ISensitiveAreaLocator, ApiCartoSensitiveAreaLocator>((sp, client) =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<SensitiveAreaOptions>>().Value;
+    client.BaseAddress = new Uri(options.BaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("MAAT/1.0 (https://github.com/Byakkode/MAAT)");
+});
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {

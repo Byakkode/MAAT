@@ -254,6 +254,12 @@ public static class ReportSustainabilityBuilder
         return (datapoints, tables);
     }
 
+    // ADR 0014. Public : vérifié mot pour mot par les tests.
+    public const string SensitiveAreaMethod =
+        "Zones sensibles recherchées automatiquement dans un rayon de 500 m autour de l'adresse de chaque site, " +
+        "dans les bases publiques de l'INPN (Natura 2000, réserves naturelles, parcs nationaux, ZNIEFF de type 1), " +
+        "pour les sites sur lesquels l'entreprise ne s'est pas prononcée.";
+
     private static (IReadOnlyList<ReportDatapoint>, IReadOnlyList<ReportTable>) B5(Context c)
     {
         var sites = c.Input.Sites;
@@ -262,8 +268,11 @@ public static class ReportSustainabilityBuilder
             return ([new("Sites dans ou près d'une zone sensible", Absence: DatapointAbsence.NotProvided)], []);
         }
 
-        var sensitive = sites.Where(s => s.InOrNearSensitiveArea == true).ToList();
-        var unanswered = sites.Count(s => s.InOrNearSensitiveArea is null);
+        // Réponse de l'entreprise, ou à défaut celle de la détection automatique (ADR 0014),
+        // dont l'origine est annoncée : le lecteur sait ce qui a été déclaré et ce qui a été
+        // déduit d'une base publique.
+        var sensitive = sites.Where(s => s.EffectiveInOrNearSensitiveArea == true).ToList();
+        var unanswered = sites.Count(s => s.EffectiveInOrNearSensitiveArea is null);
         var datapoints = new List<ReportDatapoint>
         {
             new("Sites dans ou près d'une zone sensible", Value: sensitive.Count, Unit: $"sur {sites.Count}"),
@@ -274,12 +283,22 @@ public static class ReportSustainabilityBuilder
             datapoints.Add(new("Sites non évalués", Value: unanswered, Unit: "site(s)"));
         }
 
+        if (sites.Any(s => s.IsSensitiveAreaFromDetection))
+        {
+            datapoints.Add(new("Méthode", Text: SensitiveAreaMethod));
+        }
+
         IReadOnlyList<ReportTable> tables = sensitive.Count == 0
             ? []
             : [new ReportTable(
                 "Sites concernés",
-                ["Site", "Zone sensible"],
-                [.. sensitive.Select(s => (IReadOnlyList<ReportCell>)[s.Name, s.SensitiveAreaName ?? "Non renseigné"])])];
+                ["Site", "Zone sensible", "Origine"],
+                [.. sensitive.Select(s => (IReadOnlyList<ReportCell>)
+                [
+                    s.Name,
+                    s.EffectiveSensitiveAreaName ?? "Non renseigné",
+                    s.IsSensitiveAreaFromDetection ? "Détection automatique" : "Déclaration",
+                ])])];
 
         return (datapoints, tables);
     }

@@ -41,6 +41,7 @@ import {
   LEGAL_FORM_SUGGESTIONS,
   SUSTAINABILITY_TOPIC_LABELS,
   VSME_DISCLOSURE_LABELS,
+  VSME_DATA_SOURCES,
   VSME_DISCLOSURES,
   VSME_GROUPS,
   type VsmeTab,
@@ -241,6 +242,7 @@ export function IndicatorsPage() {
   // Raccourci pour un champ chiffré de RseIndicators.
   const num = (key: keyof RseIndicators, label: string, unit: string, options: { hint?: string; integer?: boolean; optional?: boolean } = {}) => (
     <NumberField
+      source={VSME_DATA_SOURCES[key]}
       id={`ind-${key}`}
       label={label}
       unit={unit}
@@ -400,7 +402,7 @@ export function IndicatorsPage() {
                         )}
                       />
                     )}
-                    <NumberField id="st-totalAssetsEur" label="Total du bilan" unit="€" value={statement.totalAssetsEur} onChange={(v) => setField('totalAssetsEur', v)} readOnly={readOnly} />
+                    <NumberField id="st-totalAssetsEur" label="Total du bilan" unit="€" source={VSME_DATA_SOURCES.totalAssetsEur} value={statement.totalAssetsEur} onChange={(v) => setField('totalAssetsEur', v)} readOnly={readOnly} />
                     {num('revenueEur', 'Chiffre d’affaires', '€')}
                     {num('employeeCountFte', 'Effectif en ETP', 'ETP', { hint: 'Utilisé si la répartition par contrat (B8) n’est pas renseignée' })}
                     <TextField id="st-primaryCountry" label="Pays principal d’activité" value={statement.primaryCountry} onChange={(v) => setField('primaryCountry', v)} readOnly={readOnly} placeholder="France" hint="Le code NACE est déduit de votre code NAF." />
@@ -497,12 +499,12 @@ export function IndicatorsPage() {
                     )}
                   </DisclosureCard>
 
-                  <DisclosureCard code="B5" completeness={byCode('B5')} intro="Renseignée site par site, dans la liste des sites de B1 (onglet Général).">
+                  <DisclosureCard code="B5" completeness={byCode('B5')} intro="Renseignée site par site, dans la liste des sites de B1 (onglet Général). Sans réponse de votre part, MAAT la déduit des bases publiques de l’INPN (zones à moins de 500 m).">
                     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-bg/50 px-4 py-3 sm:col-span-2">
                       <p className="text-[13px] text-text">
                         {sites.length === 0
                           ? 'Aucun site déclaré.'
-                          : `${sites.filter((s) => s.inOrNearSensitiveArea === true).length} site(s) sur ${sites.length} dans ou près d’une zone sensible.`}
+                          : `${sites.filter((s) => s.effectiveInOrNearSensitiveArea === true).length} site(s) sur ${sites.length} dans ou près d’une zone sensible.`}
                       </p>
                       <button type="button" onClick={() => goTo('B1')} className="text-[13px] font-medium text-blue-maat-text hover:underline">
                         Gérer les sites

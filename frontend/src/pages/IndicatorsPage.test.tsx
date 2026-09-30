@@ -152,6 +152,11 @@ describe('IndicatorsPage', () => {
       latitude: null,
       longitude: null,
       geocodedLabel: null,
+      sensitiveAreaDetection: 'NotChecked',
+      detectedSensitiveAreas: null,
+      effectiveInOrNearSensitiveArea: false,
+      effectiveSensitiveAreaName: null,
+      sensitiveAreaFromDetection: false,
     })
     renderPage()
 
@@ -163,6 +168,60 @@ describe('IndicatorsPage', () => {
     expect(await screen.findByText(/Adresse non localisée/)).toBeDefined()
     expect(vsmeApiMock.createSite).toHaveBeenCalledWith(expect.objectContaining({ name: 'Atelier', tenure: 'Owned' }))
     expect(vsmeApiMock.getCompleteness).toHaveBeenCalledTimes(2)
+  })
+
+  // norme-volontaire.md, section 5 : « Où trouver ? », replié par défaut, déplié sous le champ.
+  it('« Où trouver ? » déplie la source de la donnée sous son champ', async () => {
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('tab', { name: /^Environnement/ }))
+    const toggle = screen.getByRole('button', { name: /Où trouver \?.*Émissions brutes Scope 1/ })
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByText(/Ce chiffre vient d’un bilan carbone/)).toBeNull()
+
+    await user.click(toggle)
+
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    const panel = document.getElementById(toggle.getAttribute('aria-controls')!)
+    expect(panel?.textContent).toMatch(/Ce chiffre vient d’un bilan carbone.*Diag Décarbon’Action/)
+    // Pas d'encart sur un total calculé : rien à chercher.
+    expect(screen.queryByRole('button', { name: /Où trouver \?.*Émissions totales/ })).toBeNull()
+  })
+
+  // ADR 0014 : la zone trouvée par la détection s'affiche sur la tuile, avec son origine.
+  it('zone sensible détectée : la tuile du site l’annonce, et le formulaire la rappelle', async () => {
+    const user = userEvent.setup()
+    vsmeApiMock.listSites.mockResolvedValue([
+      {
+        id: 's-1',
+        name: 'Scierie',
+        address: 'Route de la Plaine 77300 Fontainebleau',
+        tenure: 'Owned',
+        inOrNearSensitiveArea: null,
+        sensitiveAreaName: null,
+        geocoded: true,
+        latitude: 48.425,
+        longitude: 2.64,
+        geocodedLabel: 'Route de la Plaine 77300 Fontainebleau',
+        sensitiveAreaDetection: 'Found',
+        detectedSensitiveAreas: 'Massif de Fontainebleau (Natura 2000 Habitats, ZNIEFF 1)',
+        effectiveInOrNearSensitiveArea: true,
+        effectiveSensitiveAreaName: 'Massif de Fontainebleau (Natura 2000 Habitats, ZNIEFF 1)',
+        sensitiveAreaFromDetection: true,
+      },
+    ])
+    renderPage()
+
+    expect(await screen.findByText('Massif de Fontainebleau (Natura 2000 Habitats, ZNIEFF 1)')).toBeDefined()
+    expect(screen.getByText('Détection automatique')).toBeDefined()
+
+    await user.click(screen.getByRole('button', { name: 'Modifier le site Scierie' }))
+
+    expect(screen.getByText(/Détecté à moins de 500 m/)).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Laisser la détection automatique répondre' })).toBeNull()
+    await user.click(within(screen.getByRole('radiogroup', { name: /zone sensible pour la biodiversité/ })).getByRole('radio', { name: 'Non' }))
+    expect(screen.getByRole('button', { name: 'Laisser la détection automatique répondre' })).toBeDefined()
   })
 
   it('Starter : consultation seule, et l’offre Essential proposée', async () => {

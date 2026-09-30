@@ -130,14 +130,15 @@ public static class VsmeCompleteness
             return ["Au moins un site (B1)"];
         }
 
+        // Réponse de l'utilisateur, ou à défaut celle de la détection automatique (ADR 0014).
         var missing = new List<string>();
         foreach (var site in sites)
         {
-            if (site.InOrNearSensitiveArea is null)
+            if (site.EffectiveInOrNearSensitiveArea is null)
             {
                 missing.Add($"Zone sensible pour la biodiversité, site « {site.Name} »");
             }
-            else if (site.InOrNearSensitiveArea == true && site.SensitiveAreaName is null)
+            else if (site.EffectiveInOrNearSensitiveArea == true && site.EffectiveSensitiveAreaName is null)
             {
                 missing.Add($"Nom de la zone sensible du site « {site.Name} »");
             }

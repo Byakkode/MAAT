@@ -1,5 +1,5 @@
-import { Plus, Trash2 } from 'lucide-react'
-import type { ChangeEvent, ReactNode } from 'react'
+import { ChevronDown, Plus, Trash2 } from 'lucide-react'
+import { type ChangeEvent, type ReactNode, useId, useState } from 'react'
 import type { DisclosureCompleteness, VsmeDisclosure } from '../../api/vsmeApi'
 import { VSME_DISCLOSURE_LABELS } from '../../constants/vsme'
 import { Card } from '../ui/Card'
@@ -23,12 +23,17 @@ export function OptionalTag() {
   )
 }
 
+// « Où trouver ? » (norme-volontaire.md, section 5) : dans quel document chercher la donnée.
+// Replié par défaut, déplié sous le champ au clic, jamais au survol : lisible au clavier, au
+// lecteur d'écran et sur mobile, et assez large pour trois lignes. L'aide « ce que c'est »
+// reste la ligne grise sous le libellé ; celle-ci dit « où le trouver ».
 function Field({
   htmlFor,
   label,
   hint,
   optional,
   wide,
+  source,
   children,
 }: {
   htmlFor?: string
@@ -36,16 +41,40 @@ function Field({
   hint?: string
   optional?: boolean
   wide?: boolean
+  source?: string
   children: ReactNode
 }) {
+  const [sourceOpen, setSourceOpen] = useState(false)
+  const sourceId = useId()
+
   return (
     <div className={wide ? 'sm:col-span-2' : undefined}>
-      <label htmlFor={htmlFor} className="block text-[13px] font-medium text-text">
-        {label}
-        {optional && <OptionalTag />}
-      </label>
+      <div className="flex items-start justify-between gap-3">
+        <label htmlFor={htmlFor} className="block text-[13px] font-medium text-text">
+          {label}
+          {optional && <OptionalTag />}
+        </label>
+        {source && (
+          <button
+            type="button"
+            aria-expanded={sourceOpen}
+            aria-controls={sourceId}
+            onClick={() => setSourceOpen((open) => !open)}
+            className="inline-flex shrink-0 items-center gap-0.5 text-[12px] font-medium text-blue-maat-text hover:underline"
+          >
+            Où trouver ?
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${sourceOpen ? 'rotate-180' : ''}`} aria-hidden />
+            <span className="sr-only"> ({label})</span>
+          </button>
+        )}
+      </div>
       {hint && <p className="mt-0.5 text-[12px] font-light text-text-muted">{hint}</p>}
       <div className="mt-1.5">{children}</div>
+      {source && sourceOpen && (
+        <p id={sourceId} className="mt-2 rounded-lg border border-border bg-bg px-3 py-2 text-[12.5px] leading-relaxed text-text">
+          {source}
+        </p>
+      )}
     </div>
   )
 }
@@ -60,6 +89,7 @@ export function NumberField({
   readOnly,
   hint,
   optional,
+  source,
   integer = false,
 }: {
   id: string
@@ -71,6 +101,7 @@ export function NumberField({
   readOnly: boolean
   hint?: string
   optional?: boolean
+  source?: string
   integer?: boolean
 }) {
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
@@ -84,7 +115,7 @@ export function NumberField({
   }
 
   return (
-    <Field htmlFor={id} label={label} hint={hint} optional={optional}>
+    <Field htmlFor={id} label={label} hint={hint} optional={optional} source={source}>
       <div className="relative">
         <input
           id={id}

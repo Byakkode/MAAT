@@ -12,6 +12,7 @@ public class CompanySite
     public const int NameMaxLength = 120;
     public const int AddressMaxLength = 300;
     public const int SensitiveAreaNameMaxLength = 200;
+    public const int DetectedSensitiveAreasMaxLength = 500;
 
     public Guid Id { get; private set; }
     public Guid CompanyId { get; private set; }
@@ -25,9 +26,16 @@ public class CompanySite
     public double? Longitude { get; private set; }
     public string? GeocodedLabel { get; private set; }
 
-    // B5 : null = pas encore répondu, distinct de « non ».
+    // B5, réponse de l'utilisateur : null = pas de réponse, la détection automatique répond
+    // alors à sa place (EffectiveInOrNearSensitiveArea).
     public bool? InOrNearSensitiveArea { get; private set; }
     public string? SensitiveAreaName { get; private set; }
+
+    // B5, détection automatique (ADR 0014) à partir des coordonnées. SensitiveAreasCheckedAt
+    // null : jamais vérifié, ou service indisponible. Vérifié sans rien trouver :
+    // DetectedSensitiveAreas null. Vérifié et trouvé : les zones, déjà mises en forme.
+    public DateTimeOffset? SensitiveAreasCheckedAt { get; private set; }
+    public string? DetectedSensitiveAreas { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
@@ -44,9 +52,27 @@ public class CompanySite
 
     public bool IsGeolocated => Latitude is not null && Longitude is not null;
 
+    public bool IsCheckedForSensitiveAreas => SensitiveAreasCheckedAt is not null;
+
+    // La réponse de l'utilisateur prime toujours ; sans réponse, celle de la détection, si elle
+    // a pu avoir lieu. Null : ni l'une ni l'autre, B5 reste à compléter pour ce site.
+    public bool? EffectiveInOrNearSensitiveArea =>
+        InOrNearSensitiveArea ?? (IsCheckedForSensitiveAreas ? DetectedSensitiveAreas is not null : null);
+
+    public string? EffectiveSensitiveAreaName =>
+        InOrNearSensitiveArea switch
+        {
+            true => SensitiveAreaName ?? DetectedSensitiveAreas,
+            false => null,
+            null => DetectedSensitiveAreas,
+        };
+
+    // Vrai quand la réponse retenue vient de la détection : le rapport et l'écran le disent.
+    public bool IsSensitiveAreaFromDetection => InOrNearSensitiveArea is null && IsCheckedForSensitiveAreas;
+
     // Vrai quand l'adresse a changé : l'appelant doit alors géocoder de nouveau. Les anciennes
     // coordonnées sont effacées dès maintenant, pour qu'un site ne garde jamais la position
-    // d'une adresse qu'il n'a plus.
+    // d'une adresse qu'il n'a plus, ni les zones sensibles trouvées autour d'elle.
     public bool Update(CompanySiteDetails details, DateTimeOffset now)
     {
         var addressChanged = !string.Equals(Address, details.Address.Trim(), StringComparison.Ordinal);
@@ -71,6 +97,17 @@ public class CompanySite
         Latitude = null;
         Longitude = null;
         GeocodedLabel = null;
+        SensitiveAreasCheckedAt = null;
+        DetectedSensitiveAreas = null;
+    }
+
+    // detected : zones trouvées, déjà mises en forme (SensitiveAreaSummary) ; null si aucune.
+    public void RecordSensitiveAreaCheck(string? detected, DateTimeOffset now)
+    {
+        SensitiveAreasCheckedAt = now;
+        DetectedSensitiveAreas = string.IsNullOrWhiteSpace(detected)
+            ? null
+            : detected.Length > DetectedSensitiveAreasMaxLength ? detected[..DetectedSensitiveAreasMaxLength] : detected;
     }
 
     private void Apply(CompanySiteDetails details, DateTimeOffset now)

@@ -21,6 +21,8 @@ public class CompanySiteConfiguration : IEntityTypeConfiguration<CompanySite>
         builder.Property(s => s.GeocodedLabel).HasColumnName("geocoded_label").HasMaxLength(CompanySite.AddressMaxLength);
         builder.Property(s => s.InOrNearSensitiveArea).HasColumnName("in_or_near_sensitive_area");
         builder.Property(s => s.SensitiveAreaName).HasColumnName("sensitive_area_name").HasMaxLength(CompanySite.SensitiveAreaNameMaxLength);
+        builder.Property(s => s.SensitiveAreasCheckedAt).HasColumnName("sensitive_areas_checked_at");
+        builder.Property(s => s.DetectedSensitiveAreas).HasColumnName("detected_sensitive_areas").HasMaxLength(CompanySite.DetectedSensitiveAreasMaxLength);
         builder.Property(s => s.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(s => s.UpdatedAt).HasColumnName("updated_at").IsRequired();
 

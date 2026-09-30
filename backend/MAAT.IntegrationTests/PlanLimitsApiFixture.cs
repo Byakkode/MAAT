@@ -17,7 +17,8 @@ namespace MAAT.IntegrationTests;
 // déclenche les 45 recommandations du seed, assez pour vérifier les limites de 3 et 12.
 // IReportGenerator remplacé par CapturingReportGenerator pour lire ce que DiagnosticService
 // transmet au rapport selon l'offre ; IPaymentGateway par FakePaymentGateway, comme
-// BillingApiFixture ; IGeocoder par FakeGeocoder (ADR 0013, aucun appel réseau). Durée de vie
+// BillingApiFixture ; IGeocoder par FakeGeocoder et ISensitiveAreaLocator par FakeSensitiveAreaLocator (ADR 0013 et
+// 0014, aucun appel réseau). Durée de vie
 // de jeton par défaut (CLAUDE.md).
 public class PlanLimitsApiFixture : IAsyncLifetime
 {
@@ -27,6 +28,8 @@ public class PlanLimitsApiFixture : IAsyncLifetime
     public CapturingReportGenerator ReportGenerator { get; } = new();
 
     public FakeGeocoder Geocoder { get; } = new();
+
+    public FakeSensitiveAreaLocator SensitiveAreas { get; } = new();
 
     public async Task InitializeAsync()
     {
@@ -49,6 +52,8 @@ public class PlanLimitsApiFixture : IAsyncLifetime
                 services.Replace(ServiceDescriptor.Singleton<IReportGenerator>(ReportGenerator));
                 services.RemoveAll<IGeocoder>();
                 services.AddSingleton<IGeocoder>(Geocoder);
+                services.RemoveAll<ISensitiveAreaLocator>();
+                services.AddSingleton<ISensitiveAreaLocator>(SensitiveAreas);
             });
         });
 

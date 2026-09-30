@@ -74,6 +74,9 @@ public sealed class CompanySiteInput
         new(Name ?? string.Empty, Address ?? string.Empty, Tenure, InOrNearSensitiveArea, SensitiveAreaName);
 }
 
+// InOrNearSensitiveArea et SensitiveAreaName : la réponse de l'utilisateur, telle qu'il l'a
+// donnée. Effective* : celle que retiennent la complétude et le rapport (la sienne, sinon la
+// détection automatique, ADR 0014). SensitiveAreaDetection : NotChecked, None ou Found.
 public sealed record CompanySiteDto(
     Guid Id,
     string Name,
@@ -84,8 +87,28 @@ public sealed record CompanySiteDto(
     double? Longitude,
     string? GeocodedLabel,
     bool? InOrNearSensitiveArea,
-    string? SensitiveAreaName)
+    string? SensitiveAreaName,
+    string SensitiveAreaDetection,
+    string? DetectedSensitiveAreas,
+    bool? EffectiveInOrNearSensitiveArea,
+    string? EffectiveSensitiveAreaName,
+    bool SensitiveAreaFromDetection)
 {
     public static CompanySiteDto From(CompanySite s) =>
-        new(s.Id, s.Name, s.Address, s.Tenure, s.IsGeolocated, s.Latitude, s.Longitude, s.GeocodedLabel, s.InOrNearSensitiveArea, s.SensitiveAreaName);
+        new(
+            s.Id,
+            s.Name,
+            s.Address,
+            s.Tenure,
+            s.IsGeolocated,
+            s.Latitude,
+            s.Longitude,
+            s.GeocodedLabel,
+            s.InOrNearSensitiveArea,
+            s.SensitiveAreaName,
+            !s.IsCheckedForSensitiveAreas ? "NotChecked" : s.DetectedSensitiveAreas is null ? "None" : "Found",
+            s.DetectedSensitiveAreas,
+            s.EffectiveInOrNearSensitiveArea,
+            s.EffectiveSensitiveAreaName,
+            s.IsSensitiveAreaFromDetection);
 }
