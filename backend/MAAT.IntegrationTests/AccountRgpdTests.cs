@@ -218,6 +218,39 @@ public class AccountRgpdTests(AccountApiFixture fixture)
         Assert.False(await context.Diagnostics.AnyAsync(d => d.Id == diagnosticId));
     }
 
+    // rse_indicators n'a longtemps porté aucune clé étrangère vers companies : la suppression de
+    // l'entreprise laissait ses indicateurs orphelins. Les indicateurs d'une autre entreprise,
+    // eux, doivent survivre : la cascade ne déborde pas de l'entreprise supprimée.
+    [Fact]
+    public async Task Suppression_par_le_dernier_Admin_supprime_les_indicateurs_de_l_entreprise_et_eux_seuls()
+    {
+        var client = fixture.CreateClient();
+        var (companyId, _, _, adminAccessToken) = await RegisterCompanyAndLoginAdminAsync(client);
+        var (otherCompanyId, _, _, _) = await RegisterCompanyAndLoginAdminAsync(client);
+
+        Guid indicatorsId;
+        Guid otherIndicatorsId;
+        await using (var context = fixture.CreateDbContext())
+        {
+            var indicators = new RseIndicators(companyId, 2025);
+            var otherIndicators = new RseIndicators(otherCompanyId, 2025);
+            context.RseIndicators.AddRange(indicators, otherIndicators);
+            await context.SaveChangesAsync();
+            indicatorsId = indicators.Id;
+            otherIndicatorsId = otherIndicators.Id;
+        }
+
+        var deleteResponse = await client.SendAsync(
+            AuthorizedRequest(HttpMethod.Delete, "/api/me", adminAccessToken, new { password = ValidPassword }));
+
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        await using var verifyContext = fixture.CreateDbContext();
+        Assert.False(await verifyContext.Companies.AnyAsync(c => c.Id == companyId));
+        Assert.False(await verifyContext.RseIndicators.AnyAsync(r => r.Id == indicatorsId));
+        Assert.True(await verifyContext.RseIndicators.AnyAsync(r => r.Id == otherIndicatorsId));
+    }
+
     // Défense en profondeur : isLastAdmin (GET /api/auth/me) n'est qu'un champ d'affichage —
     // DELETE /api/me ne l'accepte pas en entrée (PasswordConfirmationRequest ne porte qu'un
     // Password) et ne décide qu'à partir de l'état réel en base (rôle de l'appelant relu

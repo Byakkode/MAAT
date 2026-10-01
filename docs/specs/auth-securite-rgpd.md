@@ -267,7 +267,7 @@ Le comportement actuel :
 - si l'appelant est le **dernier `Admin`** de son entreprise (le seul, en le
   comptant) : purge en cascade de `User`, `RefreshToken`,
   `EmailVerificationToken`, `Company`, `Diagnostic`, `Response`, `DomainScore`,
-  `DiagnosticRecommendation`, `Report` et `Subscription` — l'entreprise entière
+  `DiagnosticRecommendation`, `Report`, `Subscription` et `RseIndicators` — l'entreprise entière
   disparaît. Un abonnement Stripe payant en cours est résilié **avant** la purge ;
   si Stripe refuse, rien n'est supprimé (`502`, `abonnement.md` section 6) ;
 - sinon (`Viewer`, `User`, ou `Admin` alors qu'un autre `Admin` existe) :
