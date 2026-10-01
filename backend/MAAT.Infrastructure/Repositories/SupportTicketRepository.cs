@@ -14,6 +14,12 @@ public class SupportTicketRepository(MaatDbContext context) : ISupportTicketRepo
             .Take(50)
             .ToListAsync(ct);
 
+    public async Task<List<SupportTicket>> GetAllByCompanyAsync(Guid companyId, CancellationToken ct) =>
+        await context.SupportTickets
+            .Where(t => t.CompanyId == companyId)
+            .OrderBy(t => t.CreatedAt)
+            .ToListAsync(ct);
+
     public async Task<SupportTicket?> GetByIdAndCompanyAsync(
         Guid id, Guid companyId, CancellationToken ct) =>
         await context.SupportTickets

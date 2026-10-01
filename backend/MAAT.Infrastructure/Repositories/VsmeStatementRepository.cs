@@ -17,6 +17,12 @@ public class VsmeStatementRepository(MaatDbContext context) : IVsmeStatementRepo
             .OrderByDescending(y => y)
             .ToListAsync(ct);
 
+    public Task<List<VsmeStatement>> ListAsync(Guid companyId, CancellationToken ct) =>
+        context.VsmeStatements
+            .Where(s => s.CompanyId == companyId)
+            .OrderBy(s => s.Year)
+            .ToListAsync(ct);
+
     public async Task AddAsync(VsmeStatement statement, CancellationToken ct) =>
         await context.VsmeStatements.AddAsync(statement, ct);
 }

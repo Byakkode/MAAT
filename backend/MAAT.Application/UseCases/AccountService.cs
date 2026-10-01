@@ -21,6 +21,13 @@ public class AccountService(
     IReportRepository reportRepository,
     IRefreshTokenRepository refreshTokenRepository,
     ISubscriptionRepository subscriptionRepository,
+    IRseIndicatorsRepository rseIndicatorsRepository,
+    IVsmeStatementRepository vsmeStatementRepository,
+    ICompanySiteRepository companySiteRepository,
+    IActionItemProgressRepository actionItemProgressRepository,
+    IActionItemChangeRepository actionItemChangeRepository,
+    ISupportTicketRepository supportTicketRepository,
+    ICompanyLogoRepository companyLogoRepository,
     IPaymentGateway paymentGateway,
     IPasswordHasher passwordHasher,
     ICompromisedPasswordChecker compromisedPasswordChecker,
@@ -39,6 +46,13 @@ public class AccountService(
         var diagnosticRecommendations = await diagnosticRecommendationRepository.FindAllForCurrentCompanyAsync(ct);
         var reports = await reportRepository.FindAllForCurrentCompanyAsync(ct);
         var subscription = await subscriptionRepository.FindByCompanyIdAsync(currentUser.CompanyId, ct);
+        var rseIndicators = await rseIndicatorsRepository.ListByCompanyAsync(currentUser.CompanyId, ct);
+        var vsmeStatements = await vsmeStatementRepository.ListAsync(currentUser.CompanyId, ct);
+        var companySites = await companySiteRepository.ListAsync(currentUser.CompanyId, ct);
+        var actionItemProgress = await actionItemProgressRepository.ListByCompanyAsync(currentUser.CompanyId, ct);
+        var actionItemChanges = await actionItemChangeRepository.ListByCompanyAsync(currentUser.CompanyId, ct);
+        var supportTickets = await supportTicketRepository.GetAllByCompanyAsync(currentUser.CompanyId, ct);
+        var companyLogo = await companyLogoRepository.FindByCompanyIdAsync(currentUser.CompanyId, ct);
 
         return new AccountExportResult(
             new UserExport(user.Id, user.Email, user.Role, user.EmailVerified, user.EmailVerifiedAt, user.LastLogin, user.CreatedAt),
@@ -50,8 +64,100 @@ public class AccountService(
             [.. reports.Select(r => new ReportExport(r.Id, r.DiagnosticId, r.Format, r.GeneratedAt, r.GeneratedByUserId))],
             subscription is null
                 ? null
-                : new SubscriptionExport(subscription.Plan, subscription.BillingPeriod, subscription.Status, subscription.CreatedAt, subscription.UpdatedAt));
+                : new SubscriptionExport(subscription.Plan, subscription.BillingPeriod, subscription.Status, subscription.CreatedAt, subscription.UpdatedAt),
+            [.. rseIndicators.Select(ToExport)],
+            [.. vsmeStatements.Select(ToExport)],
+            [.. companySites.Select(s => new CompanySiteExport(
+                s.Id, s.Name, s.Address, s.Tenure, s.Latitude, s.Longitude, s.GeocodedLabel,
+                s.InOrNearSensitiveArea, s.SensitiveAreaName, s.SensitiveAreasCheckedAt, s.DetectedSensitiveAreas,
+                s.CreatedAt, s.UpdatedAt))],
+            [.. actionItemProgress.Select(p => new ActionItemProgressExport(
+                p.Id, p.DiagnosticId, p.RecommendationCode, p.Status, p.AssignedTo, p.DueDate, p.Notes, p.UpdatedAt))],
+            [.. actionItemChanges.Select(c => new ActionItemChangeExport(
+                c.Id, c.DiagnosticId, c.RecommendationCode, c.Field, c.OldValue, c.NewValue, c.ChangedByUserId, c.ChangedAt))],
+            [.. supportTickets.Select(t => new SupportTicketExport(
+                t.Id, t.UserId, t.GithubIssueNumber, t.GithubIssueUrl, t.Title, t.Description, t.TicketType, t.CreatedAt))],
+            companyLogo is null ? null : new CompanyLogoExport("image/png", companyLogo.PngContent, companyLogo.UpdatedAt));
     }
+
+    private static RseIndicatorsExport ToExport(Domain.Entities.RseIndicators r) => new()
+    {
+        Id = r.Id,
+        Year = r.Year,
+        Co2EmissionsTons = r.Co2EmissionsTons,
+        EnergyConsumptionKwh = r.EnergyConsumptionKwh,
+        RenewableEnergyPct = r.RenewableEnergyPct,
+        WaterConsumptionM3 = r.WaterConsumptionM3,
+        WasteTons = r.WasteTons,
+        RecyclingRatePct = r.RecyclingRatePct,
+        ElectricityRenewableMwh = r.ElectricityRenewableMwh,
+        ElectricityNonRenewableMwh = r.ElectricityNonRenewableMwh,
+        FuelsRenewableMwh = r.FuelsRenewableMwh,
+        FuelsNonRenewableMwh = r.FuelsNonRenewableMwh,
+        Scope1Tco2e = r.Scope1Tco2e,
+        Scope2LocationTco2e = r.Scope2LocationTco2e,
+        WaterWithdrawalM3 = r.WaterWithdrawalM3,
+        WaterConsumptionStressM3 = r.WaterConsumptionStressM3,
+        HazardousWasteTons = r.HazardousWasteTons,
+        NonHazardousWasteTons = r.NonHazardousWasteTons,
+        EmployeeCountFte = r.EmployeeCountFte,
+        TurnoverRatePct = r.TurnoverRatePct,
+        TrainingHoursPerEmployee = r.TrainingHoursPerEmployee,
+        WorkAccidentRate = r.WorkAccidentRate,
+        GenderEqualityIndex = r.GenderEqualityIndex,
+        PermanentContractPct = r.PermanentContractPct,
+        PermanentEmployees = r.PermanentEmployees,
+        TemporaryEmployees = r.TemporaryEmployees,
+        FemaleEmployees = r.FemaleEmployees,
+        MaleEmployees = r.MaleEmployees,
+        OtherGenderEmployees = r.OtherGenderEmployees,
+        RecordableAccidents = r.RecordableAccidents,
+        HoursWorked = r.HoursWorked,
+        WorkFatalities = r.WorkFatalities,
+        GenderPayGapPct = r.GenderPayGapPct,
+        CollectiveBargainingPct = r.CollectiveBargainingPct,
+        LocalSuppliersPct = r.LocalSuppliersPct,
+        RseAssessedSuppliersPct = r.RseAssessedSuppliersPct,
+        ActiveSuppliersCount = r.ActiveSuppliersCount,
+        RevenueEur = r.RevenueEur,
+        RseInvestmentEur = r.RseInvestmentEur,
+        ExportRevenuePct = r.ExportRevenuePct,
+        CreatedAt = r.CreatedAt,
+        UpdatedAt = r.UpdatedAt,
+    };
+
+    private static VsmeStatementExport ToExport(Domain.Entities.VsmeStatement s) => new()
+    {
+        Id = s.Id,
+        Year = s.Year,
+        ReportingBasis = s.ReportingBasis,
+        LegalForm = s.LegalForm,
+        TotalAssetsEur = s.TotalAssetsEur,
+        PrimaryCountry = s.PrimaryCountry,
+        EmployeeCountUnit = s.EmployeeCountUnit,
+        OmittedDisclosures = [.. s.OmittedDisclosures],
+        Subsidiaries = [.. s.Subsidiaries.Select(x => new VsmeSubsidiaryExport(x.Name, x.RegisteredAddress))],
+        Certifications = [.. s.Certifications.Select(x => new VsmeCertificationExport(x.Name, x.Issuer, x.ObtainedOn, x.Rating))],
+        HasPractices = s.HasPractices,
+        HasPolicies = s.HasPolicies,
+        PoliciesPublic = s.PoliciesPublic,
+        HasFutureInitiatives = s.HasFutureInitiatives,
+        HasTargets = s.HasTargets,
+        PracticesDescription = s.PracticesDescription,
+        CoveredTopics = [.. s.CoveredTopics],
+        PollutionReportingApplicable = s.PollutionReportingApplicable,
+        PollutionReportUrl = s.PollutionReportUrl,
+        Pollutants = [.. s.Pollutants.Select(x => new VsmePollutantExport(x.Name, x.Medium, x.Quantity, x.Unit))],
+        CircularEconomyApplied = s.CircularEconomyApplied,
+        CircularEconomyDescription = s.CircularEconomyDescription,
+        MaterialFlowsDescription = s.MaterialFlowsDescription,
+        EmployeesByCountry = [.. s.EmployeesByCountry.Select(x => new VsmeCountryHeadcountExport(x.Country, x.Employees))],
+        MinimumWageMet = s.MinimumWageMet,
+        CorruptionConvictions = s.CorruptionConvictions,
+        CorruptionFinesEur = s.CorruptionFinesEur,
+        CreatedAt = s.CreatedAt,
+        UpdatedAt = s.UpdatedAt,
+    };
 
     // docs/specs/coquille-et-compte.md, section 6 : DELETE /api/me ne supprime l'entreprise que
     // si l'appelant en est le dernier Admin — dans tous les autres cas (Viewer, User, ou Admin

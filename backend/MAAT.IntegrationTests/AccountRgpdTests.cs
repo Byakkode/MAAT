@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using MAAT.Domain.Entities;
 using MAAT.Domain.Enums;
+using MAAT.Domain.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace MAAT.IntegrationTests;
@@ -61,6 +62,36 @@ public class AccountRgpdTests(AccountApiFixture fixture)
         var userId = Guid.Parse(jwt.Claims.Single(c => c.Type == "sub").Value);
 
         return (companyId, userId, email, accessToken);
+    }
+
+    private static async Task<Guid> CreateDiagnosticAsync(HttpClient client, string accessToken)
+    {
+        var response = await client.SendAsync(AuthorizedRequest(HttpMethod.Post, "/api/diagnostics", accessToken, new { }));
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var created = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return created.GetProperty("id").GetGuid();
+    }
+
+    // Suivi d'une action, une ligne de son historique, un ticket de support et un logo : les
+    // données saisies par l'entreprise hors du diagnostic lui-même.
+    private async Task<(Guid ProgressId, Guid ChangeId, Guid TicketId)> SeedActionsTicketAndLogoAsync(
+        Guid companyId, Guid userId, Guid diagnosticId, byte[] logo)
+    {
+        await using var context = fixture.CreateDbContext();
+        var progress = ActionItemProgress.Create(diagnosticId, "ENV-REC-01");
+        progress.Update(ActionItemStatus.InProgress, "Responsable QSE", new DateTimeOffset(2026, 11, 15, 0, 0, 0, TimeSpan.Zero), "Devis demandé.");
+        var change = new ActionItemChange(
+            diagnosticId, "ENV-REC-01", new ActionItemFieldChange(ActionItemField.Status, "Planned", "InProgress"), userId, DateTimeOffset.UtcNow);
+        var ticket = new SupportTicket(
+            companyId, userId, 42, "https://github.com/exemple/support/issues/42", "Export PDF vide", "Le rapport s'ouvre sans page de garde.", "bug");
+
+        context.ActionItemProgresses.Add(progress);
+        context.ActionItemChanges.Add(change);
+        context.SupportTickets.Add(ticket);
+        context.CompanyLogos.Add(new CompanyLogo(companyId, logo, DateTimeOffset.UtcNow));
+        await context.SaveChangesAsync();
+
+        return (progress.Id, change.Id, ticket.Id);
     }
 
     // Seede un jeu complet de données company-scopées (une ligne par table de la chaîne
@@ -251,6 +282,97 @@ public class AccountRgpdTests(AccountApiFixture fixture)
         Assert.True(await verifyContext.RseIndicators.AnyAsync(r => r.Id == otherIndicatorsId));
     }
 
+    // action_item_progress et support_tickets n'ont longtemps porté aucune clé étrangère : la
+    // suppression de l'entreprise laissait orphelins les notes, responsables et descriptions de
+    // tickets. Les tables déjà en cascade (historique, logo, déclarations, sites) sont vérifiées
+    // au même endroit pour que la purge complète tienne dans un seul test.
+    [Fact]
+    public async Task Suppression_par_le_dernier_Admin_supprime_suivi_des_actions_tickets_logo_declarations_et_sites()
+    {
+        var client = fixture.CreateClient();
+        var (companyId, userId, _, accessToken) = await RegisterCompanyAndLoginAdminAsync(client);
+        var (otherCompanyId, otherUserId, _, otherAccessToken) = await RegisterCompanyAndLoginAdminAsync(client);
+        var diagnosticId = await CreateDiagnosticAsync(client, accessToken);
+        var otherDiagnosticId = await CreateDiagnosticAsync(client, otherAccessToken);
+
+        var (progressId, changeId, ticketId) = await SeedActionsTicketAndLogoAsync(companyId, userId, diagnosticId, [0x89, 0x50]);
+        var (otherProgressId, otherChangeId, otherTicketId) =
+            await SeedActionsTicketAndLogoAsync(otherCompanyId, otherUserId, otherDiagnosticId, [0x89, 0x50]);
+
+        Guid statementId;
+        Guid siteId;
+        await using (var context = fixture.CreateDbContext())
+        {
+            var now = DateTimeOffset.UtcNow;
+            var statement = new VsmeStatement(companyId, 2025, now);
+            var site = new CompanySite(companyId, new CompanySiteDetails("Siège", "1 rue de Paris, 75001 Paris", SiteTenure.Owned, null, null), now);
+            context.VsmeStatements.Add(statement);
+            context.CompanySites.Add(site);
+            await context.SaveChangesAsync();
+            statementId = statement.Id;
+            siteId = site.Id;
+        }
+
+        var deleteResponse = await client.SendAsync(
+            AuthorizedRequest(HttpMethod.Delete, "/api/me", accessToken, new { password = ValidPassword }));
+
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        await using var verifyContext = fixture.CreateDbContext();
+        Assert.False(await verifyContext.ActionItemProgresses.AnyAsync(p => p.Id == progressId));
+        Assert.False(await verifyContext.ActionItemChanges.AnyAsync(c => c.Id == changeId));
+        Assert.False(await verifyContext.SupportTickets.AnyAsync(t => t.Id == ticketId));
+        Assert.False(await verifyContext.CompanyLogos.AnyAsync(l => l.CompanyId == companyId));
+        Assert.False(await verifyContext.VsmeStatements.AnyAsync(s => s.Id == statementId));
+        Assert.False(await verifyContext.CompanySites.AnyAsync(s => s.Id == siteId));
+
+        Assert.True(await verifyContext.ActionItemProgresses.AnyAsync(p => p.Id == otherProgressId));
+        Assert.True(await verifyContext.ActionItemChanges.AnyAsync(c => c.Id == otherChangeId));
+        Assert.True(await verifyContext.SupportTickets.AnyAsync(t => t.Id == otherTicketId));
+        Assert.True(await verifyContext.CompanyLogos.AnyAsync(l => l.CompanyId == otherCompanyId));
+    }
+
+    // Un compte qui n'est pas le dernier Admin emporte ses propres tickets (texte libre qu'il a
+    // rédigé), jamais ceux des autres comptes. Le suivi des actions appartient à l'entreprise et
+    // reste ; l'historique garde la ligne, sans auteur.
+    [Fact]
+    public async Task Suppression_par_un_compte_non_dernier_Admin_supprime_ses_tickets_et_eux_seuls()
+    {
+        var client = fixture.CreateClient();
+        var (companyId, adminUserId, _, adminAccessToken) = await RegisterCompanyAndLoginAdminAsync(client);
+        var diagnosticId = await CreateDiagnosticAsync(client, adminAccessToken);
+        var (adminProgressId, _, adminTicketId) = await SeedActionsTicketAndLogoAsync(companyId, adminUserId, diagnosticId, [0x89, 0x50]);
+        var (viewerUserId, _, viewerAccessToken) = await AddUserToCompanyAsync(client, companyId, UserRole.Viewer);
+
+        Guid viewerTicketId;
+        Guid viewerChangeId;
+        await using (var context = fixture.CreateDbContext())
+        {
+            var viewerTicket = new SupportTicket(
+                companyId, viewerUserId, 43, "https://github.com/exemple/support/issues/43", "Question", "Où trouver le rapport ?", "question");
+            var viewerChange = new ActionItemChange(
+                diagnosticId, "ENV-REC-01", new ActionItemFieldChange(ActionItemField.AssignedTo, null, "Responsable QSE"), viewerUserId, DateTimeOffset.UtcNow);
+            context.SupportTickets.Add(viewerTicket);
+            context.ActionItemChanges.Add(viewerChange);
+            await context.SaveChangesAsync();
+            viewerTicketId = viewerTicket.Id;
+            viewerChangeId = viewerChange.Id;
+        }
+
+        var deleteResponse = await client.SendAsync(
+            AuthorizedRequest(HttpMethod.Delete, "/api/me", viewerAccessToken, new { password = ValidPassword }));
+
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+
+        await using var verifyContext = fixture.CreateDbContext();
+        Assert.False(await verifyContext.Users.AnyAsync(u => u.Id == viewerUserId));
+        Assert.False(await verifyContext.SupportTickets.AnyAsync(t => t.Id == viewerTicketId));
+        Assert.True(await verifyContext.SupportTickets.AnyAsync(t => t.Id == adminTicketId));
+        Assert.True(await verifyContext.ActionItemProgresses.AnyAsync(p => p.Id == adminProgressId));
+        var anonymizedChange = await verifyContext.ActionItemChanges.SingleAsync(c => c.Id == viewerChangeId);
+        Assert.Null(anonymizedChange.ChangedByUserId);
+    }
+
     // Défense en profondeur : isLastAdmin (GET /api/auth/me) n'est qu'un champ d'affichage —
     // DELETE /api/me ne l'accepte pas en entrée (PasswordConfirmationRequest ne porte qu'un
     // Password) et ne décide qu'à partir de l'état réel en base (rôle de l'appelant relu
@@ -378,6 +500,139 @@ public class AccountRgpdTests(AccountApiFixture fixture)
             recommendationCompletedAt,
             diagnosticRecommendation.GetProperty("completedAt").GetDateTimeOffset(),
             TimeSpan.FromMilliseconds(1));
+    }
+
+    // Indicateurs chiffrés, déclarations de la norme volontaire et sites : saisis par
+    // l'entreprise, absents de l'export jusqu'ici. Une ligne d'une autre entreprise est seedée
+    // à côté de chacune pour vérifier que l'export ne déborde pas de l'entreprise du principal.
+    [Fact]
+    public async Task Cas18_Export_contient_les_indicateurs_declarations_et_sites_de_l_entreprise()
+    {
+        var client = fixture.CreateClient();
+        var (companyId, _, _, accessToken) = await RegisterCompanyAndLoginAdminAsync(client);
+        var (otherCompanyId, _, _, _) = await RegisterCompanyAndLoginAdminAsync(client);
+
+        Guid indicatorsId;
+        Guid statementId;
+        Guid siteId;
+        Guid otherIndicatorsId;
+        Guid otherStatementId;
+        Guid otherSiteId;
+        var now = DateTimeOffset.UtcNow;
+        await using (var context = fixture.CreateDbContext())
+        {
+            var indicators = new RseIndicators(companyId, 2025);
+            indicators.Update(new RseIndicatorValues { Scope1Tco2e = 12.5, Scope2LocationTco2e = 3.5, RevenueEur = 850_000 });
+
+            var statement = new VsmeStatement(companyId, 2025, now);
+            statement.Update(new VsmeStatementValues
+            {
+                LegalForm = "SAS",
+                Certifications = [new VsmeCertification("ISO 14001", "AFNOR", new DateOnly(2024, 3, 1), null)],
+            }, now);
+
+            var site = new CompanySite(
+                companyId,
+                new CompanySiteDetails("Entrepôt de Rungis", "1 rue de la Tour, 94150 Rungis", SiteTenure.Leased, true, "Zone humide"),
+                now);
+            site.Locate(48.75, 2.35, "1 Rue de la Tour 94150 Rungis");
+
+            var otherIndicators = new RseIndicators(otherCompanyId, 2025);
+            var otherStatement = new VsmeStatement(otherCompanyId, 2025, now);
+            var otherSite = new CompanySite(
+                otherCompanyId,
+                new CompanySiteDetails("Siège", "2 place du Marché, 69001 Lyon", SiteTenure.Owned, null, null),
+                now);
+
+            context.RseIndicators.AddRange(indicators, otherIndicators);
+            context.VsmeStatements.AddRange(statement, otherStatement);
+            context.CompanySites.AddRange(site, otherSite);
+            await context.SaveChangesAsync();
+
+            indicatorsId = indicators.Id;
+            statementId = statement.Id;
+            siteId = site.Id;
+            otherIndicatorsId = otherIndicators.Id;
+            otherStatementId = otherStatement.Id;
+            otherSiteId = otherSite.Id;
+        }
+
+        var response = await client.SendAsync(
+            AuthorizedRequest(HttpMethod.Post, "/api/me/export", accessToken, new { password = ValidPassword }));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.True(body.TryGetProperty("rseIndicators", out var exportedIndicators), "rseIndicators absent de l'export");
+        var indicatorsRow = Assert.Single(exportedIndicators.EnumerateArray());
+        Assert.Equal(indicatorsId, indicatorsRow.GetProperty("id").GetGuid());
+        Assert.Equal(2025, indicatorsRow.GetProperty("year").GetInt32());
+        Assert.Equal(12.5, indicatorsRow.GetProperty("scope1Tco2e").GetDouble());
+        Assert.Equal(850_000, indicatorsRow.GetProperty("revenueEur").GetDouble());
+        Assert.NotEqual(otherIndicatorsId, indicatorsRow.GetProperty("id").GetGuid());
+
+        Assert.True(body.TryGetProperty("vsmeStatements", out var exportedStatements), "vsmeStatements absent de l'export");
+        var statementRow = Assert.Single(exportedStatements.EnumerateArray());
+        Assert.Equal(statementId, statementRow.GetProperty("id").GetGuid());
+        Assert.Equal("SAS", statementRow.GetProperty("legalForm").GetString());
+        var certification = Assert.Single(statementRow.GetProperty("certifications").EnumerateArray());
+        Assert.Equal("ISO 14001", certification.GetProperty("name").GetString());
+        Assert.NotEqual(otherStatementId, statementRow.GetProperty("id").GetGuid());
+
+        Assert.True(body.TryGetProperty("companySites", out var exportedSites), "companySites absent de l'export");
+        var siteRow = Assert.Single(exportedSites.EnumerateArray());
+        Assert.Equal(siteId, siteRow.GetProperty("id").GetGuid());
+        Assert.Equal("Entrepôt de Rungis", siteRow.GetProperty("name").GetString());
+        Assert.Equal("Leased", siteRow.GetProperty("tenure").GetString());
+        Assert.Equal(48.75, siteRow.GetProperty("latitude").GetDouble());
+        Assert.Equal("Zone humide", siteRow.GetProperty("sensitiveAreaName").GetString());
+        Assert.NotEqual(otherSiteId, siteRow.GetProperty("id").GetGuid());
+    }
+
+    // Suivi du plan d'actions, historique, tickets de support et logo : saisis par l'entreprise,
+    // absents de l'export jusqu'ici. Le logo est attendu en base64 dans le JSON, pour qu'un
+    // export reste un fichier unique et complet.
+    [Fact]
+    public async Task Cas18_Export_contient_le_suivi_des_actions_les_tickets_et_le_logo()
+    {
+        var client = fixture.CreateClient();
+        var (companyId, userId, _, accessToken) = await RegisterCompanyAndLoginAdminAsync(client);
+        var (otherCompanyId, otherUserId, _, otherAccessToken) = await RegisterCompanyAndLoginAdminAsync(client);
+        var diagnosticId = await CreateDiagnosticAsync(client, accessToken);
+        var otherDiagnosticId = await CreateDiagnosticAsync(client, otherAccessToken);
+
+        byte[] logo = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x01, 0x02];
+        var (progressId, changeId, ticketId) = await SeedActionsTicketAndLogoAsync(companyId, userId, diagnosticId, logo);
+        await SeedActionsTicketAndLogoAsync(otherCompanyId, otherUserId, otherDiagnosticId, [0x89, 0x50, 0x4E, 0x47]);
+
+        var response = await client.SendAsync(
+            AuthorizedRequest(HttpMethod.Post, "/api/me/export", accessToken, new { password = ValidPassword }));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.True(body.TryGetProperty("actionItemProgress", out var exportedProgress), "actionItemProgress absent de l'export");
+        var progressRow = Assert.Single(exportedProgress.EnumerateArray());
+        Assert.Equal(progressId, progressRow.GetProperty("id").GetGuid());
+        Assert.Equal(diagnosticId, progressRow.GetProperty("diagnosticId").GetGuid());
+        Assert.Equal("InProgress", progressRow.GetProperty("status").GetString());
+        Assert.Equal("Responsable QSE", progressRow.GetProperty("assignedTo").GetString());
+        Assert.Equal("Devis demandé.", progressRow.GetProperty("notes").GetString());
+
+        Assert.True(body.TryGetProperty("actionItemChanges", out var exportedChanges), "actionItemChanges absent de l'export");
+        var changeRow = Assert.Single(exportedChanges.EnumerateArray());
+        Assert.Equal(changeId, changeRow.GetProperty("id").GetGuid());
+        Assert.Equal("InProgress", changeRow.GetProperty("newValue").GetString());
+
+        Assert.True(body.TryGetProperty("supportTickets", out var exportedTickets), "supportTickets absent de l'export");
+        var ticketRow = Assert.Single(exportedTickets.EnumerateArray());
+        Assert.Equal(ticketId, ticketRow.GetProperty("id").GetGuid());
+        Assert.Equal("Export PDF vide", ticketRow.GetProperty("title").GetString());
+        Assert.Equal("Le rapport s'ouvre sans page de garde.", ticketRow.GetProperty("description").GetString());
+
+        Assert.True(body.TryGetProperty("companyLogo", out var exportedLogo), "companyLogo absent de l'export");
+        Assert.Equal("image/png", exportedLogo.GetProperty("contentType").GetString());
+        Assert.Equal(logo, exportedLogo.GetProperty("pngContent").GetBytesFromBase64());
     }
 
     [Fact]

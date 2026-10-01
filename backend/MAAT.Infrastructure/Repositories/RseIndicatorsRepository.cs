@@ -19,6 +19,12 @@ public class RseIndicatorsRepository(MaatDbContext context) : IRseIndicatorsRepo
             .OrderByDescending(y => y)
             .ToListAsync(ct);
 
+    public async Task<List<RseIndicators>> ListByCompanyAsync(Guid companyId, CancellationToken ct) =>
+        await context.RseIndicators
+            .Where(r => r.CompanyId == companyId)
+            .OrderBy(r => r.Year)
+            .ToListAsync(ct);
+
     public void Add(RseIndicators record) => context.RseIndicators.Add(record);
 
     public Task SaveAsync(CancellationToken ct) => context.SaveChangesAsync(ct);

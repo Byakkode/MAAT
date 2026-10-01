@@ -236,8 +236,30 @@ l'existence de dispositifs, jamais sur des situations individuelles.
 `POST /api/me/export` — droit d'accès et portabilité (art. 15 et 20). Export JSON
 structuré de l'intégralité des données du compte et de son entreprise : `User`,
 `Company`, `Diagnostic`, `Response`, `DomainScore`, `DiagnosticRecommendation`,
-`Report` et `Subscription` (sans les identifiants Stripe, voir `abonnement.md`
-section 6). `DiagnosticRecommendation` doit y figurer avec ses champs
+`Report`, `Subscription` (sans les identifiants Stripe, voir `abonnement.md`
+section 6), `RseIndicators`, `VsmeStatement`, `CompanySite`, `ActionItemProgress`,
+`ActionItemChange`, `SupportTicket` et `CompanyLogo`. Ces sept derniers ont longtemps
+manqué à l'export alors qu'ils ne contiennent que des données saisies par
+l'entreprise (indicateurs chiffrés par exercice, déclarations de la norme volontaire,
+sites, suivi du plan d'actions et son historique, tickets de support, logo) :
+l'export était incomplet au regard des art. 15 et 20. Précisions :
+
+- `rseIndicators` et `vsmeStatements` : une entrée par exercice, du plus ancien au
+  plus récent ;
+- `companySites` : valeurs enregistrées (réponse de l'utilisateur et résultat de la
+  détection des zones sensibles), pas la valeur « effective » qui s'en déduit ;
+- `actionItemChanges` : l'auteur d'une modification y figure par son identifiant,
+  jamais par son adresse e-mail, que l'écran d'historique affiche pourtant : l'export
+  d'un compte ne livre pas les adresses des autres comptes (art. 15 §4 et 20 §4) ;
+- `supportTickets` : tous les tickets de l'entreprise, sans la limite de 50 de
+  l'écran Support ;
+- `companyLogo` : l'image PNG normalisée, encodée en base64 dans le JSON, plutôt
+  qu'un renvoi vers `GET /api/company/logo`. L'export reste ainsi un fichier unique,
+  lisible sans session ouverte ni compte encore existant, ce que suppose la
+  portabilité ; l'image pèse quelques dizaines de Ko (`modele-donnees.md`,
+  `CompanyLogo`).
+
+`DiagnosticRecommendation` doit y figurer avec ses champs
 `is_completed` et `completed_at` : ce sont des données saisies par l'utilisateur
 (cases à cocher du tableau de bord), pas des valeurs dérivées recalculables — les
 omettre rendrait l'export incomplet au regard des art. 15 et 20, contrairement
@@ -267,14 +289,23 @@ Le comportement actuel :
 - si l'appelant est le **dernier `Admin`** de son entreprise (le seul, en le
   comptant) : purge en cascade de `User`, `RefreshToken`,
   `EmailVerificationToken`, `Company`, `Diagnostic`, `Response`, `DomainScore`,
-  `DiagnosticRecommendation`, `Report`, `Subscription` et `RseIndicators` — l'entreprise entière
-  disparaît. Un abonnement Stripe payant en cours est résilié **avant** la purge ;
+  `DiagnosticRecommendation`, `Report`, `Subscription`, `RseIndicators`,
+  `VsmeStatement`, `CompanySite`, `ActionItemProgress`, `ActionItemChange`,
+  `SupportTicket` et `CompanyLogo` — l'entreprise entière disparaît.
+  `ActionItemProgress` et `SupportTicket` n'avaient aucune clé étrangère à leur
+  création et restaient orphelines ; la migration
+  `AddActionItemProgressAndSupportTicketCascades` a purgé les orphelins puis posé
+  les contraintes (`modele-donnees.md`). Un abonnement Stripe payant en cours est résilié **avant** la purge ;
   si Stripe refuse, rien n'est supprimé (`502`, `abonnement.md` section 6) ;
 - sinon (`Viewer`, `User`, ou `Admin` alors qu'un autre `Admin` existe) :
-  seuls le `User` appelant, ses `RefreshToken`, ses `EmailVerificationToken` et
-  les `Report` qu'il a lui-même générés sont supprimés. `Company`,
-  `Diagnostic`, `Response`, `DomainScore` et `DiagnosticRecommendation`
-  restent intacts, de même que les autres comptes.
+  seuls le `User` appelant, ses `RefreshToken`, ses `EmailVerificationToken`,
+  les `Report` qu'il a lui-même générés et les `SupportTicket` qu'il a ouverts
+  sont supprimés. Un ticket est du texte libre rédigé par cette personne : le
+  garder sans auteur ne l'anonymiserait qu'en apparence. `Company`,
+  `Diagnostic`, `Response`, `DomainScore`, `DiagnosticRecommendation` et
+  `ActionItemProgress` restent intacts, de même que les autres comptes. Les
+  lignes d'`ActionItemChange` qu'il a produites restent, sans auteur
+  (`changed_by_user_id` passe à `null`).
 
 Les diagnostics n'ont pas de propriétaire individuel en base : ils sont déjà
 rattachés à l'entreprise, pas à un utilisateur — d'où l'asymétrie ci-dessus,
