@@ -62,7 +62,9 @@ public class RseIndicatorsConfiguration : IEntityTypeConfiguration<RseIndicators
         builder.Property(r => r.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(r => r.UpdatedAt).HasColumnName("updated_at").IsRequired();
 
-        // Une seule ligne par entreprise par année.
+        // Une seule ligne par entreprise par année. Supprimée avec l'entreprise (droit à
+        // l'effacement, auth-securite-rgpd.md section 6).
         builder.HasIndex(r => new { r.CompanyId, r.Year }).IsUnique();
+        builder.HasOne<Company>().WithMany().HasForeignKey(r => r.CompanyId).OnDelete(DeleteBehavior.Cascade);
     }
 }

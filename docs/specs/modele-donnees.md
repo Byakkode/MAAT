@@ -511,6 +511,12 @@ Indicateurs chiffrés d'un exercice, saisis à l'écran Indicateurs : une ligne 
 et par année (index unique `company_id`, `year`). Toutes les valeurs sont facultatives
 (`double precision` ou `integer`, nullables).
 
+`company_id` est une FK → Company, requise, `ON DELETE CASCADE` : les indicateurs
+disparaissent avec l'entreprise (droit à l'effacement, `auth-securite-rgpd.md`,
+section 6). La table n'en portait pas à sa création ; la migration
+`AddRseIndicatorsCompanyCascade` a d'abord purgé les lignes devenues orphelines, puis
+posé la contrainte.
+
 Aux colonnes historiques (émissions, énergie, eau, déchets, effectif, achats responsables,
 économique) s'ajoutent celles du module de base de la norme volontaire
 (`norme-volontaire.md`, section 2) : `electricity_renewable_mwh`,
