@@ -27,5 +27,9 @@ public class ActionItemProgressConfiguration : IEntityTypeConfiguration<ActionIt
 
         // Un seul enregistrement par (diagnostic, code).
         builder.HasIndex(x => new { x.DiagnosticId, x.RecommendationCode }).IsUnique();
+
+        // Supprimé avec le diagnostic, donc avec l'entreprise : responsable et notes sont du
+        // texte saisi par l'entreprise (droit à l'effacement, auth-securite-rgpd.md section 6).
+        builder.HasOne<Diagnostic>().WithMany().HasForeignKey(x => x.DiagnosticId).OnDelete(DeleteBehavior.Cascade);
     }
 }

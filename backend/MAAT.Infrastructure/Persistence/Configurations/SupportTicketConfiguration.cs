@@ -23,5 +23,12 @@ public class SupportTicketConfiguration : IEntityTypeConfiguration<SupportTicket
         builder.Property(t => t.CreatedAt).HasColumnName("created_at").IsRequired();
 
         builder.HasIndex(t => t.CompanyId);
+
+        // Droit à l'effacement (auth-securite-rgpd.md section 6) : un ticket disparaît avec
+        // l'entreprise, et aussi avec le compte qui l'a ouvert, même quand l'entreprise reste.
+        // Titre et description sont du texte libre rédigé par cette personne ; les garder sans
+        // auteur ne l'anonymiserait qu'en apparence.
+        builder.HasOne<Company>().WithMany().HasForeignKey(t => t.CompanyId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<User>().WithMany().HasForeignKey(t => t.UserId).OnDelete(DeleteBehavior.Cascade);
     }
 }

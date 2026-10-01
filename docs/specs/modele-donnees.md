@@ -505,6 +505,54 @@ reste, anonyme.
 
 ---
 
+## ActionItemProgress
+
+État courant du suivi d'une action du plan d'actions (`recommandations.md`, section 4 bis) :
+une ligne par diagnostic et par recommandation (index unique `diagnostic_id`,
+`recommendation_code`).
+
+| Colonne | Type | Contraintes |
+| --- | --- | --- |
+| `id` | uuid | PK |
+| `diagnostic_id` | uuid | FK → Diagnostic, requis, `ON DELETE CASCADE` |
+| `recommendation_code` | varchar(50) | requis |
+| `status` | enum | requis |
+| `assigned_to` | varchar(200) | nullable |
+| `due_date` | timestamptz | nullable, minuit UTC |
+| `notes` | varchar(4000) | nullable |
+| `updated_at` | timestamptz | requis |
+
+La FK vers Diagnostic n'existait pas à la création de la table : la suppression de
+l'entreprise laissait responsables et notes orphelins. La migration
+`AddActionItemProgressAndSupportTicketCascades` a purgé ces lignes, puis posé la
+contrainte.
+
+---
+
+## SupportTicket
+
+Ticket ouvert depuis l'écran Support, doublé d'une issue GitHub.
+
+| Colonne | Type | Contraintes |
+| --- | --- | --- |
+| `id` | uuid | PK |
+| `company_id` | uuid | FK → Company, requis, `ON DELETE CASCADE`, indexé |
+| `user_id` | uuid | FK → User, requis, `ON DELETE CASCADE`, indexé |
+| `github_issue_number` | integer | requis |
+| `github_issue_url` | varchar(500) | requis |
+| `title` | varchar(200) | requis |
+| `description` | varchar(5000) | requis |
+| `ticket_type` | varchar(20) | requis |
+| `created_at` | timestamptz | requis |
+
+Le ticket disparaît avec l'entreprise et aussi avec le compte qui l'a ouvert, même quand
+l'entreprise reste (`auth-securite-rgpd.md`, section 6) : titre et description sont du texte
+libre rédigé par cette personne. Les deux FK manquaient à la création de la table ; la
+migration `AddActionItemProgressAndSupportTicketCascades` a purgé les orphelins, puis posé les
+contraintes. L'issue GitHub n'est pas concernée par cette purge.
+
+---
+
 ## RseIndicators
 
 Indicateurs chiffrés d'un exercice, saisis à l'écran Indicateurs : une ligne par entreprise
@@ -745,8 +793,10 @@ l'évolution de son score dans le temps.
 
 **Droit à l'effacement RGPD.** Il constitue la seule exception : la suppression
 d'un compte doit purger `User`, `RefreshToken`, `EmailVerificationToken`,
-`Company`, `Diagnostic`, `Response`, `DomainScore`, `DiagnosticRecommendation`
-et `Report` en cascade. `EmailVerificationToken` s'ajoute à `RefreshToken` pour
+`Company`, `Diagnostic`, `Response`, `DomainScore`, `DiagnosticRecommendation`,
+`Report`, `Subscription`, `RseIndicators`, `VsmeStatement`, `CompanySite`,
+`ActionItemProgress`, `ActionItemChange`, `SupportTicket` et `CompanyLogo` en cascade
+(portée selon le rôle : `auth-securite-rgpd.md`, section 6). `EmailVerificationToken` s'ajoute à `RefreshToken` pour
 la même raison : c'est une donnée liée à un compte, pas une donnée de
 référence. Les tables de référence (`Question`, `Recommendation`,
 `SectorWeight`) ne contiennent aucune donnée personnelle et ne sont pas

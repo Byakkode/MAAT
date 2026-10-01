@@ -10,5 +10,8 @@ public interface IVsmeStatementRepository
 
     Task<List<int>> GetYearsAsync(Guid companyId, CancellationToken ct);
 
+    // Tous les exercices de l'entreprise, du plus ancien au plus récent (export RGPD).
+    Task<List<VsmeStatement>> ListAsync(Guid companyId, CancellationToken ct);
+
     Task AddAsync(VsmeStatement statement, CancellationToken ct);
 }

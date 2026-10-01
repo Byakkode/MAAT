@@ -13,4 +13,8 @@ public interface IActionItemChangeRepository
     // Du plus récent au plus ancien, avec l'adresse de l'auteur (null si le compte a été
     // supprimé depuis).
     Task<IReadOnlyList<ActionItemChangeView>> ListAsync(Guid diagnosticId, string recommendationCode, CancellationToken ct);
+
+    // L'historique de tous les diagnostics de l'entreprise, du plus ancien au plus récent
+    // (export RGPD).
+    Task<List<ActionItemChange>> ListByCompanyAsync(Guid companyId, CancellationToken ct);
 }

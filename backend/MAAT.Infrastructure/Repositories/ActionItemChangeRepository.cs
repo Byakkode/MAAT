@@ -27,4 +27,14 @@ public class ActionItemChangeRepository(MaatDbContext context) : IActionItemChan
 
         return [.. rows.OrderByDescending(r => r.ChangedAt).ThenBy(r => r.Field)];
     }
+
+    public async Task<List<ActionItemChange>> ListByCompanyAsync(Guid companyId, CancellationToken ct)
+    {
+        var changes = await context.ActionItemChanges
+            .Where(c => context.Diagnostics.Any(d => d.Id == c.DiagnosticId && d.CompanyId == companyId))
+            .ToListAsync(ct);
+
+        // Même raison que ListAsync : tri en mémoire, pour l'ordre de l'énumération.
+        return [.. changes.OrderBy(c => c.ChangedAt).ThenBy(c => c.Field)];
+    }
 }
