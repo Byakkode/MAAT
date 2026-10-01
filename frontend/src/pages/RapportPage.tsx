@@ -16,7 +16,7 @@ const REPORT_SECTIONS = [
   'Synthèse : score global, profil des cinq domaines, points forts et axes de progrès',
   'Évolution de votre score depuis vos diagnostics précédents',
   "Plan d'actions priorisé et son avancement",
-  'Indicateurs RSE chiffrés et leur tendance',
+  'Informations de durabilité B1 à B11 de la norme volontaire (ex-VSME), avec la déclaration de conformité une fois complètes',
   'Méthode de calcul détaillée, pour que votre lecteur puisse refaire le calcul',
 ]
 
@@ -70,7 +70,7 @@ export function RapportPage() {
           <FileText className="mb-4 h-12 w-12 text-border" aria-hidden />
           <h2 className="mb-2 text-lg font-semibold text-text">Aucun rapport disponible</h2>
           <p className="mb-6 max-w-sm text-sm text-text-muted">
-            Terminez votre premier questionnaire RSE pour générer votre rapport PDF conforme au standard VSME.
+            Terminez votre premier questionnaire RSE pour générer votre rapport PDF selon la norme volontaire (ex-VSME).
           </p>
           <Link to="/questionnaire" className={buttonLinkClass()}>
             Commencer le questionnaire

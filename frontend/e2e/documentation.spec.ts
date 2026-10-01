@@ -16,7 +16,8 @@ test('compte Starter → Documentation : recherche dans la base, lecture réserv
   await page.getByLabel("Nom de l'entreprise").fill(`Entreprise E2E ${suffix}`)
   await page.getByLabel('Code NAF').fill('6201Z')
   await page.getByRole('option', { name: /6201Z/ }).first().click()
-  await page.getByLabel('Région').selectOption('Île-de-France')
+  await page.getByLabel('Région').click()
+  await page.getByRole('option', { name: 'Île-de-France' }).click()
   // bcrypt WorkFactor=12 : attendre la réponse réseau plutôt qu'un délai arbitraire (même
   // raison que plan-actions.spec.ts).
   await Promise.all([

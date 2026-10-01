@@ -38,5 +38,12 @@ class IntersectionObserverStub {
 }
 globalThis.IntersectionObserver ??= IntersectionObserverStub as unknown as typeof IntersectionObserver
 
+// Listes déroulantes Radix (components/ui/Select.tsx) : elles capturent le pointeur à
+// l'ouverture et font défiler l'option choisie, deux API absentes de jsdom.
+Element.prototype.hasPointerCapture ??= () => false
+Element.prototype.setPointerCapture ??= () => {}
+Element.prototype.releasePointerCapture ??= () => {}
+Element.prototype.scrollIntoView ??= () => {}
+
 Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, value: 600 })
 Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, value: 300 })

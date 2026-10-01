@@ -23,6 +23,8 @@ public class MaatDbContext(DbContextOptions<MaatDbContext> options) : DbContext(
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
     public DbSet<CompanyLogo> CompanyLogos => Set<CompanyLogo>();
     public DbSet<ActionItemChange> ActionItemChanges => Set<ActionItemChange>();
+    public DbSet<VsmeStatement> VsmeStatements => Set<VsmeStatement>();
+    public DbSet<CompanySite> CompanySites => Set<CompanySite>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

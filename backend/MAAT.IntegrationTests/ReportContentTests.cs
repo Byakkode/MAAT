@@ -371,24 +371,34 @@ public class ReportContentTests(ReportContentApiFixture fixture)
         var (diagnosticId, token) = await CompleteVerifiedDiagnosticAsync(client, StandardAnswers);
 
         var withoutIndicators = await GenerateReportAsync(client, token, diagnosticId);
-        Assert.Null(withoutIndicators.Indicators);
+        Assert.Null(withoutIndicators.Sustainability);
 
         var completionYear = withoutIndicators.CompletedAt.Year;
         foreach (var (year, co2) in new[] { (completionYear - 2, 120.0), (completionYear - 1, 100.0), (completionYear + 1, 999.0) })
         {
-            var put = await client.SendAsync(AuthorizedRequest(HttpMethod.Put, $"/api/indicators/{year}", token, new { co2EmissionsTons = co2 }));
+            var put = await client.SendAsync(AuthorizedRequest(HttpMethod.Put, $"/api/indicators/{year}", token, new { scope1Tco2e = co2, localSuppliersPct = co2 / 10 }));
             Assert.True(put.IsSuccessStatusCode, $"PUT /api/indicators/{year} : {put.StatusCode}");
         }
 
         var data = await GenerateReportAsync(client, token, diagnosticId);
 
-        Assert.NotNull(data.Indicators);
-        Assert.Equal(completionYear - 1, data.Indicators!.Year);
-        Assert.Equal(completionYear - 2, data.Indicators.PreviousYear);
-        var co2Item = data.Indicators.Items.Single(i => i.Label == "Émissions CO₂");
-        Assert.Equal(100.0, co2Item.Value);
-        Assert.Equal(120.0, co2Item.PreviousValue);
-        Assert.All(data.Indicators.Items.Where(i => i != co2Item), i => Assert.Null(i.Value));
+        // norme-volontaire.md, section 6 : une donnée demandée par la norme figure dans son
+        // information (Scope 1 dans B3), une donnée hors norme dans les compléments.
+        var sustainability = data.Sustainability;
+        Assert.NotNull(sustainability);
+        Assert.Equal(completionYear - 1, sustainability!.Year);
+        Assert.Equal(completionYear - 2, sustainability.PreviousYear);
+        var scope1 = sustainability.Disclosures.Single(d => d.Code == VsmeDisclosure.B3).Datapoints.Single(d => d.Label == "Émissions brutes Scope 1");
+        Assert.Equal(100.0, scope1.Value);
+        Assert.Equal(120.0, scope1.PreviousValue);
+        Assert.False(sustainability.IsCompliant);
+
+        var complements = sustainability.Complements;
+        Assert.NotNull(complements);
+        var localSuppliers = complements!.Items.Single(i => i.Label == "Fournisseurs locaux (< 100 km)");
+        Assert.Equal(10.0, localSuppliers.Value);
+        Assert.Equal(12.0, localSuppliers.PreviousValue);
+        Assert.All(complements.Items.Where(i => i != localSuppliers), i => Assert.Null(i.Value));
     }
 
     // Cas 30 : l'historique s'arrête au diagnostic du rapport — un diagnostic complété plus

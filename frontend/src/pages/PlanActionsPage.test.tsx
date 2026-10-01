@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 
@@ -207,7 +207,18 @@ describe('PlanActionsPage', () => {
     expect(save.disabled).toBe(true)
 
     await userEvent.type(screen.getByLabelText('Responsable'), 'Claire Martin')
-    await userEvent.type(screen.getByLabelText('Échéance'), '2026-11-15')
+    // Calendrier du site (components/ui/DatePicker.tsx) : sans date, il s'ouvre sur le mois en
+    // cours ; on passe par la vue des années pour ne pas dépendre du jour où le test tourne.
+    await userEvent.click(screen.getByLabelText('Échéance'))
+    await userEvent.click(screen.getByRole('button', { name: /choisir l’année/ }))
+    await userEvent.click(screen.getByRole('button', { name: '2026' }))
+    const calendar = screen.getByRole('dialog', { name: 'Calendrier' })
+    while (!within(calendar).queryByRole('grid', { name: 'novembre 2026' })) {
+      const title = within(calendar).getByRole('button', { name: /choisir l’année/ }).textContent ?? ''
+      const before = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre'].some((m) => title.startsWith(m))
+      await userEvent.click(within(calendar).getByRole('button', { name: before ? 'Mois suivant' : 'Mois précédent' }))
+    }
+    await userEvent.click(within(calendar).getByRole('button', { name: 'dimanche 15 novembre 2026' }))
     await userEvent.type(screen.getByLabelText('Notes de suivi'), 'Devis signé')
 
     expect(actionPlanApiMock.upsertActionItemProgress).not.toHaveBeenCalled()

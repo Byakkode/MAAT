@@ -28,6 +28,8 @@ public class DiagnosticService(
     IReportGenerator reportGenerator,
     IActionItemProgressRepository actionItemProgressRepository,
     IRseIndicatorsRepository rseIndicatorsRepository,
+    IVsmeStatementRepository vsmeStatementRepository,
+    ICompanySiteRepository companySiteRepository,
     ICompanyLogoRepository companyLogoRepository,
     CurrentPlanService currentPlan,
     TimeProvider timeProvider)
@@ -422,7 +424,7 @@ public class DiagnosticService(
                 allReportRecommendations.Count(r => r.Status == ActionItemStatus.Done)),
             history,
             entitlements.FullReport ? previousDomainScores : null,
-            entitlements.FullReport ? await BuildReportIndicatorsAsync(company.Id, completedAt.Year, ct) : null,
+            entitlements.FullReport ? await BuildReportSustainabilityAsync(company, completedAt.Year, ct) : null,
             timeProvider.GetUtcNow(),
             ReferentialVersion,
             entitlements.FullReport,
@@ -495,26 +497,29 @@ public class DiagnosticService(
     // un bilan annuel se saisit souvent l'année suivante, et un rapport de 2025 ne doit pas
     // afficher des chiffres 2027 saisis depuis. L'année précédente, si elle existe, sert à la
     // tendance.
-    private async Task<ReportIndicators?> BuildReportIndicatorsAsync(Guid companyId, int completionYear, CancellationToken ct)
+    // docs/specs/norme-volontaire.md, section 6. Exercice présenté : le plus récent, parmi ceux
+    // qui portent des indicateurs ou des déclarations, qui ne dépasse pas l'année de complétion
+    // du diagnostic. Aucun exercice : null, et le rapport invite à la saisie.
+    private async Task<ReportSustainability?> BuildReportSustainabilityAsync(Company company, int completionYear, CancellationToken ct)
     {
-        var years = await rseIndicatorsRepository.GetYearsByCompanyAsync(companyId, ct);
-        var referenceYear = years.Where(y => y <= completionYear).DefaultIfEmpty().Max();
-        if (referenceYear == 0)
+        var years = (await rseIndicatorsRepository.GetYearsByCompanyAsync(company.Id, ct))
+            .Concat(await vsmeStatementRepository.GetYearsAsync(company.Id, ct))
+            .Where(y => y <= completionYear)
+            .ToHashSet();
+        if (years.Count == 0)
         {
             return null;
         }
 
-        var current = await rseIndicatorsRepository.GetByCompanyAndYearAsync(companyId, referenceYear, ct);
-        if (current is null)
-        {
-            return null;
-        }
-
-        var previous = years.Contains(referenceYear - 1)
-            ? await rseIndicatorsRepository.GetByCompanyAndYearAsync(companyId, referenceYear - 1, ct)
-            : null;
-
-        return ReportIndicatorCatalog.Build(current, previous);
+        var year = years.Max();
+        return ReportSustainabilityBuilder.Build(new ReportSustainabilityBuilder.Input(
+            year,
+            company,
+            await vsmeStatementRepository.FindAsync(company.Id, year, ct),
+            await rseIndicatorsRepository.GetByCompanyAndYearAsync(company.Id, year, ct),
+            await vsmeStatementRepository.FindAsync(company.Id, year - 1, ct),
+            await rseIndicatorsRepository.GetByCompanyAndYearAsync(company.Id, year - 1, ct),
+            await companySiteRepository.ListAsync(company.Id, ct)));
     }
 
     // docs/specs/rapport-pdf.md, section 2 : « maat-diagnostic-{code-entreprise-normalisé}-

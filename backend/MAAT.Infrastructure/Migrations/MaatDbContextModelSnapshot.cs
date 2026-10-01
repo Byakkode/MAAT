@@ -186,6 +186,80 @@ namespace MAAT.Infrastructure.Migrations
                     b.ToTable("company_logos", (string)null);
                 });
 
+            modelBuilder.Entity("MAAT.Domain.Entities.CompanySite", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("address");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DetectedSensitiveAreas")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("detected_sensitive_areas");
+
+                    b.Property<string>("GeocodedLabel")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("geocoded_label");
+
+                    b.Property<bool?>("InOrNearSensitiveArea")
+                        .HasColumnType("boolean")
+                        .HasColumnName("in_or_near_sensitive_area");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("latitude");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("longitude");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("SensitiveAreaName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("sensitive_area_name");
+
+                    b.Property<DateTimeOffset?>("SensitiveAreasCheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sensitive_areas_checked_at");
+
+                    b.Property<string>("Tenure")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("tenure");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.ToTable("company_sites", (string)null);
+                });
+
             modelBuilder.Entity("MAAT.Domain.Entities.Diagnostic", b =>
                 {
                     b.Property<Guid>("Id")
@@ -573,6 +647,10 @@ namespace MAAT.Infrastructure.Migrations
                         .HasColumnType("double precision")
                         .HasColumnName("co2_emissions_tons");
 
+                    b.Property<double?>("CollectiveBargainingPct")
+                        .HasColumnType("double precision")
+                        .HasColumnName("collective_bargaining_pct");
+
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid")
                         .HasColumnName("company_id");
@@ -580,6 +658,14 @@ namespace MAAT.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
+
+                    b.Property<double?>("ElectricityNonRenewableMwh")
+                        .HasColumnType("double precision")
+                        .HasColumnName("electricity_non_renewable_mwh");
+
+                    b.Property<double?>("ElectricityRenewableMwh")
+                        .HasColumnType("double precision")
+                        .HasColumnName("electricity_renewable_mwh");
 
                     b.Property<double?>("EmployeeCountFte")
                         .HasColumnType("double precision")
@@ -593,17 +679,61 @@ namespace MAAT.Infrastructure.Migrations
                         .HasColumnType("double precision")
                         .HasColumnName("export_revenue_pct");
 
+                    b.Property<double?>("FemaleEmployees")
+                        .HasColumnType("double precision")
+                        .HasColumnName("female_employees");
+
+                    b.Property<double?>("FuelsNonRenewableMwh")
+                        .HasColumnType("double precision")
+                        .HasColumnName("fuels_non_renewable_mwh");
+
+                    b.Property<double?>("FuelsRenewableMwh")
+                        .HasColumnType("double precision")
+                        .HasColumnName("fuels_renewable_mwh");
+
                     b.Property<double?>("GenderEqualityIndex")
                         .HasColumnType("double precision")
                         .HasColumnName("gender_equality_index");
+
+                    b.Property<double?>("GenderPayGapPct")
+                        .HasColumnType("double precision")
+                        .HasColumnName("gender_pay_gap_pct");
+
+                    b.Property<double?>("HazardousWasteTons")
+                        .HasColumnType("double precision")
+                        .HasColumnName("hazardous_waste_tons");
+
+                    b.Property<double?>("HoursWorked")
+                        .HasColumnType("double precision")
+                        .HasColumnName("hours_worked");
 
                     b.Property<double?>("LocalSuppliersPct")
                         .HasColumnType("double precision")
                         .HasColumnName("local_suppliers_pct");
 
+                    b.Property<double?>("MaleEmployees")
+                        .HasColumnType("double precision")
+                        .HasColumnName("male_employees");
+
+                    b.Property<double?>("NonHazardousWasteTons")
+                        .HasColumnType("double precision")
+                        .HasColumnName("non_hazardous_waste_tons");
+
+                    b.Property<double?>("OtherGenderEmployees")
+                        .HasColumnType("double precision")
+                        .HasColumnName("other_gender_employees");
+
                     b.Property<double?>("PermanentContractPct")
                         .HasColumnType("double precision")
                         .HasColumnName("permanent_contract_pct");
+
+                    b.Property<double?>("PermanentEmployees")
+                        .HasColumnType("double precision")
+                        .HasColumnName("permanent_employees");
+
+                    b.Property<int?>("RecordableAccidents")
+                        .HasColumnType("integer")
+                        .HasColumnName("recordable_accidents");
 
                     b.Property<double?>("RecyclingRatePct")
                         .HasColumnType("double precision")
@@ -625,6 +755,18 @@ namespace MAAT.Infrastructure.Migrations
                         .HasColumnType("double precision")
                         .HasColumnName("rse_investment_eur");
 
+                    b.Property<double?>("Scope1Tco2e")
+                        .HasColumnType("double precision")
+                        .HasColumnName("scope1_tco2e");
+
+                    b.Property<double?>("Scope2LocationTco2e")
+                        .HasColumnType("double precision")
+                        .HasColumnName("scope2_location_tco2e");
+
+                    b.Property<double?>("TemporaryEmployees")
+                        .HasColumnType("double precision")
+                        .HasColumnName("temporary_employees");
+
                     b.Property<double?>("TrainingHoursPerEmployee")
                         .HasColumnType("double precision")
                         .HasColumnName("training_hours_per_employee");
@@ -645,9 +787,21 @@ namespace MAAT.Infrastructure.Migrations
                         .HasColumnType("double precision")
                         .HasColumnName("water_consumption_m3");
 
+                    b.Property<double?>("WaterConsumptionStressM3")
+                        .HasColumnType("double precision")
+                        .HasColumnName("water_consumption_stress_m3");
+
+                    b.Property<double?>("WaterWithdrawalM3")
+                        .HasColumnType("double precision")
+                        .HasColumnName("water_withdrawal_m3");
+
                     b.Property<double?>("WorkAccidentRate")
                         .HasColumnType("double precision")
                         .HasColumnName("work_accident_rate");
+
+                    b.Property<int?>("WorkFatalities")
+                        .HasColumnType("integer")
+                        .HasColumnName("work_fatalities");
 
                     b.Property<int>("Year")
                         .HasColumnType("integer")
@@ -865,6 +1019,130 @@ namespace MAAT.Infrastructure.Migrations
                     b.ToTable("users", (string)null);
                 });
 
+            modelBuilder.Entity("MAAT.Domain.Entities.VsmeStatement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool?>("CircularEconomyApplied")
+                        .HasColumnType("boolean")
+                        .HasColumnName("circular_economy_applied");
+
+                    b.Property<string>("CircularEconomyDescription")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("circular_economy_description");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<int?>("CorruptionConvictions")
+                        .HasColumnType("integer")
+                        .HasColumnName("corruption_convictions");
+
+                    b.Property<double?>("CorruptionFinesEur")
+                        .HasColumnType("double precision")
+                        .HasColumnName("corruption_fines_eur");
+
+                    b.PrimitiveCollection<string[]>("CoveredTopics")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("covered_topics");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("EmployeeCountUnit")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("employee_count_unit");
+
+                    b.Property<bool?>("HasFutureInitiatives")
+                        .HasColumnType("boolean")
+                        .HasColumnName("has_future_initiatives");
+
+                    b.Property<bool?>("HasPolicies")
+                        .HasColumnType("boolean")
+                        .HasColumnName("has_policies");
+
+                    b.Property<bool?>("HasPractices")
+                        .HasColumnType("boolean")
+                        .HasColumnName("has_practices");
+
+                    b.Property<bool?>("HasTargets")
+                        .HasColumnType("boolean")
+                        .HasColumnName("has_targets");
+
+                    b.Property<string>("LegalForm")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("legal_form");
+
+                    b.Property<string>("MaterialFlowsDescription")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("material_flows_description");
+
+                    b.Property<bool?>("MinimumWageMet")
+                        .HasColumnType("boolean")
+                        .HasColumnName("minimum_wage_met");
+
+                    b.PrimitiveCollection<string[]>("OmittedDisclosures")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("omitted_disclosures");
+
+                    b.Property<bool?>("PoliciesPublic")
+                        .HasColumnType("boolean")
+                        .HasColumnName("policies_public");
+
+                    b.Property<string>("PollutionReportUrl")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("pollution_report_url");
+
+                    b.Property<bool?>("PollutionReportingApplicable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("pollution_reporting_applicable");
+
+                    b.Property<string>("PracticesDescription")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("practices_description");
+
+                    b.Property<string>("PrimaryCountry")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("primary_country");
+
+                    b.Property<string>("ReportingBasis")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("reporting_basis");
+
+                    b.Property<double?>("TotalAssetsEur")
+                        .HasColumnType("double precision")
+                        .HasColumnName("total_assets_eur");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer")
+                        .HasColumnName("year");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "Year")
+                        .IsUnique();
+
+                    b.ToTable("vsme_statements", (string)null);
+                });
+
             modelBuilder.Entity("MAAT.Domain.Entities.ActionItemChange", b =>
                 {
                     b.HasOne("MAAT.Domain.Entities.User", null)
@@ -884,6 +1162,15 @@ namespace MAAT.Infrastructure.Migrations
                     b.HasOne("MAAT.Domain.Entities.Company", null)
                         .WithOne()
                         .HasForeignKey("MAAT.Domain.Entities.CompanyLogo", "CompanyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MAAT.Domain.Entities.CompanySite", b =>
+                {
+                    b.HasOne("MAAT.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -995,6 +1282,130 @@ namespace MAAT.Infrastructure.Migrations
                         .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("MAAT.Domain.Entities.VsmeStatement", b =>
+                {
+                    b.HasOne("MAAT.Domain.Entities.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsMany("MAAT.Domain.Entities.VsmeCertification", "Certifications", b1 =>
+                        {
+                            b1.Property<Guid>("VsmeStatementId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd();
+
+                            b1.Property<string>("Issuer");
+
+                            b1.Property<string>("Name")
+                                .IsRequired();
+
+                            b1.Property<DateOnly?>("ObtainedOn");
+
+                            b1.Property<string>("Rating");
+
+                            b1.HasKey("VsmeStatementId", "__synthesizedOrdinal");
+
+                            b1.ToTable("vsme_statements");
+
+                            b1
+                                .ToJson("certifications")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("VsmeStatementId");
+                        });
+
+                    b.OwnsMany("MAAT.Domain.Entities.VsmeCountryHeadcount", "EmployeesByCountry", b1 =>
+                        {
+                            b1.Property<Guid>("VsmeStatementId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd();
+
+                            b1.Property<string>("Country")
+                                .IsRequired();
+
+                            b1.Property<double>("Employees");
+
+                            b1.HasKey("VsmeStatementId", "__synthesizedOrdinal");
+
+                            b1.ToTable("vsme_statements");
+
+                            b1
+                                .ToJson("employees_by_country")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("VsmeStatementId");
+                        });
+
+                    b.OwnsMany("MAAT.Domain.Entities.VsmePollutant", "Pollutants", b1 =>
+                        {
+                            b1.Property<Guid>("VsmeStatementId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd();
+
+                            b1.Property<string>("Medium")
+                                .IsRequired();
+
+                            b1.Property<string>("Name")
+                                .IsRequired();
+
+                            b1.Property<double>("Quantity");
+
+                            b1.Property<string>("Unit")
+                                .IsRequired();
+
+                            b1.HasKey("VsmeStatementId", "__synthesizedOrdinal");
+
+                            b1.ToTable("vsme_statements");
+
+                            b1
+                                .ToJson("pollutants")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("VsmeStatementId");
+                        });
+
+                    b.OwnsMany("MAAT.Domain.Entities.VsmeSubsidiary", "Subsidiaries", b1 =>
+                        {
+                            b1.Property<Guid>("VsmeStatementId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd();
+
+                            b1.Property<string>("Name")
+                                .IsRequired();
+
+                            b1.Property<string>("RegisteredAddress")
+                                .IsRequired();
+
+                            b1.HasKey("VsmeStatementId", "__synthesizedOrdinal");
+
+                            b1.ToTable("vsme_statements");
+
+                            b1
+                                .ToJson("subsidiaries")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("VsmeStatementId");
+                        });
+
+                    b.Navigation("Certifications");
+
+                    b.Navigation("EmployeesByCountry");
+
+                    b.Navigation("Pollutants");
+
+                    b.Navigation("Subsidiaries");
                 });
 #pragma warning restore 612, 618
         }

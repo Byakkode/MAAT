@@ -28,7 +28,7 @@ const TABS = [
   },
   {
     id: 'rapport',
-    label: 'Rapport VSME',
+    label: 'Rapport norme volontaire',
     title: 'Un rapport que vos clients savent lire.',
     body: 'Page de garde, synthèse, scores par domaine, plan d’actions et évolution, structurés selon le standard volontaire européen pour les PME. Régénéré à chaque téléchargement, jamais stocké.',
     Mock: ReportMock,

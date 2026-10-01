@@ -156,7 +156,7 @@ export function ReportMock() {
             <span className="flex h-4 w-4 items-center justify-center rounded bg-blue-maat text-[7px] font-bold text-white">M</span>
             <span className="font-heading text-[9px] font-bold text-text">MAAT</span>
           </div>
-          <p className="mt-[18%] text-[8.5px] font-medium uppercase tracking-[0.14em] text-text-muted">Rapport RSE · Standard VSME</p>
+          <p className="mt-[18%] text-[8.5px] font-medium uppercase tracking-[0.14em] text-text-muted">Rapport RSE · Norme volontaire</p>
           <p className="mt-2 font-heading text-[22px] font-bold leading-[1.05] tracking-tight text-text">Ateliers Lemoine</p>
           <p className="mt-1 text-[9.5px] text-text-muted">{sector.label} · Diagnostic du 26 septembre 2026</p>
           <div className="mt-[12%] flex items-end gap-3 border-t border-border pt-4">

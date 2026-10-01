@@ -37,7 +37,7 @@ const TAB_CONFIG: Record<TabId, { Icon: typeof Leaf; color: string; metrics: Met
       { key: 'employeeCountFte', label: 'Effectif', unit: 'ETP' },
       { key: 'turnoverRatePct', label: 'Turnover', unit: '%' },
       { key: 'trainingHoursPerEmployee', label: 'Formation / salarié', unit: 'h/an' },
-      { key: 'workAccidentRate', label: 'Accidents du travail', unit: '‰' },
+      { key: 'workAccidentRate', label: 'Taux de fréquence', unit: '/ million h' },
       { key: 'genderEqualityIndex', label: 'Égalité F/H', unit: '/100' },
       { key: 'permanentContractPct', label: 'Part CDI', unit: '%' },
     ],

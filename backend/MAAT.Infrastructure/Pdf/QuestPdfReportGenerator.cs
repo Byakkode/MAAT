@@ -11,7 +11,8 @@ namespace MAAT.Infrastructure.Pdf;
 
 // docs/specs/rapport-pdf.md, section 4. Le document que l'entreprise projette en réunion ou
 // transmet à son donneur d'ordres : une page de garde qui dit l'essentiel en un coup d'œil,
-// puis cinq sections numérotées — synthèse, évolution, plan d'actions, indicateurs, méthode —
+// puis cinq sections numérotées — synthèse, évolution, plan d'actions, informations de
+// durabilité (norme volontaire, B1 à B11), méthode —
 // et les mentions. Pur : aucune I/O, aucune horloge système (GeneratedAt est une valeur du
 // ReportData, jamais lue) — à ReportData identique, deux appels produisent des octets
 // strictement identiques (section 3). QuestPdfBootstrapper.Configure() doit avoir été appelé
@@ -37,7 +38,7 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
         ("synthese", "01", "Synthèse"),
         ("evolution", "02", "Évolution"),
         ("plan", "03", "Plan d'actions"),
-        ("indicateurs", "04", "Indicateurs RSE"),
+        ("durabilite", "04", "Informations de durabilité"),
         ("methode", "05", "Comprendre votre score"),
     ];
 
@@ -181,7 +182,7 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
             // au-delà des 300 dpi de la section 5.
             column.Item().Row(row =>
             {
-                row.RelativeItem().AlignMiddle().Text("Diagnostic RSE · VSME")
+                row.RelativeItem().AlignMiddle().Text("Diagnostic RSE · norme volontaire (ex-VSME)")
                     .FontFamily(FontFamilies.PoppinsMedium).FontSize(8.5f).FontColor(white.WithAlpha(0.7f)).LetterSpacing(0.04f);
                 row.AutoItem().Height(MaatLogoHeight).Image(ReportAssets.MaatLogoWhitePng).FitHeight().UseOriginalImage(true);
             });
@@ -398,7 +399,7 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
                 column.Item().PaddingBottom(SectionSpacing).Element(c => ComposeSynthesis(c, view));
                 column.Item().EnsureSpace(260).PaddingBottom(SectionSpacing).Element(c => ComposeEvolution(c, view));
                 column.Item().EnsureSpace(300).PaddingBottom(SectionSpacing).Element(c => ComposeActionPlan(c, view));
-                column.Item().EnsureSpace(360).PaddingBottom(SectionSpacing).Element(c => ComposeIndicators(c, view));
+                column.Item().EnsureSpace(360).PaddingBottom(SectionSpacing).Element(c => ComposeSustainability(c, view));
                 column.Item().EnsureSpace(300).PaddingBottom(16).Element(c => ComposeMethodology(c, view));
                 column.Item().ShowEntire().Element(c => ComposeMentions(c, view));
             });
@@ -970,8 +971,14 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
     }
 
     // ---------------------------------------------------------------------------------------
-    // 04 — Indicateurs RSE
+    // 04 — Informations de durabilité (norme volontaire, B1 à B11)
     // ---------------------------------------------------------------------------------------
+
+    // docs/specs/norme-volontaire.md, section 6. internal : MAAT.IntegrationTests vérifie mot
+    // pour mot la phrase de conformité (même raison que MentionsText).
+    internal const string ComplianceStatement =
+        "Ce rapport de durabilité est établi selon le module de base (option A) de la norme volontaire " +
+        "européenne, règlement délégué (UE) 2026/1560.";
 
     private static readonly (string Group, string Hex)[] IndicatorGroups =
     [
@@ -981,49 +988,288 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
         ("Économique", "#1565FF"), // --color-blue-maat : pas de domaine RSE dédié
     ];
 
-    private static void ComposeIndicators(IContainer container, ReportView view)
+    // Largeurs des colonnes d'une ligne de donnée : valeur de l'exercice, puis exercice précédent.
+    private const float DatapointValueWidth = 150f;
+    private const float DatapointPreviousWidth = 78f;
+
+    private static void ComposeSustainability(IContainer container, ReportView view)
     {
-        var indicators = view.Data.Indicators;
+        var sustainability = view.Data.Sustainability;
 
         container.Column(column =>
         {
-            column.Item().Element(c => SectionHeader(c, "indicateurs", indicators is null
-                ? "Les données chiffrées de l'entreprise (énergie, émissions, eau, déchets, effectifs, santé-sécurité, formation), telles que les demande le module de base du standard VSME."
-                : $"Les données chiffrées déclarées par l'entreprise pour l'année {indicators.Year} (énergie, émissions, eau, déchets, effectifs, santé-sécurité, formation), telles que les demande le module de base du standard VSME."));
+            column.Item().Element(c => SectionHeader(c, "durabilite", sustainability is null
+                ? "Les informations du module de base de la norme volontaire européenne (ex-VSME), de B1 à B11 : ce que banques, clients et donneurs d'ordres peuvent demander à une PME."
+                : $"Les informations du module de base de la norme volontaire européenne (ex-VSME), de B1 à B11, pour l'exercice {sustainability.Year} : ce que banques, clients et donneurs d'ordres peuvent demander à une PME."));
 
-            if (indicators is null)
+            if (sustainability is null)
             {
                 column.Item().Background(T.KpiBlue).BorderLeft(4).BorderColor(T.Blue).CornerRadius(6).Padding(14).Column(text =>
                 {
-                    text.Item().Text("Aucun indicateur renseigné").FontFamily(FontFamilies.PoppinsSemiBold).FontSize(10.5f).FontColor(T.BlueText);
+                    text.Item().Text("Aucune information renseignée").FontFamily(FontFamilies.PoppinsSemiBold).FontSize(10.5f).FontColor(T.BlueText);
                     text.Item().PaddingTop(4).Text(
-                        "Les indicateurs quantitatifs complètent le diagnostic qualitatif : ils se saisissent dans l'espace " +
-                        "MAAT, rubrique Indicateurs, et apparaîtront dans ce rapport à sa prochaine génération.")
+                        "Les informations de durabilité se saisissent dans l'espace MAAT, rubrique Indicateurs, " +
+                        "et apparaîtront dans ce rapport à sa prochaine génération.")
                         .FontSize(9).LineHeight(1.4f);
                 });
                 return;
             }
 
-            // Deux rangées plutôt que deux colonnes : les cartes d'une même rangée prennent la
-            // même hauteur, et une rangée n'est jamais coupée entre deux pages.
-            foreach (var pair in IndicatorGroups.Chunk(2))
+            column.Item().PaddingBottom(16).Element(c => ComposeComplianceBox(c, sustainability));
+
+            foreach (var disclosure in sustainability.Disclosures)
             {
-                column.Item().PaddingBottom(14).ShowEntire().Row(row =>
+                column.Item().EnsureSpace(110).PaddingBottom(14).Element(c => ComposeDisclosure(c, disclosure, sustainability.PreviousYear));
+            }
+
+            column.Item().PaddingBottom(10).Text(text =>
+            {
+                text.DefaultTextStyle(x => x.FontFamily(FontFamilies.InterLight).FontSize(8).FontColor(T.InkMuted));
+                text.Span("Valeurs déclarées par l'entreprise, non vérifiées par un tiers.");
+                if (sustainability.PreviousYear is { } previousYear)
                 {
-                    row.Spacing(14);
-                    foreach (var group in pair)
+                    text.Span($" La colonne {previousYear} rappelle la valeur de l'exercice précédent (information comparative, §14).");
+                }
+
+                text.Span(" Le taux d'accidents suit la base du guide de l'EFRAG (200 000 heures travaillées).");
+            });
+
+            if (sustainability.Complements is { } complements)
+            {
+                column.Item().EnsureSpace(220).PaddingTop(6).Element(c => SubHeading(c, "Compléments (hors norme)"));
+                column.Item().PaddingBottom(10).Text(
+                        "Indicateurs suivis par l'entreprise dans MAAT en plus de ceux que demande la norme (§13).")
+                    .FontSize(8.5f).FontColor(T.InkMuted);
+
+                var groups = IndicatorGroups.Where(g => complements.Items.Any(i => i.Group == g.Group)).ToList();
+                foreach (var pair in groups.Chunk(2))
+                {
+                    column.Item().PaddingBottom(14).ShowEntire().Row(row =>
                     {
-                        row.RelativeItem().Element(c => IndicatorCard(c, indicators, group));
+                        row.Spacing(14);
+                        foreach (var group in pair)
+                        {
+                            row.RelativeItem().Element(c => IndicatorCard(c, complements, group));
+                        }
+
+                        if (pair.Length == 1)
+                        {
+                            row.RelativeItem();
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    // La déclaration de conformité n'est écrite que si le module est complet (§27 a) ; sinon le
+    // rapport se dit partiel et nomme ce qui manque.
+    private static void ComposeComplianceBox(IContainer container, ReportSustainability sustainability)
+    {
+        var (accent, tint, titleColor) = sustainability.IsCompliant
+            ? (T.Green, T.KpiGreen, T.GreenText)
+            : (T.Orange, T.KpiAmber, T.AmberText);
+
+        container.ShowEntire().Background(tint).BorderLeft(4).BorderColor(accent).CornerRadius(6).Padding(14).Column(column =>
+        {
+            if (sustainability.IsCompliant)
+            {
+                column.Item().Text("Déclaration de conformité").FontFamily(FontFamilies.PoppinsSemiBold).FontSize(10.5f).FontColor(titleColor);
+                column.Item().PaddingTop(4).Text(ComplianceStatement).FontSize(9).LineHeight(1.4f);
+            }
+            else
+            {
+                var total = sustainability.Disclosures.Count;
+                var remaining = total - sustainability.CompleteCount;
+                column.Item().Text("Rapport partiel").FontFamily(FontFamilies.PoppinsSemiBold).FontSize(10.5f).FontColor(titleColor);
+                column.Item().PaddingTop(4).Text(PartialReportLine(remaining, total)).FontSize(9).LineHeight(1.4f);
+                column.Item().PaddingTop(4).Column(list =>
+                {
+                    foreach (var disclosure in sustainability.Disclosures.Where(d => d.State == DisclosureState.Incomplete))
+                    {
+                        list.Item().Text(text =>
+                        {
+                            text.Span($"{disclosure.Code} · {disclosure.Title} : ").FontFamily(FontFamilies.PoppinsMedium).FontSize(8.5f);
+                            text.Span(string.Join(", ", disclosure.Missing)).FontSize(8.5f).FontColor(T.InkMuted);
+                        });
                     }
                 });
             }
 
-            column.Item().Text(indicators.PreviousYear is { } previousYear
-                    ? $"Valeurs déclarées par l'entreprise, non vérifiées par un tiers. Évolution calculée par rapport à {previousYear} lorsque la donnée existe ; en vert, une évolution favorable."
-                    : "Valeurs déclarées par l'entreprise, non vérifiées par un tiers. L'évolution apparaîtra dès que les indicateurs de l'année précédente seront renseignés.")
-                .FontFamily(FontFamilies.InterLight).FontSize(8).FontColor(T.InkMuted);
+            if (sustainability.IsMicro)
+            {
+                column.Item().PaddingTop(6).Text(
+                        "Entreprise de 10 salariés au plus : les données marquées facultatives peuvent ne pas être communiquées (§8).")
+                    .FontFamily(FontFamilies.InterLight).FontSize(8).FontColor(T.InkMuted);
+            }
         });
     }
+
+    internal static string PartialReportLine(int remaining, int total) =>
+        remaining > 1
+            ? $"{remaining} informations sur {total} restent à compléter avant de pouvoir déclarer la conformité au module de base de la norme volontaire :"
+            : $"1 information sur {total} reste à compléter avant de pouvoir déclarer la conformité au module de base de la norme volontaire :";
+
+    private static void ComposeDisclosure(IContainer container, ReportDisclosure disclosure, int? previousYear)
+    {
+        container.Element(Card).Column(column =>
+        {
+            column.Item().Row(row =>
+            {
+                row.AutoItem().AlignMiddle().Background(T.KpiBlue).CornerRadius(6).PaddingVertical(2).PaddingHorizontal(6)
+                    .Text(disclosure.Code.ToString()).FontFamily(FontFamilies.PoppinsSemiBold).FontSize(8.5f).FontColor(T.BlueText);
+                row.RelativeItem().PaddingLeft(8).AlignMiddle().Text(disclosure.Title).FontFamily(FontFamilies.PoppinsSemiBold).FontSize(10);
+                row.AutoItem().AlignMiddle().Element(c => DisclosureStateBadge(c, disclosure.State));
+            });
+
+            if (disclosure.State == DisclosureState.Omitted)
+            {
+                column.Item().PaddingTop(8).Text(
+                        "Information omise au titre du §22 de la norme (secret des affaires, information classifiée ou protégée).")
+                    .FontSize(8.5f).FontColor(T.InkMuted);
+                return;
+            }
+
+            var showPrevious = previousYear is not null && disclosure.Datapoints.Any(d => d.Value is not null && d.PreviousValue is not null);
+            if (showPrevious)
+            {
+                column.Item().PaddingTop(8).Row(row =>
+                {
+                    row.RelativeItem();
+                    row.ConstantItem(DatapointValueWidth).AlignRight().Element(c => HeaderLabel(c, "Exercice"));
+                    row.ConstantItem(DatapointPreviousWidth).AlignRight().Element(c => HeaderLabel(c, previousYear!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+                });
+            }
+
+            column.Item().PaddingTop(showPrevious ? 2 : 6).Column(list =>
+            {
+                foreach (var datapoint in disclosure.Datapoints)
+                {
+                    list.Item().ShowEntire().BorderBottom(0.75f).BorderColor(T.Border).PaddingVertical(5)
+                        .Element(c => ComposeDatapoint(c, datapoint, showPrevious));
+                }
+            });
+
+            foreach (var table in disclosure.Tables)
+            {
+                column.Item().PaddingTop(10).Element(c => ComposeDisclosureTable(c, table));
+            }
+        });
+    }
+
+    private static void ComposeDatapoint(IContainer container, ReportDatapoint datapoint, bool showPrevious)
+    {
+        // Un texte long (description, lien) passe sous son libellé plutôt que d'écraser la colonne.
+        if (datapoint.Text is { Length: > 40 } longText)
+        {
+            container.Column(column =>
+            {
+                column.Item().Text(datapoint.Label).FontSize(8.5f).FontColor(T.InkMuted);
+                column.Item().PaddingTop(2).Text(longText).FontSize(8.5f).LineHeight(1.35f);
+            });
+            return;
+        }
+
+        container.Row(row =>
+        {
+            row.RelativeItem().PaddingRight(8).Text(datapoint.Label).FontSize(8.5f).FontColor(datapoint.Absence is null ? T.Ink : T.InkMuted);
+
+            row.ConstantItem(DatapointValueWidth).AlignRight().Text(text =>
+            {
+                text.AlignRight();
+                if (datapoint.Value is { } value)
+                {
+                    text.Span(FrenchFormat.Number(value, datapoint.Decimals)).FontFamily(FontFamilies.PoppinsSemiBold).FontSize(8.5f);
+                    if (datapoint.Unit is { } unit)
+                    {
+                        text.Span($" {unit}").FontSize(7.5f).FontColor(T.InkMuted);
+                    }
+                }
+                else if (datapoint.Text is { } shortText)
+                {
+                    text.Span(shortText).FontFamily(FontFamilies.PoppinsMedium).FontSize(8.5f);
+                }
+                else
+                {
+                    text.Span(AbsenceLabel(datapoint)).FontFamily(FontFamilies.InterLight).FontSize(8)
+                        .FontColor(datapoint.Absence == DatapointAbsence.NotProvided ? T.AmberText : T.InkMuted);
+                }
+            });
+
+            if (showPrevious)
+            {
+                row.ConstantItem(DatapointPreviousWidth).AlignRight().Text(
+                        datapoint.Value is not null && datapoint.PreviousValue is { } previous ? FrenchFormat.Number(previous, datapoint.Decimals) : string.Empty)
+                    .FontSize(8).FontColor(T.InkMuted);
+            }
+        });
+    }
+
+    internal static string AbsenceLabel(ReportDatapoint datapoint) => datapoint.Absence switch
+    {
+        DatapointAbsence.OptionalForMicro => "Facultatif (10 salariés ou moins)",
+        DatapointAbsence.NotApplicable => datapoint.AbsenceNote is { } note ? $"Non applicable : {note}" : "Non applicable",
+        _ => "Non renseigné",
+    };
+
+    private static void DisclosureStateBadge(IContainer container, DisclosureState state)
+    {
+        var (label, text, fill) = state switch
+        {
+            DisclosureState.Complete => ("Complète", T.GreenText, T.Green.WithAlpha(0.12f)),
+            DisclosureState.Omitted => ("Omise (§22)", T.InkMuted, T.Background),
+            _ => ("À compléter", T.AmberText, T.Orange.WithAlpha(0.14f)),
+        };
+
+        container.Background(fill).CornerRadius(8).PaddingVertical(2).PaddingHorizontal(7)
+            .Text(label).FontFamily(FontFamilies.PoppinsMedium).FontSize(7.5f).FontColor(text);
+    }
+
+    private static void ComposeDisclosureTable(IContainer container, ReportTable table)
+    {
+        container.Column(column =>
+        {
+            column.Item().PaddingBottom(4).Text(table.Title).FontFamily(FontFamilies.PoppinsMedium).FontSize(8.5f);
+            column.Item().Border(0.75f).BorderColor(T.Border).CornerRadius(6).Table(grid =>
+            {
+                grid.ColumnsDefinition(columns =>
+                {
+                    for (var i = 0; i < table.Headers.Count; i++)
+                    {
+                        // Première colonne (le nom) plus large que les colonnes de valeurs.
+                        columns.RelativeColumn(i == 0 ? 1.6f : 1f);
+                    }
+                });
+
+                if (table.Headers.Count > 1)
+                {
+                    grid.Header(header =>
+                    {
+                        foreach (var label in table.Headers)
+                        {
+                            header.Cell().Background(T.Background).BorderBottom(0.75f).BorderColor(T.Border).PaddingVertical(5).PaddingHorizontal(8)
+                                .Element(c => HeaderLabel(c, label));
+                        }
+                    });
+                }
+
+                foreach (var row in table.Rows)
+                {
+                    for (var i = 0; i < table.Headers.Count; i++)
+                    {
+                        var cell = i < row.Count ? row[i] : new ReportCell();
+                        grid.Cell().BorderBottom(0.75f).BorderColor(T.Border).PaddingVertical(5).PaddingHorizontal(8)
+                            .Text(CellText(cell)).FontSize(8).FontColor(cell.Text is null && cell.Number is null ? T.InkMuted : T.Ink);
+                    }
+                }
+            });
+        });
+    }
+
+    internal static string CellText(ReportCell cell) =>
+        cell.Number is { } number
+            ? cell.Unit is { } unit ? FrenchFormat.Unit(FrenchFormat.Number(number, cell.Decimals), unit) : FrenchFormat.Number(number, cell.Decimals)
+            : string.IsNullOrEmpty(cell.Text) ? "–" : cell.Text;
 
     private static void IndicatorCard(IContainer container, ReportIndicators indicators, (string Group, string Hex) group)
     {
@@ -1152,7 +1398,7 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
             column.Item().PaddingTop(10).PaddingBottom(18).ShowEntire().Row(row =>
             {
                 row.Spacing(12);
-                row.RelativeItem().Element(c => Referential(c, "VSME", "Standard européen de reporting de durabilité volontaire pour les PME (EFRAG)."));
+                row.RelativeItem().Element(c => Referential(c, "Norme volontaire (ex-VSME)", "Norme européenne de durabilité à usage volontaire des PME, règlement délégué (UE) 2026/1560."));
                 row.RelativeItem().Element(c => Referential(c, "ISO 26000", "Lignes directrices internationales relatives à la responsabilité sociétale."));
                 row.RelativeItem().Element(c => Referential(c, "GRI", "Standards internationaux de reporting de durabilité (Global Reporting Initiative)."));
             });
@@ -1257,7 +1503,7 @@ public sealed class QuestPdfReportGenerator : IReportGenerator
                 foreach (var line in new[]
                 {
                     $"Le score reflète les réponses au jour de la complétion du diagnostic, le {FrenchFormat.LongDate(data.CompletedAt)}.",
-                    "L'avancement du plan d'actions et les indicateurs RSE sont présentés tels qu'ils étaient enregistrés à la date de génération.",
+                    "L'avancement du plan d'actions et les informations de durabilité sont présentés tels qu'ils étaient enregistrés à la date de génération.",
                     $"Référentiel de questions, version {data.ReferentialVersion}.",
                     $"Date de génération : {FrenchFormat.LongDate(data.GeneratedAt)}.",
                 })

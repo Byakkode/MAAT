@@ -18,7 +18,8 @@ test('compte sans diagnostic complété → Plan d’actions affiche une invitat
   await page.getByLabel("Nom de l'entreprise").fill(`Entreprise E2E ${suffix}`)
   await page.getByLabel('Code NAF').fill('6201Z')
   await page.getByRole('option', { name: /6201Z/ }).first().click()
-  await page.getByLabel('Région').selectOption('Île-de-France')
+  await page.getByLabel('Région').click()
+  await page.getByRole('option', { name: 'Île-de-France' }).click()
   // Même raison que pour le login ci-dessous : bcrypt WorkFactor=12 peut dépasser les 5 s
   // de timeout par défaut de toBeVisible() sous charge parallèle. On attend la réponse réseau
   // pour garantir que l'utilisateur est en base avant de tenter la connexion.
@@ -78,7 +79,8 @@ test('Starter : diagnostic complété avec des réponses faibles → trois actio
   await page.getByLabel("Nom de l'entreprise").fill(`Entreprise E2E ${suffix}`)
   await page.getByLabel('Code NAF').fill('6201Z')
   await page.getByRole('option', { name: /6201Z/ }).first().click()
-  await page.getByLabel('Région').selectOption('Île-de-France')
+  await page.getByLabel('Région').click()
+  await page.getByRole('option', { name: 'Île-de-France' }).click()
   // Même raison que pour le premier test.
   await Promise.all([
     page.waitForResponse(

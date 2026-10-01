@@ -1,4 +1,5 @@
 using MAAT.Domain.Enums;
+using MAAT.Domain.Services;
 
 namespace MAAT.Application.DTOs;
 
@@ -27,7 +28,9 @@ public sealed record ReportData(
     ReportActionStatusSummary ActionStatusSummary,
     IReadOnlyList<ReportHistoryPoint> History,
     IReadOnlyDictionary<RseDomain, decimal>? PreviousDomainScores,
-    ReportIndicators? Indicators,
+    // Section 04 : informations B1 à B11 de la norme volontaire et compléments
+    // (docs/specs/norme-volontaire.md, section 6). null : aucune donnée pour aucun exercice.
+    ReportSustainability? Sustainability,
     DateTimeOffset GeneratedAt,
     string ReferentialVersion,
     // docs/specs/abonnement.md, section 8 : false pour l'offre Starter, dont le document se
@@ -84,9 +87,69 @@ public sealed record ReportActionStatusSummary(int Planned, int InProgress, int 
 // la même histoire qu'au jour de sa complétion (section 3).
 public sealed record ReportHistoryPoint(DateTimeOffset CompletedAt, decimal GlobalScore);
 
-// Indicateurs quantitatifs saisis par l'entreprise (écran Indicateurs), pour l'année de
-// référence du rapport et, si elle existe, l'année précédente pour la tendance.
+// Indicateurs de MAAT que la norme volontaire ne demande pas (achats responsables,
+// économique…), présentés en compléments à la fin de la section 04 (§13 de la norme), pour
+// l'exercice du rapport et, s'il existe, l'exercice précédent pour la tendance.
 public sealed record ReportIndicators(int Year, int? PreviousYear, IReadOnlyList<ReportIndicator> Items);
+
+// docs/specs/norme-volontaire.md, section 6. Year : exercice présenté (le plus récent qui ne
+// dépasse pas l'année de complétion du diagnostic). PreviousYear : exercice précédent quand
+// il porte des données (§14, information comparative).
+public sealed record ReportSustainability(
+    int Year,
+    int? PreviousYear,
+    bool IsMicro,
+    bool IsCompliant,
+    int CompleteCount,
+    IReadOnlyList<ReportDisclosure> Disclosures,
+    ReportIndicators? Complements);
+
+// Une information B1 à B11 : son état de complétude (VsmeCompleteness), ses données, et ses
+// tableaux (sites, filiales, labels, polluants, ventilation énergétique…).
+public sealed record ReportDisclosure(
+    VsmeDisclosure Code,
+    string Title,
+    DisclosureState State,
+    IReadOnlyList<string> Missing,
+    IReadOnlyList<ReportDatapoint> Datapoints,
+    IReadOnlyList<ReportTable> Tables);
+
+// Pourquoi une donnée n'a pas de valeur : le rapport ne laisse jamais une case blanche.
+public enum DatapointAbsence
+{
+    // Donnée essentielle manquante.
+    NotProvided,
+    // Donnée facultative jusqu'à 10 salariés (§8), non saisie.
+    OptionalForMicro,
+    // Donnée « si applicable » (§15) dont la condition n'est pas remplie.
+    NotApplicable,
+}
+
+// Une donnée : un nombre (Value, avec son unité et sa valeur de l'exercice précédent), ou un
+// texte (Text : oui/non, forme juridique, description…). Sans l'un ni l'autre, Absence dit
+// pourquoi, et AbsenceNote peut préciser la condition non remplie.
+public sealed record ReportDatapoint(
+    string Label,
+    double? Value = null,
+    string? Unit = null,
+    double? PreviousValue = null,
+    int Decimals = 0,
+    string? Text = null,
+    DatapointAbsence? Absence = null,
+    string? AbsenceNote = null);
+
+public sealed record ReportTable(
+    string Title,
+    IReadOnlyList<string> Headers,
+    IReadOnlyList<IReadOnlyList<ReportCell>> Rows);
+
+// Cellule de tableau : un texte, ou un nombre que le générateur met en forme à la française
+// (FrenchFormat, sans dépendre des données de culture du serveur). Sans l'un ni l'autre, la
+// cellule affiche un tiret.
+public sealed record ReportCell(string? Text = null, double? Number = null, int Decimals = 0, string? Unit = null)
+{
+    public static implicit operator ReportCell(string? text) => new(Text: text);
+}
 
 // Group/Label/Unit : mêmes libellés que frontend/src/pages/IndicatorsPage.tsx.
 // HigherIsBetter : sens de lecture de la tendance (null quand la valeur n'a pas de bon sens

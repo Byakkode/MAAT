@@ -122,12 +122,13 @@ existaient déjà pour cette raison, c'est ici qu'ils sont encaissés.
 
 **Ce qui peut légitimement changer.** Deux blocs du document décrivent un état
 vivant, pas le diagnostic figé : l'avancement du plan d'actions (statut,
-responsable, échéance — `ActionItemProgress`) et les indicateurs RSE saisis par
-l'entreprise (`RseIndicators`). Les régénérer après une mise à jour doit
+responsable, échéance — `ActionItemProgress`) et les informations de durabilité
+saisies par l'entreprise (`RseIndicators`, `VsmeStatement`, `CompanySite`,
+`norme-volontaire.md`). Les régénérer après une mise à jour doit
 refléter cette mise à jour — c'est précisément ce qui permet de montrer qu'on a
 agi. Le bloc Mentions le dit explicitement : ces deux blocs sont présentés tels
 qu'ils étaient enregistrés à la date de génération. La règle devient : **à
-données d'entrée identiques** (diagnostic, suivi, indicateurs, offre effective),
+données d'entrée identiques** (diagnostic, suivi, informations de durabilité, offre effective),
 octets identiques. L'offre compte parmi les entrées : en Starter, le document se
 réduit à une page de garde et aux Mentions (`abonnement.md`, section 8).
 
@@ -200,18 +201,25 @@ Le statut vient de `ActionItemProgress`, sauf quand la case a été cochée depu
 le tableau de bord (`DiagnosticRecommendation.is_completed`) : l'action est
 alors terminée, même sans ligne de suivi. Sans suivi ni case cochée : planifié.
 
-**04 — Indicateurs RSE.** Les indicateurs quantitatifs saisis par l'entreprise
-(environnement, social, achats responsables, économique), mêmes libellés et
-mêmes unités que l'écran Indicateurs. Année de référence : la plus récente qui
-ne dépasse pas l'année de complétion du diagnostic ; l'année précédente, si
-elle est renseignée, donne la tendance — en points pour les taux, en
-pourcentage sinon, en vert quand l'évolution est favorable. Sans aucun
-indicateur, un encart invite à les saisir. Les valeurs sont annoncées comme
-déclaratives et non vérifiées par un tiers.
+**04 — Informations de durabilité.** Le module de base de la norme volontaire
+européenne (ex-VSME, règlement délégué (UE) 2026/1560), information par
+information de B1 à B11, puis les compléments propres à MAAT : le détail est
+dans `norme-volontaire.md`, section 6. Exercice présenté : le plus récent, parmi
+ceux qui portent des indicateurs ou des déclarations, qui ne dépasse pas l'année
+de complétion du diagnostic ; l'exercice précédent, s'il est renseigné, donne la
+colonne comparative. En tête, la déclaration de conformité au module de base,
+écrite **seulement** si toutes les informations sont complètes ou omises au
+titre du §22 ; sinon « rapport partiel » et la liste de ce qui manque. Une
+donnée absente dit pourquoi (non renseignée, facultative jusqu'à 10 salariés,
+non applicable), jamais une case blanche. Les compléments gardent leur tendance
+(en points pour les taux, en pourcentage sinon, en vert quand l'évolution est
+favorable). Sans aucune donnée pour aucun exercice, un encart invite à la
+saisie. Les valeurs sont annoncées comme déclaratives et non vérifiées par un
+tiers.
 
 **05 — Comprendre votre score.** La méthode en trois étapes (réponses notées de
 0 à 5 et pondérées, score de domaine, pondération sectorielle) et les trois
-référentiels (VSME, ISO 26000, GRI) : c'est ce qui distingue le document d'un
+référentiels (norme volontaire ex-VSME, ISO 26000, GRI) : c'est ce qui distingue le document d'un
 questionnaire rempli — un donneur d'ordres doit pouvoir comprendre d'où sort le
 chiffre. Puis le tableau de détail : domaine, score sur 100, numérateur et
 dénominateur exposés par `ScoringService` (`scoring.md`, section Traçabilité),
@@ -252,8 +260,8 @@ qu'un jury attaquera si elle n'apparaît pas dans le livrable lui-même.
 
 Y ajouter la date de génération, le numéro de version du référentiel de
 questions, la mention que le score reflète les réponses au jour de la
-complétion, et celle que l'avancement du plan d'actions et les indicateurs sont
-présentés tels qu'enregistrés à la date de génération (section 3).
+complétion, et celle que l'avancement du plan d'actions et les informations de
+durabilité sont présentés tels qu'enregistrés à la date de génération (section 3).
 
 ---
 
@@ -423,8 +431,10 @@ cas limite d'un seul domaine actif.
 
 **Mise en page et contenu enrichi**
 
-24. Un rapport complet (historique, indicateurs, suivi du plan d'actions) se
-    génère sans exception de mise en page.
+24. Un rapport complet (historique, informations de durabilité, suivi du plan
+    d'actions) se génère sans exception de mise en page ; la section 04 aussi,
+    qu'elle soit conforme, partielle, avec information omise, pour une
+    micro-entreprise, avec cinquante sites ou des descriptions longues.
 25. Premier diagnostic, sans indicateur ni suivi : chaque section remplace son
     contenu par un message explicite, le document reste valide.
 26. Cas limites : un seul domaine actif, plan d'actions vide, toutes les actions
@@ -436,7 +446,7 @@ cas limite d'un seul domaine actif.
 28. Le statut, le responsable et l'échéance saisis à l'écran Plan d'actions
     figurent dans le rapport ; une case cochée depuis le tableau de bord donne
     le statut terminé ; la répartition des statuts porte sur tout le plan.
-29. Indicateurs : l'année de référence est la plus récente qui ne dépasse pas
+29. Informations de durabilité : l'exercice de référence est la plus récente qui ne dépasse pas
     l'année de complétion, l'année précédente sert à la tendance, une année
     postérieure est ignorée.
 30. L'historique d'un rapport s'arrête à son diagnostic : régénérer le rapport

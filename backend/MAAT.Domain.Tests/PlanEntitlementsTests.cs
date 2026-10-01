@@ -66,7 +66,8 @@ public class PlanEntitlementsTests
         Assert.Equal(12, essential.VisibleRecommendations);
         Assert.True(essential.CanTrackActions);
         Assert.False(essential.CanEditActionPlan);
-        Assert.False(essential.CanEditIndicators);
+        // norme-volontaire.md : le rapport selon la norme volontaire (Essential) en dépend.
+        Assert.True(essential.CanEditIndicators);
         Assert.False(essential.CanViewBenchmark);
         Assert.True(essential.CanOpenSupportTickets);
         Assert.True(essential.FullReport);

@@ -8,6 +8,7 @@ import { AuthPanel } from '../components/auth/AuthPanel'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { NafCombobox } from '../components/ui/NafCombobox'
+import { Select } from '../components/ui/Select'
 import { REGIONS, type Region } from '../constants/regions'
 import { LogoHorizontal } from '../components/ui/Logo'
 import { SectionLabel } from '../landing/primitives'
@@ -151,18 +152,13 @@ export function RegisterPage() {
                 <label htmlFor="register-region" className="text-[13px] font-medium text-text">
                   Région
                 </label>
-                <select
+                <Select<Region>
                   id="register-region"
                   value={region}
-                  onChange={(e) => setRegion(e.target.value as Region)}
-                  className="w-full rounded-[10px] border border-border bg-white px-3.5 py-2.5 text-sm text-text shadow-[0_1px_2px_rgba(0,0,0,0.04)] focus:border-blue-maat/70 focus:outline-none focus:ring-2 focus:ring-blue-maat/10 transition-all duration-150"
-                >
-                  {REGIONS.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setRegion}
+                  options={REGIONS.map((r) => ({ value: r, label: r }))}
+                  className="h-[42px] px-3.5 text-sm"
+                />
               </div>
             </div>
 
@@ -177,18 +173,13 @@ export function RegisterPage() {
               <label htmlFor="register-size-range" className="text-[13px] font-medium text-text">
                 Tranche d&apos;effectif
               </label>
-              <select
+              <Select<CompanySizeRange>
                 id="register-size-range"
                 value={sizeRange}
-                onChange={(e) => setSizeRange(e.target.value as CompanySizeRange)}
-                className="w-full rounded-[10px] border border-border bg-white px-3.5 py-2.5 text-sm text-text shadow-[0_1px_2px_rgba(0,0,0,0.04)] focus:border-blue-maat/70 focus:outline-none focus:ring-2 focus:ring-blue-maat/10 transition-all duration-150"
-              >
-                {Object.entries(SIZE_RANGE_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+                onChange={setSizeRange}
+                options={(Object.keys(SIZE_RANGE_LABELS) as CompanySizeRange[]).map((value) => ({ value, label: SIZE_RANGE_LABELS[value] }))}
+                className="h-[42px] px-3.5 text-sm"
+              />
             </div>
 
             {error && (

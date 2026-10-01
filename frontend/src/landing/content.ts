@@ -15,11 +15,11 @@ export interface DomainInfo {
 }
 
 export const DOMAINS: readonly DomainInfo[] = [
-  { key: 'Environmental', label: 'Environnement', anchor: 'VSME B3–B7 · ESRS E1–E5', color: DOMAIN_COLORS.Environmental },
-  { key: 'Social', label: 'Social & droits humains', anchor: 'VSME B8–B10 · ESRS S1–S4', color: DOMAIN_COLORS.Social },
-  { key: 'Ethics', label: 'Éthique des affaires', anchor: 'VSME B11 · ESRS G1', color: DOMAIN_COLORS.Ethics },
+  { key: 'Environmental', label: 'Environnement', anchor: 'Norme volontaire B3–B7 · ESRS E1–E5', color: DOMAIN_COLORS.Environmental },
+  { key: 'Social', label: 'Social & droits humains', anchor: 'Norme volontaire B8–B10 · ESRS S1–S4', color: DOMAIN_COLORS.Social },
+  { key: 'Ethics', label: 'Éthique des affaires', anchor: 'Norme volontaire B11 · ESRS G1', color: DOMAIN_COLORS.Ethics },
   { key: 'Procurement', label: 'Achats responsables', anchor: 'ISO 26000 §6.6.6 · EcoVadis', color: DOMAIN_COLORS.Procurement },
-  { key: 'Governance', label: 'Gouvernance & pilotage', anchor: 'VSME B1–B2, C1, C9', color: DOMAIN_COLORS.Governance },
+  { key: 'Governance', label: 'Gouvernance & pilotage', anchor: 'Norme volontaire B1–B2, C1, C9', color: DOMAIN_COLORS.Governance },
 ]
 
 export interface SectorInfo {

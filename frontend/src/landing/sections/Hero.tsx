@@ -12,7 +12,7 @@ const HEADLINE = ["La RSE d’une PME", 'se mesure en', 'trente minutes.']
 
 const FIGURES = [
   { value: '45', text: 'questions écrites pour des dirigeants, pas pour des auditeurs' },
-  { value: '5', text: 'domaines alignés sur le VSME, les ESRS et l’ISO 26000' },
+  { value: '5', text: 'domaines alignés sur la norme volontaire (ex-VSME), les ESRS et l’ISO 26000' },
   { value: '19', text: 'sections NAF, chacune avec sa propre pondération' },
   { value: '0', text: 'rapport conservé : chaque PDF est régénéré à la demande' },
 ]
@@ -31,7 +31,7 @@ export function Hero() {
             transition={{ duration: 0.8, ease: EASE_OUT }}
           >
             <span className="h-2 w-2 rounded-[2px] bg-green-maat" aria-hidden="true" />
-            Diagnostic RSE pour PME · Rapport conforme au standard VSME
+            Diagnostic RSE pour PME · Rapport selon la norme volontaire (ex-VSME)
           </motion.p>
 
           <h1 id="hero-title" className="display mt-7 text-[clamp(2.35rem,8vw,7rem)] text-text">
