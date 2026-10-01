@@ -3,6 +3,8 @@ import { type ChangeEvent, type ReactNode, useId, useState } from 'react'
 import type { DisclosureCompleteness, VsmeDisclosure } from '../../api/vsmeApi'
 import { VSME_DISCLOSURE_LABELS } from '../../constants/vsme'
 import { Card } from '../ui/Card'
+import { Select } from '../ui/Select'
+import { SuggestionInput } from '../ui/SuggestionInput'
 
 // Champs de l'écran Indicateurs pour la norme volontaire (docs/specs/norme-volontaire.md,
 // section 5). Libellé au-dessus du champ, unité dans le champ, deux colonnes sur grand écran :
@@ -198,7 +200,7 @@ export function TextField({
   onChange,
   readOnly,
   hint,
-  list,
+  suggestions,
   placeholder,
   wide,
 }: {
@@ -208,23 +210,36 @@ export function TextField({
   onChange: (value: string | null) => void
   readOnly: boolean
   hint?: string
-  list?: string
+  // Saisie libre, avec des suggestions présentées dans la liste du site (SuggestionInput).
+  suggestions?: string[]
   placeholder?: string
   wide?: boolean
 }) {
   return (
     <Field htmlFor={id} label={label} hint={hint} wide={wide}>
-      <input
-        id={id}
-        type="text"
-        value={value ?? ''}
-        list={list}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value === '' ? null : e.target.value)}
-        readOnly={readOnly}
-        maxLength={200}
-        className={INPUT_CLASS}
-      />
+      {suggestions ? (
+        <SuggestionInput
+          id={id}
+          value={value}
+          suggestions={suggestions}
+          onChange={onChange}
+          readOnly={readOnly}
+          placeholder={placeholder}
+          maxLength={200}
+          className={INPUT_CLASS}
+        />
+      ) : (
+        <input
+          id={id}
+          type="text"
+          value={value ?? ''}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value === '' ? null : e.target.value)}
+          readOnly={readOnly}
+          maxLength={200}
+          className={INPUT_CLASS}
+        />
+      )}
     </Field>
   )
 }
@@ -276,20 +291,7 @@ export function SelectField<T extends string>({
 }) {
   return (
     <Field htmlFor={id} label={label}>
-      <select
-        id={id}
-        value={value ?? ''}
-        onChange={(e) => onChange(e.target.value === '' ? null : (e.target.value as T))}
-        disabled={readOnly}
-        className={INPUT_CLASS}
-      >
-        <option value="">Choisir…</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <Select<T> id={id} value={value} options={options} onChange={onChange} disabled={readOnly} />
     </Field>
   )
 }

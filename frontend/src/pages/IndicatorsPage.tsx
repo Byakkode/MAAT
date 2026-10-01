@@ -21,7 +21,9 @@ import type {
 } from '../api/vsmeApi'
 import { EMPTY_STATEMENT } from '../api/vsmeApi'
 import { Card } from '../components/ui/Card'
+import { DatePicker } from '../components/ui/DatePicker'
 import { PageHeader } from '../components/ui/PageHeader'
+import { Select } from '../components/ui/Select'
 import { useEntitlements } from '../billing/entitlements'
 import { UpgradeNotice } from '../components/billing/UpgradeNotice'
 import { SitesEditor } from '../components/indicators/SitesEditor'
@@ -280,21 +282,16 @@ export function IndicatorsPage() {
           title="Indicateurs RSE"
           subtitle="Informations de durabilité de l’exercice, selon la norme volontaire européenne (ex-VSME)"
         />
-        <label className="flex items-center gap-2 text-[13px] text-text-muted">
-          Exercice
-          <select
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
+        <div className="flex items-center gap-2 text-[13px] text-text-muted">
+          <span aria-hidden>Exercice</span>
+          <Select
             aria-label="Sélectionner l'année"
-            className="h-10 rounded-input border border-border bg-white px-3 text-[13.5px] font-medium text-text shadow-input focus:border-blue-maat focus:outline-none focus:ring-2 focus:ring-blue-maat/15"
-          >
-            {YEAR_OPTIONS.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
-        </label>
+            value={String(year)}
+            options={YEAR_OPTIONS.map((y) => ({ value: String(y), label: String(y) }))}
+            onChange={(value) => setYear(Number(value))}
+            className="w-28 font-medium"
+          />
+        </div>
       </div>
 
       {!canEditIndicators && (
@@ -380,12 +377,7 @@ export function IndicatorsPage() {
                       onChange={(value) => setField('reportingBasis', value)}
                       readOnly={readOnly}
                     />
-                    <TextField id="st-legalForm" label="Forme juridique" value={statement.legalForm} onChange={(v) => setField('legalForm', v)} readOnly={readOnly} list="legal-forms" placeholder="SAS, SARL…" />
-                    <datalist id="legal-forms">
-                      {LEGAL_FORM_SUGGESTIONS.map((form) => (
-                        <option key={form} value={form} />
-                      ))}
-                    </datalist>
+                    <TextField id="st-legalForm" label="Forme juridique" value={statement.legalForm} onChange={(v) => setField('legalForm', v)} readOnly={readOnly} suggestions={LEGAL_FORM_SUGGESTIONS} placeholder="SAS, SARL…" />
                     {statement.reportingBasis === 'Consolidated' && (
                       <ListEditor<Subsidiary>
                         label="Filiales incluses dans le rapport"
@@ -419,7 +411,7 @@ export function IndicatorsPage() {
                         <>
                           <input aria-label={`Label ${index + 1}`} value={item.name} readOnly={readOnly} onChange={(e) => update({ ...item, name: e.target.value })} className={LIST_INPUT_CLASS} placeholder="Label" />
                           <input aria-label={`Organisme du label ${index + 1}`} value={item.issuer ?? ''} readOnly={readOnly} onChange={(e) => update({ ...item, issuer: e.target.value || null })} className={LIST_INPUT_CLASS} placeholder="Organisme" />
-                          <input aria-label={`Date du label ${index + 1}`} type="date" value={item.obtainedOn ?? ''} readOnly={readOnly} onChange={(e) => update({ ...item, obtainedOn: e.target.value || null })} className={LIST_INPUT_CLASS} />
+                          <DatePicker aria-label={`Date du label ${index + 1}`} value={item.obtainedOn} disabled={readOnly} onChange={(value) => update({ ...item, obtainedOn: value })} placeholder="Date d’obtention" />
                           <input aria-label={`Note du label ${index + 1}`} value={item.rating ?? ''} readOnly={readOnly} onChange={(e) => update({ ...item, rating: e.target.value || null })} className={LIST_INPUT_CLASS} placeholder="Note" />
                         </>
                       )}
@@ -483,13 +475,13 @@ export function IndicatorsPage() {
                           renderItem={(item, update, index) => (
                             <>
                               <input aria-label={`Polluant ${index + 1}`} value={item.name} readOnly={readOnly} onChange={(e) => update({ ...item, name: e.target.value })} className={LIST_INPUT_CLASS} placeholder="Polluant" />
-                              <select aria-label={`Milieu du polluant ${index + 1}`} value={item.medium} disabled={readOnly} onChange={(e) => update({ ...item, medium: e.target.value as PollutionMedium })} className={LIST_INPUT_CLASS}>
-                                {(Object.keys(MEDIUM_LABELS) as PollutionMedium[]).map((medium) => (
-                                  <option key={medium} value={medium}>
-                                    {MEDIUM_LABELS[medium]}
-                                  </option>
-                                ))}
-                              </select>
+                              <Select<PollutionMedium>
+                                aria-label={`Milieu du polluant ${index + 1}`}
+                                value={item.medium}
+                                disabled={readOnly}
+                                onChange={(medium) => update({ ...item, medium })}
+                                options={(Object.keys(MEDIUM_LABELS) as PollutionMedium[]).map((medium) => ({ value: medium, label: MEDIUM_LABELS[medium] }))}
+                              />
                               <input aria-label={`Quantité du polluant ${index + 1}`} type="number" min={0} step="any" value={item.quantity} readOnly={readOnly} onChange={(e) => update({ ...item, quantity: parseFloat(e.target.value) || 0 })} className={LIST_INPUT_CLASS} />
                               <input aria-label={`Unité du polluant ${index + 1}`} value={item.unit} readOnly={readOnly} onChange={(e) => update({ ...item, unit: e.target.value })} className={LIST_INPUT_CLASS} placeholder="kg, t…" />
                             </>

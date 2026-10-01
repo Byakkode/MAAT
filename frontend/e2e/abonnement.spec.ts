@@ -18,7 +18,8 @@ async function registerAndLogin(page: Page, registerUrl: string): Promise<void> 
   await page.getByLabel("Nom de l'entreprise").fill(`Entreprise E2E ${suffix}`)
   await page.getByLabel('Code NAF').fill('6201Z')
   await page.getByRole('option', { name: /6201Z/ }).first().click()
-  await page.getByLabel('Région').selectOption('Île-de-France')
+  await page.getByLabel('Région').click()
+  await page.getByRole('option', { name: 'Île-de-France' }).click()
   // bcrypt WorkFactor=12 : attendre la réponse réseau plutôt qu'un délai arbitraire.
   await Promise.all([
     page.waitForResponse((resp) => resp.url().includes('/api/auth/register') && resp.request().method() === 'POST'),

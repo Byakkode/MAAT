@@ -37,7 +37,9 @@ function fillMandatoryFields() {
   fireEvent.change(nafInput, { target: { value: '6201Z' } })
   fireEvent.keyDown(nafInput, { key: 'ArrowDown' })
   fireEvent.keyDown(nafInput, { key: 'Enter' })
-  fireEvent.change(screen.getByLabelText('Région'), { target: { value: 'Île-de-France' } })
+  // Liste Radix (components/ui/Select.tsx) : Entrée l'ouvre, un clic choisit l'option.
+  fireEvent.keyDown(screen.getByLabelText('Région'), { key: 'Enter' })
+  fireEvent.click(screen.getByRole('option', { name: 'Île-de-France' }))
 }
 
 describe('RegisterPage', () => {

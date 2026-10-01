@@ -19,6 +19,7 @@ import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { PageHeader } from '../components/ui/PageHeader'
 import { buttonLinkClass } from '../components/ui/buttonStyles'
+import { DatePicker } from '../components/ui/DatePicker'
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -312,12 +313,11 @@ function ActionItemCardComponent({ item, mode, diagnosticId, canViewHistory, onS
               <label htmlFor={`due-${item.code}`} className={FIELD_LABEL}>
                 Échéance
               </label>
-              <input
+              <DatePicker
                 id={`due-${item.code}`}
-                type="date"
-                value={localDueDate}
-                onChange={(e) => edit(setLocalDueDate)(e.target.value)}
-                className={FIELD_INPUT}
+                value={localDueDate || null}
+                onChange={(value) => edit(setLocalDueDate)(value ?? '')}
+                className="h-auto rounded-lg bg-bg py-2 text-[13px] shadow-none"
               />
             </div>
           </div>

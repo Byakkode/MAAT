@@ -1,9 +1,10 @@
 import { CheckCircle2, Leaf, MapPin, Pencil, Plus, Trash2, TriangleAlert } from 'lucide-react'
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useId, useState } from 'react'
 import { ApiError } from '../../api/authApi'
 import * as vsmeApi from '../../api/vsmeApi'
 import type { CompanySite, CompanySiteInput, SiteTenure } from '../../api/vsmeApi'
 import { SITE_TENURE_LABELS } from '../../constants/vsme'
+import { Select } from '../ui/Select'
 import { INPUT_CLASS, YesNoField } from './VsmeFields'
 
 // docs/specs/norme-volontaire.md : sites de l'entreprise (B1 géolocalisation, B5 zones
@@ -62,6 +63,7 @@ function SiteForm({
 }) {
   const [site, setSite] = useState(initial)
   const [saving, setSaving] = useState(false)
+  const tenureId = useId()
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: FormEvent) {
@@ -82,16 +84,19 @@ function SiteForm({
         Nom du site
         <input value={site.name} onChange={(e) => setSite({ ...site, name: e.target.value })} required maxLength={120} className={`${INPUT_CLASS} mt-1.5`} />
       </label>
-      <label className="block text-[13px] font-medium text-text">
-        Statut
-        <select value={site.tenure} onChange={(e) => setSite({ ...site, tenure: e.target.value as SiteTenure })} className={`${INPUT_CLASS} mt-1.5`}>
-          {Object.entries(SITE_TENURE_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div>
+        <label htmlFor={tenureId} className="block text-[13px] font-medium text-text">
+          Statut
+        </label>
+        <div className="mt-1.5">
+          <Select<SiteTenure>
+            id={tenureId}
+            value={site.tenure}
+            onChange={(tenure) => setSite({ ...site, tenure })}
+            options={(Object.keys(SITE_TENURE_LABELS) as SiteTenure[]).map((tenure) => ({ value: tenure, label: SITE_TENURE_LABELS[tenure] }))}
+          />
+        </div>
+      </div>
       <label className="block text-[13px] font-medium text-text sm:col-span-2">
         Adresse postale complète
         <input
